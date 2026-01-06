@@ -1,0 +1,28 @@
+# Node.js / Vite
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env
+.env.local
+.env.*.local
+.DS_Store
+Thumbs.db
+coverage/
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.log
+
+# Project specific
+pdf_content.txt
+pdf_analysis.json
