@@ -8,6 +8,7 @@ import { POManagement } from './pages/POManagement';
 import { PartsInventory } from './pages/PartsInventory';
 import { ServiceJobs } from './pages/ServiceJobs';
 import { ComplaintsAnalysis } from './pages/ComplaintsAnalysis';
+import { ASCPerformance } from './pages/ASCPerformance';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ function AppContent() {
         <Route path="/asc/parts" element={<PartsInventory />} />
         <Route path="/asc/jobs" element={<ServiceJobs />} />
         <Route path="/asc/complaints" element={<ComplaintsAnalysis />} />
+        <Route path="/asc/performance" element={<ASCPerformance />} />
       </Routes>
     </AppLayout>
   );
