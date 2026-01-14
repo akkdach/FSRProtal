@@ -49,11 +49,11 @@ export const ASCPerformance: React.FC = () => {
                 size: 150,
             },
             {
-                accessorKey: 'customername',
+                accessorKey: 'bpc_customername',
                 header: 'Customer Name',
             },
             {
-                accessorKey: 'bpc_param_3', // Often serial number
+                accessorKey: 'bpc_serialnumber',
                 header: 'Serial Number',
             },
             {
@@ -78,7 +78,7 @@ export const ASCPerformance: React.FC = () => {
             setIsLoading(true);
             setIsError(false);
             try {
-                const response = await fetch(`http://localhost:3005/api/fsr-protal/orders?view=${currentView}&limit=500`);
+                const response = await fetch(`http://localhost:3005/api/fsr-protal/orders?view=${currentView}`);
                 const result = await response.json();
 
                 if (!response.ok) {

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const proIoTController = require('../controllers/proIoTController');
-const fsrProtalController = require('../controllers/fsrProtalController');
+const fsrProtalController = require('../controllers/fsrProtalController_graphql'); // Using GraphQL API (Port 443)
 
 // Project: Pro IoT Board
 router.get('/orders', (req, res) => proIoTController.getOrders(req, res));

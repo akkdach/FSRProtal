@@ -17,8 +17,8 @@ module.exports = {
     },
     limits: {
         batchSize: 10,      // Smaller batches
-        maxRecords: 5000,
-        maxFiles: 200       // Increased to find BN15 data
+        maxRecords: 50000,  // Increased to 50k
+        maxFiles: 1000      // Limit to 1000 as requested
     },
     auth: {
         tenantId: process.env.AZURE_TENANT_ID,
@@ -30,7 +30,10 @@ module.exports = {
         database: "dataverse_bevproasia_cds2_workspace_unq520782ff3395f011a701000d3aa2b",
         options: {
             encrypt: true,
-            trustServerCertificate: true
+            trustServerCertificate: false,
+            connectTimeout: 30000,
+            requestTimeout: 30000,
+            port: 1433
         },
         authentication: {
             type: 'azure-active-directory-service-principal-secret',
@@ -39,6 +42,11 @@ module.exports = {
                 clientSecret: process.env.AZURE_CLIENT_SECRET,
                 tenantId: process.env.AZURE_TENANT_ID
             }
+        },
+        pool: {
+            max: 10,
+            min: 0,
+            idleTimeoutMillis: 30000
         }
     },
     cache: {
