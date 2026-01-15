@@ -13,6 +13,7 @@ const VIEWS = [
     { id: 'Service_BN04_Install', label: 'Install (BN04)' },
     { id: 'Service_BN09_Remove', label: 'Remove (BN09)' },
     { id: 'Service_BN15_Refurbish', label: 'Refurbish (BN15)' },
+    { id: 'Service_Summary_All', label: 'Summary' },
 ];
 
 export const ASCPerformance: React.FC = () => {
@@ -25,52 +26,291 @@ export const ASCPerformance: React.FC = () => {
     // For now, let's define some common important columns and let MRT auto-discover if needed,
     // or just map top 10 fields.
     const columns = useMemo<MRT_ColumnDef<any>[]>(
-        () => [
-            // Filter columns (for debugging - currently undefined in Parquet data)
-            {
-                accessorKey: 'bpc_serviceordertypecode',
-                header: 'Service Order Type',
-                size: 150,
-            },
-            {
-                accessorKey: 'bpc_maintenanceactivitytypecode',
-                header: 'Maintenance Activity',
-                size: 150,
-            },
-            {
-                accessorKey: 'bpc_serviceobjectgroup',
-                header: 'Service Object Group',
-                size: 150,
-            },
-            // Existing columns
-            {
-                accessorKey: 'serviceorderid', //access nested data with dot notation
-                header: 'Service Order ID',
-                size: 150,
-            },
-            {
-                accessorKey: 'bpc_customername',
-                header: 'Customer Name',
-            },
-            {
-                accessorKey: 'bpc_serialnumber',
-                header: 'Serial Number',
-            },
-            {
-                accessorKey: 'bpc_storecode',
-                header: 'Store Code',
-            },
-            {
-                accessorKey: 'bpc_slafinishdate',
-                header: 'SLA Finish Date',
-                Cell: ({ cell }) => moment(cell.getValue<string>()).format('DD/MM/YYYY HH:mm'),
-            },
-            {
-                accessorKey: 'serviceorderstatus',
-                header: 'Status',
-            },
-        ],
-        [],
+        () => {
+            if (currentView === 'Service_Summary_All') {
+                return [
+                    {
+                        id: 'pickup_nr_col',
+                        accessorFn: (row) => row.bpc_ticketno,
+                        header: 'Pick-up Nr',
+                        size: 150,
+                    },
+
+                    {
+                        accessorKey: 'install_type',
+                        header: 'BN04 Type',
+                        size: 150,
+                    },
+                    {
+                        // Use accessorFn + id to avoid conflict with standard view's column
+                        id: 'bn09_type',
+                        accessorFn: (row) => row.bpc_serviceordertypecode,
+                        header: 'BN09 Type',
+                        size: 150,
+                    },
+                    {
+                        header: 'BN15 Type',
+                        accessorKey: 'refurb_type',
+                        size: 150,
+                    },
+                    {
+                        accessorKey: 'bpc_maintenanceactivitytypecode',
+                        header: 'Maintenance Activity',
+                        size: 150,
+                    },
+                    {
+                        accessorKey: 'bpc_serviceobjectgroup',
+                        header: 'Service Object Group',
+                        size: 150,
+                    },
+                    {
+                        accessorKey: 'serviceorderid',
+                        header: 'Service Order ID',
+                        size: 150,
+                    },
+                    {
+                        accessorKey: 'bpc_customername',
+                        header: 'Customer Name',
+                    },
+                    {
+                        accessorKey: 'bpc_notifdate',
+                        header: 'Pick-up Date',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                        },
+                    },
+                    {
+                        accessorKey: 'bpc_scheduledstart',
+                        header: 'Pick-up On',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                        },
+                    },
+
+                    {
+                        accessorKey: 'bpc_customerbranch',
+                        header: 'third',
+                    },
+                    {
+                        id: 'serial_nr_col',
+                        accessorFn: (row) => row.bpc_serialnumber,
+                        header: 'Serial Nr',
+                    },
+                    {
+                        accessorKey: 'bpc_actualstartdate',
+                        header: 'Return Date',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                        },
+                    },
+                    {
+                        accessorKey: 'bpc_scheduledstart',
+                        header: 'Return Date Checking',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                        },
+                    },
+                    {
+                        id: 'pickup_month_col',
+                        accessorFn: (row) => row.bpc_scheduledstart,
+                        header: 'Pick up month',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return (val && !val.startsWith('1900')) ? moment.utc(val).format('MM') : '';
+                        },
+                        size: 100,
+                    },
+                    {
+                        id: 'pickup_year_col',
+                        accessorFn: (row) => row.bpc_scheduledstart,
+                        header: 'Pick up year',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return (val && !val.startsWith('1900')) ? moment.utc(val).format('YYYY') : '';
+                        },
+                        size: 100,
+                    },
+                    {
+                        id: 'return_month_col',
+                        accessorFn: (row) => row.bpc_scheduledstart,
+                        header: 'Return month',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return (val && !val.startsWith('1900')) ? moment.utc(val).format('MM') : '';
+                        },
+                        size: 100,
+                    },
+                    {
+                        id: 'return_year_col',
+                        accessorFn: (row) => row.bpc_scheduledstart,
+                        header: 'Return year',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return (val && !val.startsWith('1900')) ? moment.utc(val).format('YYYY') : '';
+                        },
+                        size: 100,
+                    },
+
+
+                    {
+                        accessorKey: 'bpc_model',
+                        header: 'Machine Model',
+                    },
+                    {
+                        accessorKey: 'bpc_modelnodescription',
+                        header: 'Machine Type',
+                    },
+                    {
+                        accessorKey: 'bpc_slafinishdate',
+                        header: 'SLA Finish Date',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                        },
+                    },
+                ];
+            }
+
+            // Standard Columns for other views
+            return [
+                {
+                    id: 'pickup_nr_col',
+                    accessorFn: (row) => row.bpc_ticketno,
+                    header: 'Pick-up Nr',
+                    size: 150,
+                },
+
+                // Filter columns (for debugging - currently undefined in Parquet data)
+                {
+                    accessorKey: 'bpc_serviceordertypecode',
+                    header: 'Service Order Type',
+                    size: 150,
+                },
+                {
+                    accessorKey: 'bpc_maintenanceactivitytypecode',
+                    header: 'Maintenance Activity',
+                    size: 150,
+                },
+                {
+                    accessorKey: 'bpc_serviceobjectgroup',
+                    header: 'Service Object Group',
+                    size: 150,
+                },
+                // Existing columns
+                {
+                    accessorKey: 'serviceorderid', //access nested data with dot notation
+                    header: 'Service Order ID',
+                    size: 150,
+                },
+                {
+                    accessorKey: 'bpc_customername',
+                    header: 'Customer Name',
+                },
+                {
+                    accessorKey: 'bpc_notifdate',
+                    header: 'Pick-up Date',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                    },
+                },
+                {
+                    accessorKey: 'bpc_scheduledstart',
+                    header: 'Pick-up On',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                    },
+                },
+
+                {
+                    accessorKey: 'bpc_customerbranch',
+                    header: 'third',
+                },
+                {
+                    id: 'serial_nr_col',
+                    accessorFn: (row) => row.bpc_serialnumber,
+                    header: 'Serial Nr',
+                },
+                {
+                    accessorKey: 'bpc_actualstartdate',
+                    header: 'Return Date',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                    },
+                },
+                {
+                    accessorKey: 'bpc_scheduledstart',
+                    header: 'Return Date Checking',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                    },
+                },
+                {
+                    id: 'pickup_month_col',
+                    accessorFn: (row) => row.bpc_scheduledstart,
+                    header: 'Pick up month',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('MM') : '';
+                    },
+                    size: 100,
+                },
+                {
+                    id: 'pickup_year_col',
+                    accessorFn: (row) => row.bpc_scheduledstart,
+                    header: 'Pick up year',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('YYYY') : '';
+                    },
+                    size: 100,
+                },
+                {
+                    id: 'return_month_col',
+                    accessorFn: (row) => row.bpc_scheduledstart,
+                    header: 'Return month',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('MM') : '';
+                    },
+                    size: 100,
+                },
+                {
+                    id: 'return_year_col',
+                    accessorFn: (row) => row.bpc_scheduledstart,
+                    header: 'Return year',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('YYYY') : '';
+                    },
+                    size: 100,
+                },
+                {
+                    accessorKey: 'bpc_model',
+                    header: 'Machine Model',
+                },
+                {
+                    accessorKey: 'bpc_modelnodescription',
+                    header: 'Machine Type',
+                },
+                {
+                    accessorKey: 'bpc_slafinishdate',
+                    header: 'SLA Finish Date',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                    },
+                },
+            ];
+        },
+        [currentView], // Re-calculate columns when view changes
     );
 
     useEffect(() => {
@@ -116,7 +356,7 @@ export const ASCPerformance: React.FC = () => {
                 Performance Dashboard
             </Typography>
 
-            <Paper sx={{ mb: 2, p: 1 }}>
+            <Paper sx={{ mb: 2, p: 1, width: 'fit-content' }}>
                 <ToggleButtonGroup
                     color="primary"
                     value={currentView}
@@ -133,11 +373,16 @@ export const ASCPerformance: React.FC = () => {
             </Paper>
 
             <MaterialReactTable
+                key={currentView + '_v4'} // Force re-render/reset state when view changes
                 columns={columns}
                 data={data}
+                enableColumnOrdering={false}
+                enableColumnDragging={false}
+                enablePinning={false}
                 state={{
                     isLoading: isLoading,
                     showAlertBanner: isError,
+                    columnOrder: columns.map((col: any) => col.id || col.accessorKey),
                 }}
                 muiToolbarAlertBannerProps={
                     isError

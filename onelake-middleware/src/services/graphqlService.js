@@ -55,9 +55,18 @@ class GraphQLService {
                             serviceorderid
                             bpc_customername
                             bpc_serialnumber
+                            bpc_ticketno
+                            createdon
                             bpc_serviceordertypecode
                             bpc_maintenanceactivitytypecode
                             bpc_serviceobjectgroup
+                            bpc_slafinishdate
+                            bpc_notifdate
+                            bpc_scheduledstart
+                            bpc_customerbranch
+                            bpc_actualstartdate
+                            bpc_model
+                            bpc_modelnodescription
                         }
                     }
                 }`
