@@ -12,6 +12,7 @@ class FSRProtalController {
                 'Service_BN04_Install',
                 'Service_BN09_Remove',
                 'Service_BN15_Refurbish',
+                'Service_BN15_Refurbish_NB2CLOAN', // New View
                 'Service_Summary_All' // New Summary View
             ];
 
@@ -22,17 +23,18 @@ class FSRProtalController {
             logToFile(`[FSRProtal-GraphQL] API Request: /api/fsr-protal/orders?view=${viewName}&page=${page}&limit=${limit || 'all'}`);
 
             let allData = [];
-            const RELATED_VIEWS = ['Service_BN04_Install', 'Service_BN09_Remove', 'Service_BN15_Refurbish', 'Service_Summary_All'];
+            const RELATED_VIEWS = ['Service_BN04_Install', 'Service_BN09_Remove', 'Service_BN15_Refurbish', 'Service_BN15_Refurbish_NB2CLOAN', 'Service_Summary_All'];
 
             // If the view is one of our related set, ALWAYS use BN09 as the Master/Base
             if (RELATED_VIEWS.includes(viewName)) {
                 logToFile(`[FSRProtal-GraphQL] Using Master View Strategy (Base: Service_BN09_Remove) for requested view: ${viewName}`);
 
-                // 1. Fetch ALL 3 views concurrently
-                const [bn09Data, bn04Data, bn15Data] = await Promise.all([
+                // 1. Fetch ALL 4 views concurrently
+                const [bn09Data, bn04Data, bn15Data, bn15LoanData] = await Promise.all([
                     graphqlService.queryView('Service_BN09_Remove'), // Master Base
                     graphqlService.queryView('Service_BN04_Install'),
-                    graphqlService.queryView('Service_BN15_Refurbish')
+                    graphqlService.queryView('Service_BN15_Refurbish'),
+                    graphqlService.queryView('Service_BN15_Refurbish_NB2CLOAN')
                 ]);
 
                 // 2. Index auxiliary views by bpc_ticketno
@@ -46,13 +48,19 @@ class FSRProtalController {
                     if (item.bpc_ticketno) refurbishMap.set(item.bpc_ticketno, item);
                 });
 
-                logToFile(`[FSRProtal-GraphQL] Join Prep: Indexed ${installMap.size} installs and ${refurbishMap.size} refurbs.`);
+                const refurbLoanMap = new Map();
+                bn15LoanData.forEach(item => {
+                    if (item.bpc_ticketno) refurbLoanMap.set(item.bpc_ticketno, item);
+                });
+
+                logToFile(`[FSRProtal-GraphQL] Join Prep: Indexed ${installMap.size} installs, ${refurbishMap.size} refurbs, ${refurbLoanMap.size} loans.`);
 
                 // 3. Perform Left Join on BN09 (Master)
                 allData = bn09Data.map(masterRow => {
                     const ticket = masterRow.bpc_ticketno;
                     const joinInstall = ticket ? installMap.get(ticket) : null;
                     const joinRefurb = ticket ? refurbishMap.get(ticket) : null;
+                    const joinRefurbLoan = ticket ? refurbLoanMap.get(ticket) : null;
 
                     // Determine the "Main" object to display based on the requested view
                     let mainObject = {};
@@ -61,6 +69,8 @@ class FSRProtalController {
                         mainObject = joinInstall || {};
                     } else if (viewName === 'Service_BN15_Refurbish') {
                         mainObject = joinRefurb || {};
+                    } else if (viewName === 'Service_BN15_Refurbish_NB2CLOAN') {
+                        mainObject = joinRefurbLoan || {};
                     } else {
                         // BN09 and Summary both use Master row as base
                         mainObject = masterRow;
@@ -78,12 +88,30 @@ class FSRProtalController {
                         // Install Info
                         install_serviceorderid: joinInstall?.serviceorderid || null,
                         install_type: joinInstall?.bpc_serviceordertypecode || null, // Added Type
+                        install_serviceorderid: joinInstall?.serviceorderid || null,
+                        install_type: joinInstall?.bpc_serviceordertypecode || null, // Added Type
                         install_status: joinInstall?.bpc_serviceobjectgroup || null,
+                        install_scheduledstart: joinInstall?.bpc_scheduledstart || null, // Explicitly exposed for separation
 
                         // Refurb Info
                         refurb_serviceorderid: joinRefurb?.serviceorderid || null,
                         refurb_type: joinRefurb?.bpc_serviceordertypecode || null, // Added Type
-                        refurb_status: joinRefurb?.bpc_serviceobjectgroup || null
+                        refurb_status: joinRefurb?.bpc_serviceobjectgroup || null,
+
+                        // Refurb Loan Info
+                        refurb_loan_serviceorderid: joinRefurbLoan?.serviceorderid || null,
+                        refurb_loan_type: joinRefurbLoan?.bpc_serviceordertypecode || null,
+                        refurb_loan_type: joinRefurbLoan?.bpc_serviceordertypecode || null,
+                        refurb_loan_status: joinRefurbLoan?.bpc_serviceobjectgroup || null,
+
+                        // Special Overrides for Summary View
+                        bpc_mobilestatus: (viewName === 'Service_Summary_All')
+                            ? (joinRefurbLoan?.bpc_mobilestatus || null)
+                            : (mainObject.bpc_mobilestatus || null),
+
+                        bpc_actualstartdate: (viewName === 'Service_Summary_All')
+                            ? (joinInstall?.bpc_actualstartdate || null)
+                            : (mainObject.bpc_actualstartdate || null)
                     };
                 });
 

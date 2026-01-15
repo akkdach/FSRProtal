@@ -13,6 +13,7 @@ const VIEWS = [
     { id: 'Service_BN04_Install', label: 'Install (BN04)' },
     { id: 'Service_BN09_Remove', label: 'Remove (BN09)' },
     { id: 'Service_BN15_Refurbish', label: 'Refurbish (BN15)' },
+    { id: 'Service_BN15_Refurbish_NB2CLOAN', label: 'Refurbish-LOAN(BN15)' },
     { id: 'Service_Summary_All', label: 'Summary' },
 ];
 
@@ -54,6 +55,11 @@ export const ASCPerformance: React.FC = () => {
                         size: 150,
                     },
                     {
+                        header: 'BN15-Loan Type',
+                        accessorKey: 'refurb_loan_type',
+                        size: 150,
+                    },
+                    {
                         accessorKey: 'bpc_maintenanceactivitytypecode',
                         header: 'Maintenance Activity',
                         size: 150,
@@ -81,7 +87,8 @@ export const ASCPerformance: React.FC = () => {
                         },
                     },
                     {
-                        accessorKey: 'bpc_scheduledstart',
+                        id: 'pickup_on_col',
+                        accessorFn: (row) => row.bpc_scheduledstart,
                         header: 'Pick-up On',
                         Cell: ({ cell }) => {
                             const val = cell.getValue<string>();
@@ -107,7 +114,8 @@ export const ASCPerformance: React.FC = () => {
                         },
                     },
                     {
-                        accessorKey: 'bpc_scheduledstart',
+                        id: 'return_date_checking_col',
+                        accessorFn: (row) => row.install_scheduledstart,
                         header: 'Return Date Checking',
                         Cell: ({ cell }) => {
                             const val = cell.getValue<string>();
@@ -136,7 +144,7 @@ export const ASCPerformance: React.FC = () => {
                     },
                     {
                         id: 'return_month_col',
-                        accessorFn: (row) => row.bpc_scheduledstart,
+                        accessorFn: (row) => row.install_scheduledstart,
                         header: 'Return month',
                         Cell: ({ cell }) => {
                             const val = cell.getValue<string>();
@@ -146,7 +154,7 @@ export const ASCPerformance: React.FC = () => {
                     },
                     {
                         id: 'return_year_col',
-                        accessorFn: (row) => row.bpc_scheduledstart,
+                        accessorFn: (row) => row.install_scheduledstart,
                         header: 'Return year',
                         Cell: ({ cell }) => {
                             const val = cell.getValue<string>();
@@ -154,6 +162,27 @@ export const ASCPerformance: React.FC = () => {
                         },
                         size: 100,
                     },
+                    {
+                        id: 'return_status_col',
+                        accessorFn: (row) => row.bpc_actualstartdate,
+                        header: 'Return date checking',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return val ? 'Done' : 'Waiting Return Date';
+                        },
+                        size: 150,
+                    },
+                    {
+                        id: 'final_repair_status_col',
+                        accessorFn: (row) => row.bpc_mobilestatus,
+                        header: 'Final repair status',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return (val === 'COMP') ? 'Completed' : 'waiting Repair';
+                        },
+                        size: 150,
+                    },
+
 
 
                     {
@@ -219,7 +248,8 @@ export const ASCPerformance: React.FC = () => {
                     },
                 },
                 {
-                    accessorKey: 'bpc_scheduledstart',
+                    id: 'pickup_on_col',
+                    accessorFn: (row) => row.bpc_scheduledstart,
                     header: 'Pick-up On',
                     Cell: ({ cell }) => {
                         const val = cell.getValue<string>();
@@ -245,7 +275,8 @@ export const ASCPerformance: React.FC = () => {
                     },
                 },
                 {
-                    accessorKey: 'bpc_scheduledstart',
+                    id: 'return_date_checking_col',
+                    accessorFn: (row) => row.bpc_scheduledstart,
                     header: 'Return Date Checking',
                     Cell: ({ cell }) => {
                         const val = cell.getValue<string>();
@@ -292,6 +323,27 @@ export const ASCPerformance: React.FC = () => {
                     },
                     size: 100,
                 },
+                {
+                    id: 'return_status_col',
+                    accessorFn: (row) => row.bpc_actualstartdate,
+                    header: 'Return date checking',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return val ? 'Done' : 'Waiting Return Date';
+                    },
+                    size: 150,
+                },
+                {
+                    id: 'final_repair_status_col',
+                    accessorFn: (row) => row.bpc_mobilestatus,
+                    header: 'Final repair status',
+                    Cell: ({ cell }) => {
+                        const val = cell.getValue<string>();
+                        return (val === 'COMP') ? 'Completed' : 'waiting Repair';
+                    },
+                    size: 150,
+                },
+
                 {
                     accessorKey: 'bpc_model',
                     header: 'Machine Model',
@@ -356,7 +408,7 @@ export const ASCPerformance: React.FC = () => {
                 Performance Dashboard
             </Typography>
 
-            <Paper sx={{ mb: 2, p: 1, width: 'fit-content' }}>
+            <Paper sx={{ mb: 2, p: 1, width: 'fit-content', backgroundColor: 'transparent', elevation: 0 }} elevation={0}>
                 <ToggleButtonGroup
                     color="primary"
                     value={currentView}
@@ -373,16 +425,24 @@ export const ASCPerformance: React.FC = () => {
             </Paper>
 
             <MaterialReactTable
-                key={currentView + '_v4'} // Force re-render/reset state when view changes
+                key={currentView + '_v7'} // Force re-render/reset state when view changes
                 columns={columns}
                 data={data}
                 enableColumnOrdering={false}
                 enableColumnDragging={false}
                 enablePinning={false}
+                initialState={{
+                    columnOrder: columns.map((col: any) => col.id || col.accessorKey),
+                }}
                 state={{
                     isLoading: isLoading,
                     showAlertBanner: isError,
-                    columnOrder: columns.map((col: any) => col.id || col.accessorKey),
+                }}
+                muiTablePaperProps={{
+                    sx: {
+                        backgroundColor: 'transparent',
+                        backgroundImage: 'none',
+                    }
                 }}
                 muiToolbarAlertBannerProps={
                     isError
