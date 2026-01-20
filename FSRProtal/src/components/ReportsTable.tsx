@@ -1,166 +1,153 @@
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Card,
     CardContent,
     Typography,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
-    Chip,
-    IconButton,
     Box,
-    TextField,
-    MenuItem,
-    Select,
-    FormControl,
-    InputLabel,
+    CircularProgress,
+    Alert,
+    Chip
 } from '@mui/material';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import { reportsData, type ReportData } from '../data/mockData';
+import { MaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
+import moment from 'moment';
+
+interface ReportData {
+    bpc_ticketno: string;
+    bpc_notifdate: string;
+    bpc_customername: string;
+    bpc_modelnodescription: string;
+    bpc_mobilestatus: string;
+    [key: string]: any;
+}
 
 export const ReportsTable: React.FC = () => {
-    const [page, setPage] = React.useState(0);
-    const [rowsPerPage, setRowsPerPage] = React.useState(5);
-    const [searchTerm, setSearchTerm] = React.useState('');
-    const [statusFilter, setStatusFilter] = React.useState<string>('ทั้งหมด');
+    const navigate = useNavigate();
+    const [data, setData] = useState<ReportData[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleChangePage = (_event: unknown, newPage: number) => {
-        setPage(newPage);
-    };
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                // Using Summary View as it has the logic for Status
+                const response = await fetch('http://localhost:3005/api/fsr-protal/orders?view=Service_Summary_All');
+                const result = await response.json();
+                if (result.data) {
+                    setData(result.data);
+                }
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
-    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setRowsPerPage(parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
-    const getStatusColor = (status: ReportData['status']) => {
+    const getStatusColor = (status: string) => {
         switch (status) {
-            case 'เสร็จสิ้น':
+            case 'COMP':
+            case 'Completed':
                 return 'success';
-            case 'รออนุมัติ':
+            case 'WAPP':
+            case 'waiting Repair':
                 return 'warning';
-            case 'กำลังดำเนินการ':
-                return 'info';
-            case 'ยกเลิก':
-                return 'error';
             default:
                 return 'default';
         }
     };
 
-    const filteredData = reportsData.filter((report) => {
-        const matchesSearch =
-            report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            report.technician.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            report.customer.toLowerCase().includes(searchTerm.toLowerCase());
+    const getStatusLabel = (status: string) => {
+        if (status === 'COMP') return 'Completed';
+        return 'waiting Repair';
+    };
 
-        const matchesStatus = statusFilter === 'ทั้งหมด' || report.status === statusFilter;
-
-        return matchesSearch && matchesStatus;
-    });
-
-    const paginatedData = filteredData.slice(
-        page * rowsPerPage,
-        page * rowsPerPage + rowsPerPage
+    const columns = useMemo<MRT_ColumnDef<ReportData>[]>(
+        () => [
+            {
+                accessorKey: 'bpc_ticketno',
+                header: 'Pick-up Nr',
+                size: 150,
+            },
+            {
+                accessorKey: 'bpc_notifdate',
+                header: 'Pick-up Date',
+                Cell: ({ cell }) => {
+                    const val = cell.getValue<string>();
+                    return val ? moment.utc(val).format('DD/MM/YYYY') : '';
+                },
+                size: 150,
+            },
+            {
+                accessorKey: 'custaccount',
+                header: 'Customer Number',
+            },
+            {
+                accessorKey: 'bpc_modelnodescription',
+                header: 'Machine Type',
+            },
+            {
+                accessorKey: 'bpc_mobilestatus',
+                header: 'Final repair status',
+                Cell: ({ cell }) => {
+                    const status = cell.getValue<string>();
+                    const label = getStatusLabel(status);
+                    return (
+                        <Chip
+                            label={label}
+                            color={getStatusColor(status) as any}
+                            size="small"
+                        />
+                    );
+                },
+                size: 150,
+            },
+        ],
+        [],
     );
 
     return (
         <Card>
             <CardContent>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                    รายงานล่าสุด
+                    รายงานล่าสุด (Latest Reports)
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                    <TextField
-                        label="ค้นหา"
-                        variant="outlined"
-                        size="small"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ minWidth: 200, flexGrow: 1 }}
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : error ? (
+                    <Alert severity="error">{error}</Alert>
+                ) : (
+                    <MaterialReactTable
+                        columns={columns}
+                        data={data}
+                        enableColumnOrdering={true}
+                        enableColumnDragging={false}
+                        enablePinning={false}
+                        enableGlobalFilter={true} // Enable global search
+                        muiTablePaperProps={{
+                            sx: {
+                                backgroundColor: 'transparent',
+                                backgroundImage: 'none',
+                                elevation: 0
+                            }
+                        }}
+                        muiTableBodyRowProps={({ row }) => ({
+                            onClick: () => {
+                                navigate(`/report/${row.original.bpc_ticketno}`, {
+                                    state: { reportData: row.original }
+                                });
+                            },
+                            sx: {
+                                cursor: 'pointer',
+                            },
+                        })}
                     />
-                    <FormControl size="small" sx={{ minWidth: 150 }}>
-                        <InputLabel>สถานะ</InputLabel>
-                        <Select
-                            value={statusFilter}
-                            label="สถานะ"
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                        >
-                            <MenuItem value="ทั้งหมด">ทั้งหมด</MenuItem>
-                            <MenuItem value="เสร็จสิ้น">เสร็จสิ้น</MenuItem>
-                            <MenuItem value="รออนุมัติ">รออนุมัติ</MenuItem>
-                            <MenuItem value="กำลังดำเนินการ">กำลังดำเนินการ</MenuItem>
-                            <MenuItem value="ยกเลิก">ยกเลิก</MenuItem>
-                        </Select>
-                    </FormControl>
-                </Box>
-
-                <TableContainer sx={{ overflowX: 'auto' }}>
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ backgroundColor: 'primary.main' }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>รหัสรายงาน</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>ช่าง</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>ลูกค้า</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>ประเภทงาน</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>สถานะ</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>วันที่</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>การดำเนินการ</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {paginatedData.map((report) => (
-                                <TableRow
-                                    key={report.id}
-                                    sx={{
-                                        '&:hover': {
-                                            backgroundColor: 'action.hover',
-                                        },
-                                    }}
-                                >
-                                    <TableCell sx={{ fontWeight: 500 }}>{report.id}</TableCell>
-                                    <TableCell>{report.technician}</TableCell>
-                                    <TableCell>{report.customer}</TableCell>
-                                    <TableCell>{report.jobType}</TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={report.status}
-                                            color={getStatusColor(report.status)}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell>{new Date(report.date).toLocaleDateString('th-TH')}</TableCell>
-                                    <TableCell>
-                                        <IconButton size="small" color="primary">
-                                            <VisibilityIcon fontSize="small" />
-                                        </IconButton>
-                                        <IconButton size="small" color="secondary">
-                                            <EditIcon fontSize="small" />
-                                        </IconButton>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-
-                <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    component="div"
-                    count={filteredData.length}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    labelRowsPerPage="แถวต่อหน้า:"
-                    labelDisplayedRows={({ from, to, count }) => `${from}-${to} จาก ${count}`}
-                />
+                )}
             </CardContent>
         </Card>
     );

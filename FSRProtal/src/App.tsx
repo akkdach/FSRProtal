@@ -9,6 +9,7 @@ import { PartsInventory } from './pages/PartsInventory';
 import { ServiceJobs } from './pages/ServiceJobs';
 import { ComplaintsAnalysis } from './pages/ComplaintsAnalysis';
 import { ASCPerformance } from './pages/ASCPerformance';
+import { ReportDetail } from './pages/ReportDetail';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ function AppContent() {
     <AppLayout onNavigate={handleNavigate}>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/report/:ticketNo" element={<ReportDetail />} />
         <Route path="/asc" element={<ASCDashboard />} />
         <Route path="/asc/po" element={<POManagement />} />
         <Route path="/asc/parts" element={<PartsInventory />} />

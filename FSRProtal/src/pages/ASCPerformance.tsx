@@ -13,7 +13,8 @@ const VIEWS = [
     { id: 'Service_BN04_Install', label: 'Install (BN04)' },
     { id: 'Service_BN09_Remove', label: 'Remove (BN09)' },
     { id: 'Service_BN15_Refurbish', label: 'Refurbish (BN15)' },
-    { id: 'Service_BN15_Refurbish_NB2CLOAN', label: 'Refurbish-LOAN(BN15)' },
+    { id: 'Service_BN09_Remove_NB2CLOAN', label: 'Remove-LOAN (BN09)' },
+    { id: 'Service_BN15_Refurbish_NB2CLOAN', label: 'Refurbish-LOAN (BN15)' },
     { id: 'Service_Summary_All', label: 'Summary' },
 ];
 
@@ -72,6 +73,11 @@ export const ASCPerformance: React.FC = () => {
                     {
                         accessorKey: 'serviceorderid',
                         header: 'Service Order ID',
+                        size: 150,
+                    },
+                    {
+                        accessorKey: 'custaccount',
+                        header: 'Customer number',
                         size: 150,
                     },
                     {
@@ -173,12 +179,43 @@ export const ASCPerformance: React.FC = () => {
                         size: 150,
                     },
                     {
+                        id: 'loan_return_date_col',
+                        accessorFn: (row) => row.rem_loan_scheduledstart,
+                        header: 'Loan return date',
+                        Cell: ({ cell }) => {
+                            const val = cell.getValue<string>();
+                            return val ? moment.utc(val).format('DD/MM/YYYY HH:mm') : '';
+                        },
+                        size: 150,
+                    },
+                    {
                         id: 'final_repair_status_col',
                         accessorFn: (row) => row.bpc_mobilestatus,
                         header: 'Final repair status',
                         Cell: ({ cell }) => {
                             const val = cell.getValue<string>();
                             return (val === 'COMP') ? 'Completed' : 'waiting Repair';
+                        },
+                        size: 150,
+                    },
+                    {
+                        id: 'service_time_day_col',
+                        header: 'Service time (Day)',
+                        accessorFn: (row) => {
+                            if (row.install_scheduledstart && row.refurb_scheduledstart) {
+                                const start = moment.utc(row.refurb_scheduledstart); // BN15 Return Date
+                                const end = moment.utc(row.install_scheduledstart); // BN04 Return Date
+
+                                // Check for 1900 (invalid/default date)
+                                if (start.year() === 1900 || end.year() === 1900) {
+                                    return 'วันที่เป็นค่าว่าง';
+                                }
+
+                                if (start.isValid() && end.isValid()) {
+                                    return end.diff(start, 'days');
+                                }
+                            }
+                            return 'วันที่เป็นค่าว่าง';
                         },
                         size: 150,
                     },
@@ -425,7 +462,7 @@ export const ASCPerformance: React.FC = () => {
             </Paper>
 
             <MaterialReactTable
-                key={currentView + '_v7'} // Force re-render/reset state when view changes
+                key={currentView + '_v12'} // Force re-render/reset state when view changes
                 columns={columns}
                 data={data}
                 enableColumnOrdering={false}

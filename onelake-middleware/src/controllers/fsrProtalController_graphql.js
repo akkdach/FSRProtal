@@ -12,8 +12,9 @@ class FSRProtalController {
                 'Service_BN04_Install',
                 'Service_BN09_Remove',
                 'Service_BN15_Refurbish',
-                'Service_BN15_Refurbish_NB2CLOAN', // New View
-                'Service_Summary_All' // New Summary View
+                'Service_BN15_Refurbish_NB2CLOAN',
+                'Service_BN09_Remove_NB2CLOAN', // New View
+                'Service_Summary_All'
             ];
 
             if (!ALLOWED_VIEWS.includes(viewName)) {
@@ -23,18 +24,19 @@ class FSRProtalController {
             logToFile(`[FSRProtal-GraphQL] API Request: /api/fsr-protal/orders?view=${viewName}&page=${page}&limit=${limit || 'all'}`);
 
             let allData = [];
-            const RELATED_VIEWS = ['Service_BN04_Install', 'Service_BN09_Remove', 'Service_BN15_Refurbish', 'Service_BN15_Refurbish_NB2CLOAN', 'Service_Summary_All'];
+            const RELATED_VIEWS = ['Service_BN04_Install', 'Service_BN09_Remove', 'Service_BN15_Refurbish', 'Service_BN15_Refurbish_NB2CLOAN', 'Service_BN09_Remove_NB2CLOAN', 'Service_Summary_All'];
 
             // If the view is one of our related set, ALWAYS use BN09 as the Master/Base
             if (RELATED_VIEWS.includes(viewName)) {
                 logToFile(`[FSRProtal-GraphQL] Using Master View Strategy (Base: Service_BN09_Remove) for requested view: ${viewName}`);
 
-                // 1. Fetch ALL 4 views concurrently
-                const [bn09Data, bn04Data, bn15Data, bn15LoanData] = await Promise.all([
+                // 1. Fetch ALL 5 views concurrently
+                const [bn09Data, bn04Data, bn15Data, bn15LoanData, bn09LoanData] = await Promise.all([
                     graphqlService.queryView('Service_BN09_Remove'), // Master Base
                     graphqlService.queryView('Service_BN04_Install'),
                     graphqlService.queryView('Service_BN15_Refurbish'),
-                    graphqlService.queryView('Service_BN15_Refurbish_NB2CLOAN')
+                    graphqlService.queryView('Service_BN15_Refurbish_NB2CLOAN'),
+                    graphqlService.queryView('Service_BN09_Remove_NB2CLOAN')
                 ]);
 
                 // 2. Index auxiliary views by bpc_ticketno
@@ -53,7 +55,12 @@ class FSRProtalController {
                     if (item.bpc_ticketno) refurbLoanMap.set(item.bpc_ticketno, item);
                 });
 
-                logToFile(`[FSRProtal-GraphQL] Join Prep: Indexed ${installMap.size} installs, ${refurbishMap.size} refurbs, ${refurbLoanMap.size} loans.`);
+                const remLoanMap = new Map();
+                bn09LoanData.forEach(item => {
+                    if (item.bpc_ticketno) remLoanMap.set(item.bpc_ticketno, item);
+                });
+
+                logToFile(`[FSRProtal-GraphQL] Join Prep: Indexed ${installMap.size} installs, ${refurbishMap.size} refurbs, ${refurbLoanMap.size} refloans, ${remLoanMap.size} remloans.`);
 
                 // 3. Perform Left Join on BN09 (Master)
                 allData = bn09Data.map(masterRow => {
@@ -61,6 +68,7 @@ class FSRProtalController {
                     const joinInstall = ticket ? installMap.get(ticket) : null;
                     const joinRefurb = ticket ? refurbishMap.get(ticket) : null;
                     const joinRefurbLoan = ticket ? refurbLoanMap.get(ticket) : null;
+                    const joinRemLoan = ticket ? remLoanMap.get(ticket) : null;
 
                     // Determine the "Main" object to display based on the requested view
                     let mainObject = {};
@@ -71,6 +79,8 @@ class FSRProtalController {
                         mainObject = joinRefurb || {};
                     } else if (viewName === 'Service_BN15_Refurbish_NB2CLOAN') {
                         mainObject = joinRefurbLoan || {};
+                    } else if (viewName === 'Service_BN09_Remove_NB2CLOAN') {
+                        mainObject = joinRemLoan || {};
                     } else {
                         // BN09 and Summary both use Master row as base
                         mainObject = masterRow;
@@ -81,6 +91,9 @@ class FSRProtalController {
 
                         // Always ensure TicketNo is present (from Master)
                         bpc_ticketno: masterRow.bpc_ticketno,
+
+                        // User Request: Customer number
+                        custaccount: masterRow.custaccount,
 
                         // Add Cross-Reference Info & Types
                         master_serviceorderid: masterRow.serviceorderid,
@@ -96,13 +109,19 @@ class FSRProtalController {
                         // Refurb Info
                         refurb_serviceorderid: joinRefurb?.serviceorderid || null,
                         refurb_type: joinRefurb?.bpc_serviceordertypecode || null, // Added Type
+                        // Refurb Info
+                        refurb_serviceorderid: joinRefurb?.serviceorderid || null,
+                        refurb_type: joinRefurb?.bpc_serviceordertypecode || null, // Added Type
                         refurb_status: joinRefurb?.bpc_serviceobjectgroup || null,
+                        refurb_scheduledstart: joinRefurb?.bpc_scheduledstart || null, // Explicitly exposed for calculation
 
                         // Refurb Loan Info
                         refurb_loan_serviceorderid: joinRefurbLoan?.serviceorderid || null,
                         refurb_loan_type: joinRefurbLoan?.bpc_serviceordertypecode || null,
-                        refurb_loan_type: joinRefurbLoan?.bpc_serviceordertypecode || null,
                         refurb_loan_status: joinRefurbLoan?.bpc_serviceobjectgroup || null,
+
+                        // Remove Loan Info
+                        rem_loan_scheduledstart: joinRemLoan?.bpc_scheduledstart || null,
 
                         // Special Overrides for Summary View
                         bpc_mobilestatus: (viewName === 'Service_Summary_All')

@@ -42,7 +42,8 @@ class GraphQLService {
                 'Service_BN04_Install': 'service_BN04_Installs',
                 'Service_BN09_Remove': 'service_BN09_Removes',
                 'Service_BN15_Refurbish': 'service_BN15_Refurbishes',
-                'Service_BN15_Refurbish_NB2CLOAN': 'service_BN15_Refurbish_NB2CLOANs'
+                'Service_BN15_Refurbish_NB2CLOAN': 'service_BN15_Refurbish_NB2CLOANs',
+                'Service_BN09_Remove_NB2CLOAN': 'service_BN09_Remove_NB2CLOANs'
             };
 
             const queryName = queryMap[viewName] || viewName;
@@ -69,6 +70,7 @@ class GraphQLService {
                             bpc_model
                             bpc_modelnodescription
                             bpc_mobilestatus
+                            custaccount
                         }
                     }
                 }`
