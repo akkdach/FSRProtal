@@ -9,6 +9,10 @@ module.exports = {
             tableUrl: "abfss://7b2a2b84-0f67-4d1f-8e9f-65abfa88501d@onelake.dfs.fabric.microsoft.com/65a9b9c5-98b8-4879-b9ba-88eca966929a/Tables/smaserviceordertable",
             cacheFile: path.join(__dirname, '../../data_cache_proiot.json')
         },
+        proIoTLine: {
+            tableUrl: "abfss://7b2a2b84-0f67-4d1f-8e9f-65abfa88501d@onelake.dfs.fabric.microsoft.com/65a9b9c5-98b8-4879-b9ba-88eca966929a/Tables/smaserviceorderline",
+            cacheFile: path.join(__dirname, '../../data_cache_proiot_line.json')
+        },
         fsrProtal: {
             // Reuse the same table and cache as ProIoT (since source is the same)
             tableUrl: "abfss://7b2a2b84-0f67-4d1f-8e9f-65abfa88501d@onelake.dfs.fabric.microsoft.com/65a9b9c5-98b8-4879-b9ba-88eca966929a/Tables/smaserviceordertable",

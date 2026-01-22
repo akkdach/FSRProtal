@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const config = require('./src/config');
 const { logToFile } = require('./src/utils/logger');
+
 const apiRoutes = require('./src/routes/api');
 
 const app = express();
@@ -15,6 +16,7 @@ app.use('/api', apiRoutes);
 
 // Health Check
 app.get('/', (req, res) => res.send('OneLake ADLS Middleware Running (MVC)'));
+
 
 // Start Server
 app.listen(config.port, () => {

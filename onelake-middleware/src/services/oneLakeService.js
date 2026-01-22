@@ -1,4 +1,6 @@
 const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const { DataLakeServiceClient } = require("@azure/storage-file-datalake");
 const { DefaultAzureCredential, InteractiveBrowserCredential, ClientSecretCredential } = require("@azure/identity");
 const { uncompress } = require('snappyjs');
@@ -180,8 +182,23 @@ class OneLakeService {
 
                     if (Array.isArray(data)) {
                         for (const row of data) {
-                            if (this.isCurrentMonth(row.bpc_slafinishdate) && row.serviceorderid) {
-                                uniqueRecords.set(row.serviceorderid, row);
+                            // Helper to check date
+                            const dateToCheck = row.bpc_slafinishdate || row.createdon || row.bpc_documentdate;
+
+                            // If it's the Main Order Table, enforce strict SLA Date check
+                            if (tableUrl.includes("smaserviceordertable")) {
+                                if (this.isCurrentMonth(row.bpc_slafinishdate) && row.serviceorderid) {
+                                    uniqueRecords.set(row.serviceorderid, row);
+                                }
+                            } else {
+                                // For Service Lines (or others), just check if it has an ID, 
+                                // and MAYBE apply date filter if a date column exists (Optional)
+                                // For now, let's allow ALL records to debug, or try to filter by createdon if available
+                                if (row.serviceorderlineid || row.serviceorderid) {
+                                    // Use Line ID as key if available, else Order ID (which might overwrite)
+                                    const key = row.serviceorderlineid || row.serviceorderid + "_" + Math.random();
+                                    uniqueRecords.set(key, row);
+                                }
                             }
                         }
                     }

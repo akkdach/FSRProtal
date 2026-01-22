@@ -31,12 +31,13 @@ class FSRProtalController {
                 logToFile(`[FSRProtal-GraphQL] Using Master View Strategy (Base: Service_BN09_Remove) for requested view: ${viewName}`);
 
                 // 1. Fetch ALL 5 views concurrently
-                const [bn09Data, bn04Data, bn15Data, bn15LoanData, bn09LoanData] = await Promise.all([
+                const [bn09Data, bn04Data, bn15Data, bn15LoanData, bn09LoanData, linesData] = await Promise.all([
                     graphqlService.queryView('Service_BN09_Remove'), // Master Base
                     graphqlService.queryView('Service_BN04_Install'),
                     graphqlService.queryView('Service_BN15_Refurbish'),
                     graphqlService.queryView('Service_BN15_Refurbish_NB2CLOAN'),
-                    graphqlService.queryView('Service_BN09_Remove_NB2CLOAN')
+                    graphqlService.queryView('Service_BN09_Remove_NB2CLOAN'),
+                    graphqlService.queryView('smaserviceorderline') // Fetch Lines
                 ]);
 
                 // 2. Index auxiliary views by bpc_ticketno
@@ -60,7 +61,18 @@ class FSRProtalController {
                     if (item.bpc_ticketno) remLoanMap.set(item.bpc_ticketno, item);
                 });
 
-                logToFile(`[FSRProtal-GraphQL] Join Prep: Indexed ${installMap.size} installs, ${refurbishMap.size} refurbs, ${refurbLoanMap.size} refloans, ${remLoanMap.size} remloans.`);
+                // Index Lines by serviceorderid (One-to-Many)
+                const linesMap = new Map();
+                linesData.forEach(line => {
+                    if (line.serviceorderid) {
+                        if (!linesMap.has(line.serviceorderid)) {
+                            linesMap.set(line.serviceorderid, []);
+                        }
+                        linesMap.get(line.serviceorderid).push(line);
+                    }
+                });
+
+                logToFile(`[FSRProtal-GraphQL] Join Prep: Indexed ${installMap.size} installs, ${refurbishMap.size} refurbs, ${refurbLoanMap.size} refloans, ${remLoanMap.size} remloans, ${linesData.length} lines.`);
 
                 // 3. Perform Left Join on BN09 (Master)
                 allData = bn09Data.map(masterRow => {
@@ -86,6 +98,12 @@ class FSRProtalController {
                         mainObject = masterRow;
                     }
 
+                    // Attach Lines - Find matching lines for the current main object's serviceorderid
+                    // Note: masterRow.serviceorderid might be different from mainObject.serviceorderid if mainObject is from a joined table?
+                    // Usually they share ticketno, but let's check the serviceorderid of the *displayed* object first.
+                    const currentServiceOrderId = mainObject.serviceorderid || masterRow.serviceorderid;
+                    const relatedLines = currentServiceOrderId ? (linesMap.get(currentServiceOrderId) || []) : [];
+
                     return {
                         ...mainObject, // The valid fields for the current view
 
@@ -101,14 +119,9 @@ class FSRProtalController {
                         // Install Info
                         install_serviceorderid: joinInstall?.serviceorderid || null,
                         install_type: joinInstall?.bpc_serviceordertypecode || null, // Added Type
-                        install_serviceorderid: joinInstall?.serviceorderid || null,
-                        install_type: joinInstall?.bpc_serviceordertypecode || null, // Added Type
                         install_status: joinInstall?.bpc_serviceobjectgroup || null,
                         install_scheduledstart: joinInstall?.bpc_scheduledstart || null, // Explicitly exposed for separation
 
-                        // Refurb Info
-                        refurb_serviceorderid: joinRefurb?.serviceorderid || null,
-                        refurb_type: joinRefurb?.bpc_serviceordertypecode || null, // Added Type
                         // Refurb Info
                         refurb_serviceorderid: joinRefurb?.serviceorderid || null,
                         refurb_type: joinRefurb?.bpc_serviceordertypecode || null, // Added Type
@@ -122,6 +135,9 @@ class FSRProtalController {
 
                         // Remove Loan Info
                         rem_loan_scheduledstart: joinRemLoan?.bpc_scheduledstart || null,
+
+                        // Lines
+                        lines: relatedLines,
 
                         // Special Overrides for Summary View
                         bpc_mobilestatus: (viewName === 'Service_Summary_All')

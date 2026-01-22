@@ -150,6 +150,50 @@ export const ReportDetail: React.FC = () => {
                                 <DetailItem label="Service Time (Day)" value={calculateServiceTime(reportData)} />
                                 <DetailItem label="Final Repair Status" value={getStatusLabel(reportData.bpc_mobilestatus)} />
                             </Grid>
+
+                            <Grid item xs={12}>
+                                <SectionHeader title="Bath Per Head" />
+                                <Box sx={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 650 }}>
+                                        <thead>
+                                            <tr style={{ backgroundColor: '#f5f5f5' }}>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>SignOff</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>TransactionType</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Worker (Personnel Num)</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Worker Name</th>
+                                                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #ddd' }}>Qty</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Proj Category</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Description</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Object Relation ID</th>
+                                                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Object ID</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {reportData.lines && reportData.lines.length > 0 ? (
+                                                reportData.lines.map((line: any, index: number) => (
+                                                    <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                                                        <td style={{ padding: '12px' }}>{line.signoff || '-'}</td>
+                                                        <td style={{ padding: '12px' }}>{line.transactiontype || '-'}</td>
+                                                        <td style={{ padding: '12px' }}>{line.bpc_workerpersonnelnum || '-'}</td>
+                                                        <td style={{ padding: '12px' }}>{line.worker || '-'}</td>
+                                                        <td style={{ padding: '12px', textAlign: 'right' }}>{line.qty ? Number(line.qty).toLocaleString() : '-'}</td>
+                                                        <td style={{ padding: '12px' }}>{line.projcategoryid || '-'}</td>
+                                                        <td style={{ padding: '12px' }}>{line.description || line.name || '-'}</td>
+                                                        <td style={{ padding: '12px' }}>{line.serviceobjectrelationid || '-'}</td>
+                                                        <td style={{ padding: '12px' }}>{line.serviceobjectid || '-'}</td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: '#666' }}>
+                                                        No Service Lines found
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </Box>
+                            </Grid>
                         </Grid>
                     </Paper>
                 </CardContent>

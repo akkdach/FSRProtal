@@ -6,7 +6,7 @@ const config = require('../config');
 class GraphQLService {
     constructor() {
         this.client = null;
-        this.endpoint = 'https://7b2a2b840f674d1f8e9f65abfa88501d.z7b.graphql.fabric.microsoft.com/v1/workspaces/7b2a2b84-0f67-4d1f-8e9f-65abfa88501d/graphqlapis/47a192e2-8902-46e4-baee-c0ec18c3d629/graphql';
+        this.endpoint = 'https://7b2a2b840f674d1f8e9f65abfa88501d.z7b.graphql.fabric.microsoft.com/v1/workspaces/7b2a2b84-0f67-4d1f-8e9f-65abfa88501d/graphqlapis/e486dea8-7ef1-4806-a269-0385a41be187/graphql';
     }
 
     async getAccessToken() {
@@ -43,15 +43,60 @@ class GraphQLService {
                 'Service_BN09_Remove': 'service_BN09_Removes',
                 'Service_BN15_Refurbish': 'service_BN15_Refurbishes',
                 'Service_BN15_Refurbish_NB2CLOAN': 'service_BN15_Refurbish_NB2CLOANs',
-                'Service_BN09_Remove_NB2CLOAN': 'service_BN09_Remove_NB2CLOANs'
+                'Service_BN15_Refurbish_NB2CLOAN': 'service_BN15_Refurbish_NB2CLOANs',
+                'Service_BN09_Remove_NB2CLOAN': 'service_BN09_Remove_NB2CLOANs',
+                'smaserviceorderline': 'smaserviceorderlines',
+                'ServiceOrder_Table&Line': 'serviceOrder_TableLines' // Plural + New Endpoint should work
             };
 
             const queryName = queryMap[viewName] || viewName;
 
-            const query = JSON.stringify({
-                query: `
+            let queryBody = '';
+
+            if (queryName === 'smaserviceorderlines') {
+                queryBody = `
                 query {
-                    ${queryName}(first: 50000) {
+                    smaserviceorderlines(first: 50000) {
+                        items {
+                            serviceorderid
+                            signoff
+                            transactiontype
+                            bpc_workerpersonnelnum
+                            worker
+                            qty
+                            projcategoryid
+                            description
+                            serviceobjectrelationid
+                            serviceobjectid
+                        }
+                    }
+                }`;
+            } else if (queryName === 'serviceOrder_TableLines') {
+                queryBody = `
+                query {
+                    serviceOrder_TableLines(first: 100000) {
+                        items {
+                            serviceorderid
+                            stageid
+                            bpc_mobilestatus
+                            bpc_servicezone
+                            bpc_maintenanceactivitytypecode
+                            bpc_maintenanceactivitytypedescription
+                            bpc_serviceordertypecode
+                            bpc_inventlocationid
+                            projsalesprice
+                            qty
+                            transactiontype
+                            projcategoryid
+                            bpc_slafinishdate
+                            bpc_actualfinisheddate
+                        }
+                    }
+                }`;
+            } else {
+                queryBody = `
+                query {
+                    ${queryName}(first: 100000) {
                         items {
                             Id
                             serviceorderid
@@ -73,7 +118,11 @@ class GraphQLService {
                             custaccount
                         }
                     }
-                }`
+                }`;
+            }
+
+            const query = JSON.stringify({
+                query: queryBody
             });
 
             // Use native fetch instead of graphql-request to debug response structure
