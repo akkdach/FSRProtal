@@ -1,4 +1,6 @@
 const express = require('express');
+const crypto = require('crypto');
+global.crypto = crypto;
 const cors = require('cors');
 const config = require('./src/config');
 const { logToFile } = require('./src/utils/logger');

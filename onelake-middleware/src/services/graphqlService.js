@@ -46,14 +46,28 @@ class GraphQLService {
                 'Service_BN15_Refurbish_NB2CLOAN': 'service_BN15_Refurbish_NB2CLOANs',
                 'Service_BN09_Remove_NB2CLOAN': 'service_BN09_Remove_NB2CLOANs',
                 'smaserviceorderline': 'smaserviceorderlines',
-                'ServiceOrder_Table&Line': 'serviceOrder_TableLines' // Plural + New Endpoint should work
+                'smaserviceorderline': 'smaserviceorderlines',
+                'ServiceOrder_Table&Line': 'serviceOrder_TableLines', // Plural + New Endpoint should work
+                'Performance_Matrix': 'performance_Matrices' // Mapping Name
             };
 
             const queryName = queryMap[viewName] || viewName;
 
             let queryBody = '';
 
-            if (queryName === 'smaserviceorderlines') {
+            if (queryName === 'performance_Matrices') {
+                queryBody = `
+                query {
+                    performance_Matrices(first: 5000) {
+                        items {
+                            Order_Type
+                            Description_Type
+                            Value
+                            Time
+                        }
+                    }
+                }`;
+            } else if (queryName === 'smaserviceorderlines') {
                 queryBody = `
                 query {
                     smaserviceorderlines(first: 50000) {

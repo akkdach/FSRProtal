@@ -43,32 +43,15 @@ class ProIoTController {
             // Fetch from GraphQL View [ServiceOrder_Table&Line]
             const rawData = await graphqlService.queryView('ServiceOrder_Table&Line');
 
-            // Apply SQL Logic Filtering in JavaScript
-            // WHERE svt.bpc_slafinishdate >= CurrentMonthStart AND < NextMonthStart
-            // AND svt.stageid = 'POST'
-            // AND svl.transactiontype IN (2,3)
+            // View 'ServiceOrder_Table&Line' already contains all necessary filters:
+            // - Stage: POST
+            // - TransactionType: 2, 3
+            // - Date: Current Month
 
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-            const filteredData = rawData.filter(item => {
-                // 1. Filter by Stage ID
-                if (item.stageid !== 'POST') return false;
-
-                // 2. Filter by Transaction Type (2 or 3)
-                if (![2, 3].includes(item.transactiontype)) return false;
-
-                // 3. Filter by SLA Finish Date (Current Month)
-                if (!item.bpc_slafinishdate) return false;
-                const slaDate = new Date(item.bpc_slafinishdate);
-                return slaDate >= startOfMonth && slaDate < startOfNextMonth;
-            });
-
-            const total = filteredData.length;
+            const total = rawData.length;
             const startIndex = page * limit;
             const endIndex = startIndex + limit;
-            const slicedData = filteredData.slice(startIndex, endIndex);
+            const slicedData = rawData.slice(startIndex, endIndex);
 
             logToFile(`[ProIoT] Response: Returning ${slicedData.length} records (from total ${total})`);
 
