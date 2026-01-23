@@ -48,22 +48,23 @@ class GraphQLService {
                 'smaserviceorderline': 'smaserviceorderlines',
                 'smaserviceorderline': 'smaserviceorderlines',
                 'ServiceOrder_Table&Line': 'serviceOrder_TableLines', // Plural + New Endpoint should work
-                'Performance_Matrix': 'performance_Matrices' // Mapping Name
+                'Performance_Matrix': 'performance_Matrix_Tables' // Mapping Name
             };
 
             const queryName = queryMap[viewName] || viewName;
 
             let queryBody = '';
 
-            if (queryName === 'performance_Matrices') {
+            if (queryName === 'performance_Matrix_Tables') {
                 queryBody = `
                 query {
-                    performance_Matrices(first: 5000) {
+                    performance_Matrix_Tables(first: 5000) {
+
                         items {
-                            Order_Type
-                            Description_Type
+                            OrderType
+                            DescriptionType
                             Value
-                            Time
+                            TimeType
                         }
                     }
                 }`;
@@ -150,6 +151,7 @@ class GraphQLService {
             });
 
             const result = await response.json();
+            console.log(`[GraphQLService] Raw Response for ${queryName}:`, JSON.stringify(result).substring(0, 500) + "..."); // Log first 500 chars
 
             // Check for errors in body
             if (result.errors) {

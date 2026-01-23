@@ -171,6 +171,9 @@ class FSRProtalController {
             }
 
             logToFile(`[FSRProtal-GraphQL] Response: Returning ${responseData.length} records (from total ${total})`);
+            if (responseData.length > 0) {
+                console.log("DEBUG: First Record Sample:", JSON.stringify(responseData[0], null, 2));
+            }
 
             res.json({
                 data: responseData,

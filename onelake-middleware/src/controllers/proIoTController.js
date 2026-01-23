@@ -10,10 +10,21 @@ class ProIoTController {
             const page = parseInt(req.query.page) || 0;
             const limit = parseInt(req.query.limit) || 100;
 
-            logToFile(`[ProIoT] API Request: /api/orders?page=${page}&limit=${limit}`);
+            logToFile(`[ProIoT] API Request: /api/orders?page=${page}&limit=${limit}&view=${req.query.view || 'Default'}`);
 
-            // Pass 'proIoT' config to generic service
-            const allData = await service.getData(config.oneLake.proIoT);
+            let allData = [];
+            if (req.query.view === 'Performance_Matrix') {
+                // Fetch from GraphQL for this specific view
+                console.log("Fetching Performance_Matrix via GraphQL...");
+                allData = await graphqlService.queryView('Performance_Matrix');
+                console.log(`[ProIoT] GraphQL returned ${allData.length} records`);
+                if (allData.length > 0) {
+                    console.log("[ProIoT] First Record:", JSON.stringify(allData[0], null, 2));
+                }
+            } else {
+                // Default: Fetch from OneLake Parquet
+                allData = await service.getData(config.oneLake.proIoT);
+            }
             const total = allData.length;
             const startIndex = page * limit;
             const endIndex = startIndex + limit;
