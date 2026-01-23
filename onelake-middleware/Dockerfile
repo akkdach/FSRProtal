@@ -1,19 +1,24 @@
+# Use Node.js 18 alpine for a small image size
 FROM node:18-alpine
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3005
 
 WORKDIR /app
 
-# Copy package files first to leverage cache
-COPY package.json package-lock.json ./
+# Copy package files first for caching
+COPY package*.json ./
 
-# Install dependencies
-# Using --omit=dev for production optimization, though for a scratch project install all is safer
-RUN npm install
+# Install dependencies for production
+# Using 'npm ci' ensures we get the exact versions in package-lock.json
+RUN npm ci --only=production
 
-# Copy source code
+# Copy the rest of the application code
 COPY . .
 
-# Expose the application port
+# Expose the API port
 EXPOSE 3005
 
-# Start the application
+# Run the app
 CMD ["npm", "start"]

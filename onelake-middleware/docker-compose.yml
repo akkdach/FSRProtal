@@ -3,15 +3,17 @@ version: '3.8'
 services:
   onelake-middleware:
     build: .
-    container_name: onelake-middleware
+    container_name: onelake-middleware-backend
+    restart: unless-stopped
     ports:
       - "3005:3005"
-    environment:
-      - PORT=3005
-      # Add other environment variables here or use env_file
     env_file:
       - .env
-    restart: always
+    environment:
+      - NODE_ENV=production
     volumes:
-      # Mount logs to host for persistence
+      # Mount the debug log for persistence and easy access on the host
       - ./server_debug.log:/app/server_debug.log
+      # If you need to mount local storage/cache for persistence:
+      # - ./data_cache_prod_v1.json:/app/data_cache_prod_v1.json
+

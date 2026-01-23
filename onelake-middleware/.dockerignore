@@ -4,3 +4,6 @@ npm-debug.log
 .gitignore
 .DS_Store
 *.log
+data_cache_*.json
+*.tar
+.env
