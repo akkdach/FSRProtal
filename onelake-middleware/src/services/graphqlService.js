@@ -196,6 +196,114 @@ class GraphQLService {
             throw error;
         }
     }
+
+    /**
+     * Execute Stored Procedure-backed mutation for Baht Per Head.
+     *
+     * NOTE: This implementation assumes that the Fabric GraphQL schema exposes
+     * a mutation named `executeServiceOrder_Income` with no required arguments
+     * and that it returns a list (or object containing a list) of rows with the
+     * same columns currently used by the Baht Per Head page.
+     *
+     * If your actual mutation requires input arguments or has a different
+     * return shape, please adjust the mutation string and result extraction
+     * logic below to match your schema.
+     */
+    async executeServiceOrderIncome(input = {}) {
+        try {
+            logToFile('[GraphQL] Executing stored procedure query: executeServiceOrder_Income');
+
+            const token = await this.getAccessToken();
+
+            // Calculate current month date range as defaults
+            const now = new Date();
+            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+            const fromDate = input.FromDate || firstOfMonth;
+            const toDate = input.ToDate || lastOfMonth;
+
+            logToFile(`[GraphQL] Using Date Range: ${fromDate} to ${toDate}`);
+
+            const queryBody = `
+                query ExecuteServiceOrderIncome($fromDate: DateTime!, $toDate: DateTime!) {
+                    executeServiceOrder_Income(FromDate: $fromDate, ToDate: $toDate) {
+                        serviceorderid
+                        bpc_tradecode
+                        bpc_tradename
+                        stageid
+                        bpc_mobilestatus
+                        bpc_inventlocationid
+                        bpc_serviceordertypecode
+                        bpc_maintenanceactivitytypecode
+                        bpc_maintenanceactivitytypedescription
+                        bpc_servicezone
+                        projsalesprice
+                        qty
+                        transactiontype
+                        projcategoryid
+                        bpc_slafinishdate
+                        bpc_actualfinisheddate
+                        dateexecution
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: {
+                    fromDate: fromDate,
+                    toDate: toDate
+                }
+            });
+
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeServiceOrder_Income response: ${JSON.stringify(result).substring(0, 500)}...`);
+            if (result.data && result.data.executeServiceOrder_Income) {
+                logToFile(`[GraphQL] executeServiceOrder_Income keys: ${Object.keys(result.data.executeServiceOrder_Income).join(', ')}`);
+            }
+
+            if (result.errors) {
+                logToFile(`[GraphQL] executeServiceOrder_Income returned errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeServiceOrder_Income) {
+                const node = result.data.executeServiceOrder_Income;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeServiceOrder_Income retrieved ${rows.length} rows`);
+            if (rows.length > 0) {
+                const samples = rows.slice(0, 3).map(r => r.dateexecution).join(', ');
+                logToFile(`[GraphQL] Sample dateexecution values: ${samples}`);
+            }
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeServiceOrder_Income Error: ${error.message}`);
+            throw error;
+        }
+    }
 }
 
 module.exports = new GraphQLService();

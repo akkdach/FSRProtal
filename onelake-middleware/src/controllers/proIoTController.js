@@ -77,6 +77,48 @@ class ProIoTController {
             res.status(500).json({ error: err.message });
         }
     }
+
+    /**
+     * Baht Per Head data source backed by Stored Procedure (GraphQL mutation).
+     *
+     * This endpoint calls the Fabric GraphQL mutation `executeServiceOrder_Income`
+     * via `graphqlService.executeServiceOrderIncome()` and returns a paginated
+     * list of rows shaped for the Baht Per Head page.
+     *
+     * GET /api/baht-per-head?page=0&limit=100
+     */
+    async getBahtPerHead(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/baht-per-head?page=${page}&limit=${limit}&FromDate=${req.query.FromDate}&ToDate=${req.query.ToDate}`);
+
+            // Call stored procedure-backed mutation with query parameters (for date filtering)
+            const allData = await graphqlService.executeServiceOrderIncome(req.query);
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Baht Per Head Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Baht Per Head API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
 }
 
 module.exports = new ProIoTController();
