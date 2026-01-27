@@ -119,6 +119,39 @@ class ProIoTController {
             });
         }
     }
+
+    async getBahtPerHeadSummary(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/baht-per-head-summary?page=${page}&limit=${limit}&FromDate=${req.query.FromDate}&ToDate=${req.query.ToDate}`);
+
+            // Call stored procedure-backed mutation
+            const allData = await graphqlService.executeServiceOrderBahtPerHead(req.query);
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Baht Per Head Summary Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Baht Per Head Summary API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
 }
 
 module.exports = new ProIoTController();

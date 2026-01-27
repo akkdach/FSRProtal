@@ -266,9 +266,9 @@ class GraphQLService {
             });
 
             const result = await response.json();
-            logToFile(`[GraphQL] Raw executeServiceOrder_Income response: ${JSON.stringify(result).substring(0, 500)}...`);
-            if (result.data && result.data.executeServiceOrder_Income) {
-                logToFile(`[GraphQL] executeServiceOrder_Income keys: ${Object.keys(result.data.executeServiceOrder_Income).join(', ')}`);
+            logToFile(`[GraphQL] Raw executeServiceOrder_Income response status: ${response.status}`);
+            if (result.errors) {
+                logToFile(`[GraphQL] executeServiceOrder_Income errors: ${JSON.stringify(result.errors)}`);
             }
 
             if (result.errors) {
@@ -301,6 +301,100 @@ class GraphQLService {
             return rows;
         } catch (error) {
             logToFile(`[GraphQL] executeServiceOrder_Income Error: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Stored Procedure-backed mutation for Baht Per Head Summary.
+     * Calling ServiceOrder_BahtPerHead
+     */
+    async executeServiceOrderBahtPerHead(input = {}) {
+        try {
+            logToFile('[GraphQL] Executing stored procedure query: executeServiceOrder_BahtPerHead');
+
+            const token = await this.getAccessToken();
+
+            // Calculate current month date range as defaults
+            const now = new Date();
+            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+            const fromDate = input.FromDate || firstOfMonth;
+            const toDate = input.ToDate || lastOfMonth;
+
+            logToFile(`[GraphQL] Using Date Range: ${fromDate} to ${toDate}`);
+
+            const queryBody = `
+                query ExecuteServiceOrderBahtPerHead($fromDate: DateTime!, $toDate: DateTime!) {
+                    executeServiceOrder_BahtPerHead(FromDate: $fromDate, ToDate: $toDate) {
+                        bpc_zonegroup
+                        bpc_inventlocationid
+                        firstname
+                        serviceorderid
+                        bpc_tradecode
+                        bpc_tradename
+                        stageid
+                        bpc_mobilestatus
+                        bpc_serviceordertypecode
+                        bpc_maintenanceactivitytypecode
+                        bpc_maintenanceactivitytypedescription
+                        bpc_servicezone
+                        projsalesprice
+                        qty
+                        transactiontype
+                        projcategoryid
+                        bpc_slafinishdate
+                        bpc_actualfinisheddate
+                        dateexecution
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: {
+                    fromDate: fromDate,
+                    toDate: toDate
+                }
+            });
+
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeServiceOrder_BahtPerHead response status: ${response.status}`);
+            if (result.errors) {
+                logToFile(`[GraphQL] executeServiceOrder_BahtPerHead errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeServiceOrder_BahtPerHead) {
+                const node = result.data.executeServiceOrder_BahtPerHead;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeServiceOrder_BahtPerHead retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeServiceOrder_BahtPerHead Error: ${error.message}`);
             throw error;
         }
     }

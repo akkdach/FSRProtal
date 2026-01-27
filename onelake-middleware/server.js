@@ -10,7 +10,7 @@ const apiRoutes = require('./src/routes/api');
 const app = express();
 
 // Middleware
-app.use(cors({ origin: '*' }));
+app.use(cors()); // Allow all origins
 app.use(express.json());
 
 // Routes
