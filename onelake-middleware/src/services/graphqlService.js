@@ -48,7 +48,8 @@ class GraphQLService {
                 'smaserviceorderline': 'smaserviceorderlines',
                 'smaserviceorderline': 'smaserviceorderlines',
                 'ServiceOrder_Table&Line': 'serviceOrder_TableLines', // Plural + New Endpoint should work
-                'Performance_Matrix': 'performance_Matrix_Tables' // Mapping Name
+                'Performance_Matrix': 'performance_Matrix_Tables', // Mapping Name
+                'ServiceOrder_QRCode': 'serviceOrder_QRCodes' // New QRCode Entpoint
             };
 
             const queryName = queryMap[viewName] || viewName;
@@ -105,6 +106,18 @@ class GraphQLService {
                             projcategoryid
                             bpc_slafinishdate
                             bpc_actualfinisheddate
+                        }
+                    }
+                }`;
+            } else if (queryName === 'serviceOrder_QRCodes') {
+                queryBody = `
+                query {
+                    serviceOrder_QRCodes(first: 5000) {
+                        items {
+                            serviceorderid
+                            description
+                            bpc_tradename
+                            serviceobjectid
                         }
                     }
                 }`;
