@@ -33,6 +33,7 @@ class ProIoTController {
             logToFile(`[ProIoT] Response: Returning ${slicedData.length} records (from total ${total})`);
 
             res.json({
+                success: true,
                 data: slicedData,
                 total: total,
                 page: page,
@@ -40,7 +41,10 @@ class ProIoTController {
             });
         } catch (err) {
             logToFile(`[ProIoT] API Error: ${err.message}`);
-            res.status(500).json({ error: err.message });
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
         }
     }
 
@@ -146,6 +150,47 @@ class ProIoTController {
             });
         } catch (err) {
             logToFile(`[ProIoT] Baht Per Head Summary API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
+
+    /**
+     * QRCode data source from GraphQL View.
+     * 
+     * This endpoint fetches QRCode data for service orders from the GraphQL API.
+     * Returns serviceorderid, description, bpc_tradename, and serviceobjectid.
+     * 
+     * GET /api/qrcode?page=0&limit=100
+     */
+    async getQRCode(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/qrcode?page=${page}&limit=${limit}`);
+
+            // Fetch from GraphQL ServiceOrder_QRCode view
+            const allData = await graphqlService.queryView('ServiceOrder_QRCode');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] QRCode Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] QRCode API Error: ${err.message}`);
             res.status(500).json({
                 success: false,
                 message: err.message
