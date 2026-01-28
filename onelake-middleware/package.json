@@ -1,6 +1,6 @@
 {
   "name": "onelake-middleware",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Middleware for connecting to Fabric OneLake SQL Endpoint",
   "main": "server.js",
   "scripts": {
