@@ -48,7 +48,7 @@ class GraphQLService {
                 'smaserviceorderline': 'smaserviceorderlines',
                 'smaserviceorderline': 'smaserviceorderlines',
                 'ServiceOrder_Table&Line': 'serviceOrder_TableLines', // Plural + New Endpoint should work
-                'Performance_Matrix': 'performance_Matrix_Tables', // Mapping Name
+                'Performance_Matrix': 'performance_Matrices', // Mapping Name
                 'ServiceOrder_QRCode': 'serviceOrder_QRCodes' // New QRCode Entpoint
             };
 
@@ -56,10 +56,10 @@ class GraphQLService {
 
             let queryBody = '';
 
-            if (queryName === 'performance_Matrix_Tables') {
+            if (queryName === 'performance_Matrices') {
                 queryBody = `
                 query {
-                    performance_Matrix_Tables(first: 5000) {
+                    performance_Matrices(first: 5000) {
 
                         items {
                             OrderType

@@ -5,67 +5,56 @@ async function inspect() {
         const token = await graphqlService.getAccessToken();
         const endpoint = graphqlService.endpoint;
 
-        const queryBody = `
-        query InspectSchema {
-            __type(name: "Query") {
-                fields {
-                    name
-                    args {
-                        name
-                    }
-                }
-            }
-        }`;
+        console.log("Starting Query Candidate Tests...");
 
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ query: queryBody })
-        });
+        // Candidates to test
+        const candidates = [
+            'performance_Matrices',
+            'performance_Matrixs',
+            'performance_Matrix_Tables',
+            'Performance_Matrix',
+            'performance_matrix'
+        ];
 
-        const result = await response.json();
-        if (!result.data || !result.data.__type) {
-            console.log("Error: Schema field 'Query' not found. Response:", JSON.stringify(result));
-            return;
-        }
-        const field = result.data.__type.fields.find(f => f.name === 'executeServiceOrder_Income');
+        for (const queryName of candidates) {
+            console.log(`Testing candidate: ${queryName}`);
 
-        if (field) {
-            console.log("Found executeServiceOrder_Income:");
-            console.log("Arguments:", JSON.stringify(field.args, null, 2));
-            console.log("Return Type:", JSON.stringify(field.type, null, 2));
-        } else {
-            console.log("executeServiceOrder_Income NOT found in Query type.");
-            // Check Mutation type just in case
-            const mutationCheck = `
-            query InspectMutation {
-                __type(name: "Mutation") {
-                    fields {
-                        name
-                        args {
-                            name
-                        }
+            const queryBody = `
+            query {
+                ${queryName}(first: 1) {
+                    items {
+                        OrderType
                     }
                 }
             }`;
-            const res2 = await fetch(endpoint, {
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ query: mutationCheck })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ query: queryBody })
             });
-            const result2 = await res2.json();
-            const mutField = result2.data?.__type?.fields?.find(f => f.name === 'executeServiceOrder_Income');
-            if (mutField) {
-                console.log("Found executeServiceOrder_Income in Mutation!");
+
+            const result = await response.json();
+
+            if (result.data && result.data[queryName]) {
+                console.log(`✅ SUCCESS! Valid Query Name is: ${queryName}`);
+                return; // Stop on first match
             } else {
-                console.log("Field not found in Mutation either.");
+                // Check if it's a field error
+                const isFieldError = result.errors && result.errors.some(e => e.message.includes(`field "${queryName}"`));
+                if (isFieldError) {
+                    console.log(`❌ Failed: ${queryName} does not exist.`);
+                } else {
+                    console.log(`⚠️  Error with ${queryName}:`, JSON.stringify(result.errors?.[0]?.message || result));
+                }
             }
         }
+
     } catch (e) {
-        console.error(e);
+        console.error("Script execution error:", e);
     }
 }
 
