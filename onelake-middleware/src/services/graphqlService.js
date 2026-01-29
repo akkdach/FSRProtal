@@ -258,6 +258,8 @@ class GraphQLService {
                         bpc_slafinishdate
                         bpc_actualfinisheddate
                         dateexecution
+                        projlinepropertyid
+                        customer_type
                     }
                 }`;
 
@@ -360,6 +362,8 @@ class GraphQLService {
                         bpc_slafinishdate
                         bpc_actualfinisheddate
                         dateexecution
+                        projlinepropertyid
+                        customer_type
                     }
                 }`;
 
