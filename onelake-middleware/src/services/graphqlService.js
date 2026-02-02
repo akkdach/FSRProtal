@@ -55,26 +55,16 @@ class GraphQLService {
             const queryName = queryMap[viewName] || viewName;
 
             let queryBody = '';
+            let fields = '';
 
+            // Define fields for each query type
             if (queryName === 'performance_Matrices') {
-                queryBody = `
-                query {
-                    performance_Matrices(first: 5000) {
-
-                        items {
-                            OrderType
+                fields = `OrderType
                             DescriptionType
                             Value
-                            TimeType
-                        }
-                    }
-                }`;
+                            TimeType`;
             } else if (queryName === 'smaserviceorderlines') {
-                queryBody = `
-                query {
-                    smaserviceorderlines(first: 50000) {
-                        items {
-                            serviceorderid
+                fields = `serviceorderid
                             signoff
                             transactiontype
                             bpc_workerpersonnelnum
@@ -83,16 +73,9 @@ class GraphQLService {
                             projcategoryid
                             description
                             serviceobjectrelationid
-                            serviceobjectid
-                        }
-                    }
-                }`;
+                            serviceobjectid`;
             } else if (queryName === 'serviceOrder_TableLines') {
-                queryBody = `
-                query {
-                    serviceOrder_TableLines(first: 100000) {
-                        items {
-                            serviceorderid
+                fields = `serviceorderid
                             stageid
                             bpc_mobilestatus
                             bpc_servicezone
@@ -105,28 +88,15 @@ class GraphQLService {
                             transactiontype
                             projcategoryid
                             bpc_slafinishdate
-                            bpc_actualfinisheddate
-                        }
-                    }
-                }`;
+                            bpc_actualfinisheddate`;
             } else if (queryName === 'serviceOrder_QRCodes') {
-                queryBody = `
-                query {
-                    serviceOrder_QRCodes(first: 5000) {
-                        items {
-                            serviceorderid
+                fields = `serviceorderid
                             description
                             bpc_tradename
-                            serviceobjectid
-                        }
-                    }
-                }`;
+                            serviceobjectid`;
             } else {
-                queryBody = `
-                query {
-                    ${queryName}(first: 100000) {
-                        items {
-                            Id
+                // Default fields for Service_BN* views
+                fields = `Id
                             serviceorderid
                             bpc_customername
                             bpc_serialnumber
@@ -143,17 +113,50 @@ class GraphQLService {
                             bpc_model
                             bpc_modelnodescription
                             bpc_mobilestatus
-                            custaccount
-                        }
-                    }
-                }`;
+                            custaccount`;
             }
 
-            const query = JSON.stringify({
-                query: queryBody
-            });
+            // Use pagination for all queries
+            return await this.fetchAllWithPagination(token, queryName, fields);
 
-            // Use native fetch instead of graphql-request to debug response structure
+        } catch (error) {
+            logToFile(`[GraphQL] Query Error: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Generic pagination function for all GraphQL queries.
+     * Microsoft Fabric GraphQL API has a max limit of 100000 per request.
+     * This method fetches in batches and combines results.
+     * @param {string} token - Access token
+     * @param {string} queryName - GraphQL query name
+     * @param {string} fieldsQuery - Fields to query (as string)
+     */
+    async fetchAllWithPagination(token, queryName, fieldsQuery) {
+        const PAGE_SIZE = 100000;
+        let allItems = [];
+        let hasNextPage = true;
+        let afterCursor = null;
+        let pageNum = 1;
+
+        while (hasNextPage) {
+            logToFile(`[GraphQL] Fetching ${queryName} page ${pageNum}...`);
+
+            const afterArg = afterCursor ? `, after: "${afterCursor}"` : '';
+            const queryBody = `
+            query {
+                ${queryName}(first: ${PAGE_SIZE}${afterArg}) {
+                    items {
+                        ${fieldsQuery}
+                    }
+                    endCursor
+                    hasNextPage
+                }
+            }`;
+
+            const query = JSON.stringify({ query: queryBody });
+
             const response = await fetch(this.endpoint, {
                 method: 'POST',
                 headers: {
@@ -164,50 +167,33 @@ class GraphQLService {
             });
 
             const result = await response.json();
-            console.log(`[GraphQLService] Raw Response for ${queryName}:`, JSON.stringify(result).substring(0, 500) + "..."); // Log first 500 chars
 
-            // Check for errors in body
             if (result.errors) {
-                logToFile(`[GraphQL] API returned errors: ${JSON.stringify(result.errors)}`);
-                // If we also have data, we might want to proceed? 
-                // But usually errors means partial failure or malformed query.
-                // Let's create an error object but check data first.
-            }
-
-            // Navigate the response based on what we get
-            // Expected: { data: { service_BN15_Refurbishes: { items: [...] } } }
-
-            let items = [];
-
-            if (result.data && result.data[queryName] && result.data[queryName].items) {
-                items = result.data[queryName].items;
-            } else if (result[queryName] && result[queryName].items) {
-                // Fallback if data wrapper is missing
-                items = result[queryName].items;
-            } else if (result.items) {
-                // Fallback if root is items
-                items = result.items;
-            }
-
-            if (items.length > 0) {
-                logToFile(`[GraphQL] Retrieved ${items.length} records from ${viewName}`);
-                return items;
-            }
-
-            // If we got here, we didn't find items. Log the full response to help debug.
-            logToFile(`[GraphQL] Unexpected response structure: ${JSON.stringify(result).substring(0, 500)}...`);
-
-            // If we had errors earlier, throw them now
-            if (result.errors) {
+                logToFile(`[GraphQL] ${queryName} pagination error: ${JSON.stringify(result.errors)}`);
                 throw new Error(result.errors[0].message);
             }
 
-            return []; // Return empty if no data and no error?
+            const node = result.data?.[queryName];
+            if (node && node.items) {
+                allItems = allItems.concat(node.items);
+                hasNextPage = node.hasNextPage === true;
+                afterCursor = node.endCursor;
+                logToFile(`[GraphQL] Page ${pageNum}: Got ${node.items.length} records. Total so far: ${allItems.length}. HasNextPage: ${hasNextPage}`);
+            } else {
+                hasNextPage = false;
+            }
 
-        } catch (error) {
-            logToFile(`[GraphQL] Query Error: ${error.message}`);
-            throw error;
+            pageNum++;
+
+            // Safety limit to prevent infinite loops (max 2 million records)
+            if (pageNum > 20) {
+                logToFile(`[GraphQL] Safety limit reached (20 pages). Stopping pagination.`);
+                break;
+            }
         }
+
+        logToFile(`[GraphQL] Total ${queryName} records fetched: ${allItems.length}`);
+        return allItems;
     }
 
     /**
