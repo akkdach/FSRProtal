@@ -343,27 +343,23 @@ class GraphQLService {
             const queryBody = `
                 query ExecuteServiceOrderBahtPerHead($fromDate: DateTime!, $toDate: DateTime!) {
                     executeServiceOrder_BahtPerHead(FromDate: $fromDate, ToDate: $toDate) {
-                        bpc_zonegroup
-                        bpc_inventlocationid
-                        firstname
                         serviceorderid
+                        bpc_zonegroup
+                        technician_names
+                        technician_count
+                        work_hours
+                        projsalesprice
                         bpc_tradecode
                         bpc_tradename
                         stageid
                         bpc_mobilestatus
+                        bpc_inventlocationid
                         bpc_serviceordertypecode
                         bpc_maintenanceactivitytypecode
                         bpc_maintenanceactivitytypedescription
                         bpc_servicezone
-                        projsalesprice
-                        qty
-                        transactiontype
-                        projcategoryid
+                        actual_finished_date
                         bpc_slafinishdate
-                        bpc_actualfinisheddate
-                        dateexecution
-                        projlinepropertyid
-                        customer_type
                     }
                 }`;
 

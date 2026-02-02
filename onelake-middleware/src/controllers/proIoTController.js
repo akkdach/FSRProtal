@@ -89,14 +89,14 @@ class ProIoTController {
      * via `graphqlService.executeServiceOrderIncome()` and returns a paginated
      * list of rows shaped for the Baht Per Head page.
      *
-     * GET /api/baht-per-head?page=0&limit=100
+     * GET /api/income?page=0&limit=100
      */
-    async getBahtPerHead(req, res) {
+    async getIncome(req, res) {
         try {
             const page = parseInt(req.query.page) || 0;
             const limit = parseInt(req.query.limit) || 100;
 
-            logToFile(`[ProIoT] API Request: /api/baht-per-head?page=${page}&limit=${limit}&FromDate=${req.query.FromDate}&ToDate=${req.query.ToDate}`);
+            logToFile(`[ProIoT] API Request: /api/income?page=${page}&limit=${limit}&FromDate=${req.query.FromDate}&ToDate=${req.query.ToDate}`);
 
             // Call stored procedure-backed mutation with query parameters (for date filtering)
             const allData = await graphqlService.executeServiceOrderIncome(req.query);
@@ -124,12 +124,12 @@ class ProIoTController {
         }
     }
 
-    async getBahtPerHeadSummary(req, res) {
+    async getIncomeSummary(req, res) {
         try {
             const page = parseInt(req.query.page) || 0;
             const limit = parseInt(req.query.limit) || 100;
 
-            logToFile(`[ProIoT] API Request: /api/baht-per-head-summary?page=${page}&limit=${limit}&FromDate=${req.query.FromDate}&ToDate=${req.query.ToDate}`);
+            logToFile(`[ProIoT] API Request: /api/baht-per-head?page=${page}&limit=${limit}&FromDate=${req.query.FromDate}&ToDate=${req.query.ToDate}`);
 
             // Call stored procedure-backed mutation
             const allData = await graphqlService.executeServiceOrderBahtPerHead(req.query);
