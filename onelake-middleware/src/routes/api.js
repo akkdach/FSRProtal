@@ -7,7 +7,7 @@ const fsrProtalController = require('../controllers/fsrProtalController_graphql'
 router.get('/orders', (req, res) => proIoTController.getOrders(req, res));
 router.get('/service-lines', (req, res) => proIoTController.getServiceLines(req, res));
 router.get('/income', (req, res) => proIoTController.getIncome(req, res));
-router.get('/baht-per-head', (req, res) => proIoTController.getIncomeSummary(req, res));
+router.get('/baht-per-head', (req, res) => proIoTController.getBahtPerHead(req, res));
 router.get('/qrcode', (req, res) => proIoTController.getQRCode(req, res));
 
 // Project: FSR Protal
