@@ -49,7 +49,7 @@ class GraphQLService {
                 'smaserviceorderline': 'smaserviceorderlines',
                 'ServiceOrder_Table&Line': 'serviceOrder_TableLines', // Plural + New Endpoint should work
                 'Performance_Matrix': 'performance_Matrices', // Mapping Name
-                'ServiceOrder_QRCode': 'serviceOrder_QRCodes' // New QRCode Entpoint
+                'ServiceOrder_BarCode': 'serviceOrder_BarCodes' // Mapped Barcode Entpoint
             };
 
             const queryName = queryMap[viewName] || viewName;
@@ -394,6 +394,77 @@ class GraphQLService {
             return rows;
         } catch (error) {
             logToFile(`[GraphQL] executeServiceOrder_BahtPerHead Error: ${error.message}`);
+            throw error;
+        }
+    }
+    /**
+     * Execute Stored Procedure-backed mutation for BarCode (formerly QRCode).
+     * Calling ServiceOrder_BarCode_Proc
+     */
+    async executeServiceOrderBarCode(status) {
+        try {
+            logToFile('[GraphQL] Executing stored procedure query: executeServiceOrder_BarCode_Proc');
+
+            const token = await this.getAccessToken();
+
+            logToFile(`[GraphQL] Using Status: ${status}`);
+
+            const queryBody = `
+                query ExecuteServiceOrderBarCode($status: String!) {
+                    executeServiceOrder_BarCode_Proc(Status: $status) {
+                        serviceorderid
+                        description
+                        bpc_tradename
+                        serviceobjectid
+                        stageid
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: {
+                    status: status
+                }
+            });
+
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeServiceOrder_BarCode_Proc response status: ${response.status}`);
+
+            if (result.errors) {
+                logToFile(`[GraphQL] executeServiceOrder_BarCode_Proc errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeServiceOrder_BarCode_Proc) {
+                const node = result.data.executeServiceOrder_BarCode_Proc;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeServiceOrder_BarCode_Proc retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeServiceOrder_BarCode_Proc Error: ${error.message}`);
             throw error;
         }
     }

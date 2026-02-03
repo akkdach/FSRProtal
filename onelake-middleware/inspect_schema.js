@@ -5,56 +5,49 @@ async function inspect() {
         const token = await graphqlService.getAccessToken();
         const endpoint = graphqlService.endpoint;
 
-        console.log("Starting Query Candidate Tests...");
+        console.log("Checking for valid Stored Procedure name...");
 
-        // Candidates to test
+        // Candidates to test (based on common patterns)
         const candidates = [
-            'performance_Matrices',
-            'performance_Matrixs',
-            'performance_Matrix_Tables',
-            'Performance_Matrix',
-            'performance_matrix'
+            'serviceOrder_BarCode_Proc', // Current guess
+            'executeServiceOrder_BarCode_Proc', // Like the Income one
+            'serviceOrder_BarCode_Procs', // Plural
+            'serviceOrder_BarCode', // Simplified
+            'serviceOrder_BarCodes', // Simplified Plural
+            'ServiceOrder_BarCode_Proc', // PascalCase
+            'dbo_ServiceOrder_BarCode_Proc' // With Schema
         ];
 
         for (const queryName of candidates) {
-            console.log(`Testing candidate: ${queryName}`);
-
             const queryBody = `
             query {
-                ${queryName}(first: 1) {
-                    items {
-                        OrderType
-                    }
+                ${queryName}(Status: "POST") {
+                    serviceorderid
                 }
             }`;
 
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ query: queryBody })
-            });
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ query: queryBody })
+                });
 
-            const result = await response.json();
+                const result = await response.json();
 
-            if (result.data && result.data[queryName]) {
-                console.log(`✅ SUCCESS! Valid Query Name is: ${queryName}`);
-                return; // Stop on first match
-            } else {
-                // Check if it's a field error
-                const isFieldError = result.errors && result.errors.some(e => e.message.includes(`field "${queryName}"`));
-                if (isFieldError) {
-                    console.log(`❌ Failed: ${queryName} does not exist.`);
-                } else {
-                    console.log(`⚠️  Error with ${queryName}:`, JSON.stringify(result.errors?.[0]?.message || result));
+                if (result.data && result.data[queryName]) {
+                    console.log(`\n🎉 MATCH FOUND: "${queryName}"`);
+                    return;
                 }
-            }
+            } catch (e) { }
         }
+        console.log("\n❌ No match found. Did you expose the SP in Fabric Portal?");
 
     } catch (e) {
-        console.error("Script execution error:", e);
+        console.error("Error:", e.message);
     }
 }
 

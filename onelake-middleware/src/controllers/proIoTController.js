@@ -165,22 +165,23 @@ class ProIoTController {
      * 
      * GET /api/qrcode?page=0&limit=100
      */
-    async getQRCode(req, res) {
+    async getBarCode(req, res) {
         try {
             const page = parseInt(req.query.page) || 0;
             const limit = parseInt(req.query.limit) || 100;
+            const status = req.query.status; // Get status from query, undefined if not provided
 
-            logToFile(`[ProIoT] API Request: /api/qrcode?page=${page}&limit=${limit}`);
+            logToFile(`[ProIoT] API Request: /api/barcode?page=${page}&limit=${limit}&status=${status}`);
 
-            // Fetch from GraphQL ServiceOrder_QRCode view
-            const allData = await graphqlService.queryView('ServiceOrder_QRCode');
+            // Call stored procedure-backed mutation
+            const allData = await graphqlService.executeServiceOrderBarCode(status);
 
             const total = allData.length;
             const startIndex = page * limit;
             const endIndex = startIndex + limit;
             const slicedData = allData.slice(startIndex, endIndex);
 
-            logToFile(`[ProIoT] QRCode Response: Returning ${slicedData.length} records (from total ${total})`);
+            logToFile(`[ProIoT] BarCode Response: Returning ${slicedData.length} records (from total ${total})`);
 
             res.json({
                 success: true,
@@ -190,7 +191,7 @@ class ProIoTController {
                 limit
             });
         } catch (err) {
-            logToFile(`[ProIoT] QRCode API Error: ${err.message}`);
+            logToFile(`[ProIoT] BarCode API Error: ${err.message}`);
             res.status(500).json({
                 success: false,
                 message: err.message
