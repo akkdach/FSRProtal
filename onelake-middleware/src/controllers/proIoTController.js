@@ -198,6 +198,52 @@ class ProIoTController {
             });
         }
     }
+
+    /**
+     * Jobs Per Man data source backed by direct SQL execution.
+     * GET /api/jobs-per-man?page=0&limit=100&FromDate=YYYY-MM-DD&ToDate=YYYY-MM-DD
+     */
+    async getJobsPerMan(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+            const fromDate = req.query.FromDate;
+            const toDate = req.query.ToDate;
+
+            if (!fromDate || !toDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'FromDate and ToDate are required parameters.'
+                });
+            }
+
+            logToFile(`[ProIoT] API Request: /api/jobs-per-man?page=${page}&limit=${limit}&FromDate=${fromDate}&ToDate=${toDate}`);
+
+            // Call GraphQL service (Stored Procedure Mutation)
+            const allData = await graphqlService.executeServiceOrderJobsPerMan(req.query);
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Jobs Per Man Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Jobs Per Man API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
 }
 
 module.exports = new ProIoTController();

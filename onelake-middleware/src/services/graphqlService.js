@@ -468,6 +468,97 @@ class GraphQLService {
             throw error;
         }
     }
+    /**
+     * Execute Stored Procedure-backed mutation for Jobs Per Man.
+     * Calling ServiceOrder_JobsPerMan
+     */
+    async executeServiceOrderJobsPerMan(input = {}) {
+        try {
+            logToFile('[GraphQL] Executing stored procedure query: executeServiceOrder_JobsPerMan');
+
+            const token = await this.getAccessToken();
+
+            // Calculate current month date range as defaults
+            const now = new Date();
+            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+            const fromDate = input.FromDate || firstOfMonth;
+            const toDate = input.ToDate || lastOfMonth;
+
+            logToFile(`[GraphQL] Using Date Range: ${fromDate} to ${toDate}`);
+
+            const queryBody = `
+                query ExecuteServiceOrderJobsPerMan($fromDate: DateTime!, $toDate: DateTime!) {
+                    executeServiceOrder_JobsPerMan(FromDate: $fromDate, ToDate: $toDate) {
+                        serviceorderid
+                        bpc_zonegroup
+                        technician_name
+                        technician_count
+                        work_hours
+                        projsalesprice
+                        bpc_inventlocationid
+                        bpc_tradecode
+                        bpc_tradename
+                        stageid
+                        bpc_mobilestatus
+                        bpc_serviceordertypecode
+                        bpc_maintenanceactivitytypecode
+                        bpc_maintenanceactivitytypedescription
+                        bpc_servicezone
+                        actual_finished_date
+                        bpc_slafinishdate
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: {
+                    fromDate: fromDate,
+                    toDate: toDate
+                }
+            });
+
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeServiceOrder_JobsPerMan response status: ${response.status}`);
+            if (result.errors) {
+                logToFile(`[GraphQL] executeServiceOrder_JobsPerMan errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeServiceOrder_JobsPerMan) {
+                const node = result.data.executeServiceOrder_JobsPerMan;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeServiceOrder_JobsPerMan retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeServiceOrder_JobsPerMan Error: ${error.message}`);
+            throw error;
+        }
+    }
 }
 
 module.exports = new GraphQLService();
