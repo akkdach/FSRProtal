@@ -323,12 +323,13 @@ class GraphQLService {
 
             const fromDate = input.FromDate || firstOfMonth;
             const toDate = input.ToDate || lastOfMonth;
+            const van = input.Van || null;
 
-            logToFile(`[GraphQL] Using Date Range: ${fromDate} to ${toDate}`);
+            logToFile(`[GraphQL] Using Date Range: ${fromDate} to ${toDate}, Van: ${van}`);
 
             const queryBody = `
-                query ExecuteServiceOrderBahtPerHead($fromDate: DateTime!, $toDate: DateTime!) {
-                    executeServiceOrder_BahtPerHead(FromDate: $fromDate, ToDate: $toDate) {
+                query ExecuteServiceOrderBahtPerHead($fromDate: DateTime!, $toDate: DateTime!, $van: String) {
+                    executeServiceOrder_BahtPerHead(FromDate: $fromDate, ToDate: $toDate, Van: $van) {
                         serviceorderid
                         bpc_zonegroup
                         technician_names
@@ -353,7 +354,8 @@ class GraphQLService {
                 query: queryBody,
                 variables: {
                     fromDate: fromDate,
-                    toDate: toDate
+                    toDate: toDate,
+                    van: van
                 }
             });
 
