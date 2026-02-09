@@ -16,7 +16,12 @@ class FSRProtalController {
                 'Service_BN09_Remove_NB2CLOAN', // New View
                 'Service_Summary_All',
                 'Performance_Matrix', // New Matrix View
-                'ServiceOrder_QRCode'
+                'ServiceOrder_QRCode',
+                // FSRProtal_API views
+                'service_BN4_NB2CLOAN_New',
+                'Service_BN4_New',
+                'service_BN09_NB2CLOAN_New',
+                'Service_BN09_New'
             ];
 
             if (!ALLOWED_VIEWS.includes(viewName)) {

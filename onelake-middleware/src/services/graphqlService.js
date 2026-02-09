@@ -7,6 +7,8 @@ class GraphQLService {
     constructor() {
         this.client = null;
         this.endpoint = 'https://7b2a2b840f674d1f8e9f65abfa88501d.z7b.graphql.fabric.microsoft.com/v1/workspaces/7b2a2b84-0f67-4d1f-8e9f-65abfa88501d/graphqlapis/e486dea8-7ef1-4806-a269-0385a41be187/graphql';
+        // New FSRProtal_API endpoint for service views
+        this.fsrProtalEndpoint = 'https://7b2a2b840f674d1f8e9f65abfa88501d.z7b.graphql.fabric.microsoft.com/v1/workspaces/7b2a2b84-0f67-4d1f-8e9f-65abfa88501d/graphqlapis/47a192e2-8902-46e4-baee-c0ec18c3d629/graphql';
     }
 
     async getAccessToken() {
@@ -43,14 +45,25 @@ class GraphQLService {
                 'Service_BN09_Remove': 'service_BN09_Removes',
                 'Service_BN15_Refurbish': 'service_BN15_Refurbishes',
                 'Service_BN15_Refurbish_NB2CLOAN': 'service_BN15_Refurbish_NB2CLOANs',
-                'Service_BN15_Refurbish_NB2CLOAN': 'service_BN15_Refurbish_NB2CLOANs',
                 'Service_BN09_Remove_NB2CLOAN': 'service_BN09_Remove_NB2CLOANs',
                 'smaserviceorderline': 'smaserviceorderlines',
-                'smaserviceorderline': 'smaserviceorderlines',
-                'ServiceOrder_Table&Line': 'serviceOrder_TableLines', // Plural + New Endpoint should work
-                'Performance_Matrix': 'performance_Matrices', // Mapping Name
-                'ServiceOrder_BarCode': 'serviceOrder_BarCodes' // Mapped Barcode Entpoint
+                'ServiceOrder_Table&Line': 'serviceOrder_TableLines',
+                'Performance_Matrix': 'performance_Matrices',
+                'ServiceOrder_BarCode': 'serviceOrder_BarCodes',
+                // New FSRProtal_API views
+                'service_BN4_NB2CLOAN_New': 'service_BN4_NB2CLOAN_News',
+                'Service_BN4_New': 'service_BN4_News',
+                'service_BN09_NB2CLOAN_New': 'service_BN09_NB2CLOAN_News',
+                'Service_BN09_New': 'service_BN09_News'
             };
+
+            // Views that use the FSRProtal_API endpoint
+            const fsrProtalViews = [
+                'service_BN4_NB2CLOAN_New',
+                'Service_BN4_New',
+                'service_BN09_NB2CLOAN_New',
+                'Service_BN09_New'
+            ];
 
             const queryName = queryMap[viewName] || viewName;
 
@@ -101,6 +114,9 @@ class GraphQLService {
                             bpc_customername
                             bpc_serialnumber
                             bpc_ticketno
+                            bpc_zonegroup
+                            bpc_resolutionid
+                            bpc_conditionid
                             createdon
                             bpc_serviceordertypecode
                             bpc_maintenanceactivitytypecode
@@ -116,8 +132,12 @@ class GraphQLService {
                             custaccount`;
             }
 
+            // Determine which endpoint to use
+            const useFsrProtalEndpoint = fsrProtalViews.includes(viewName);
+            const endpoint = useFsrProtalEndpoint ? this.fsrProtalEndpoint : this.endpoint;
+
             // Use pagination for all queries
-            return await this.fetchAllWithPagination(token, queryName, fields);
+            return await this.fetchAllWithPagination(token, queryName, fields, endpoint);
 
         } catch (error) {
             logToFile(`[GraphQL] Query Error: ${error.message}`);
@@ -133,7 +153,7 @@ class GraphQLService {
      * @param {string} queryName - GraphQL query name
      * @param {string} fieldsQuery - Fields to query (as string)
      */
-    async fetchAllWithPagination(token, queryName, fieldsQuery) {
+    async fetchAllWithPagination(token, queryName, fieldsQuery, endpoint = this.endpoint) {
         const PAGE_SIZE = 100000;
         let allItems = [];
         let hasNextPage = true;
@@ -157,7 +177,7 @@ class GraphQLService {
 
             const query = JSON.stringify({ query: queryBody });
 
-            const response = await fetch(this.endpoint, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
