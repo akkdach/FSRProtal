@@ -14,7 +14,8 @@
         "poManagement": "PO Management",
         "partsInventory": "Parts Inventory",
         "serviceJobs": "Service Jobs",
-        "complaints": "Complaints"
+        "complaints": "Complaints",
+        "dataView": "Data View"
     },
     "user": {
         "profile": "Profile",
@@ -138,6 +139,13 @@
             "summary": "Summary",
             "showing": "Showing {filtered} of {total} items",
             "requiresAction": "{count} items require action"
+        },
+        "data": {
+            "title": "Data View",
+            "selectView": "Select View",
+            "loading": "Loading data...",
+            "noData": "No data available",
+            "error": "Error loading data"
         }
     },
     "common": {

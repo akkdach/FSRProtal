@@ -14,7 +14,8 @@
         "poManagement": "PO Management",
         "partsInventory": "Parts Inventory",
         "serviceJobs": "Service Jobs",
-        "complaints": "Complaints"
+        "complaints": "Complaints",
+        "dataView": "ข้อมูล"
     },
     "user": {
         "profile": "โปรไฟล์",
@@ -138,6 +139,13 @@
             "summary": "สรุป",
             "showing": "แสดง {filtered} รายการจากทั้งหมด {total} รายการ",
             "requiresAction": "มี {count} รายการที่ต้องดำเนินการ"
+        },
+        "data": {
+            "title": "ข้อมูล",
+            "selectView": "เลือกมุมมอง",
+            "loading": "กำลังโหลดข้อมูล...",
+            "noData": "ไม่มีข้อมูล",
+            "error": "เกิดข้อผิดพลาดในการโหลดข้อมูล"
         }
     },
     "common": {

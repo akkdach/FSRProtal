@@ -14,7 +14,8 @@
         "poManagement": "発注管理",
         "partsInventory": "部品在庫",
         "serviceJobs": "サービスジョブ",
-        "complaints": "苦情"
+        "complaints": "苦情",
+        "dataView": "データビュー"
     },
     "user": {
         "profile": "プロフィール",
@@ -138,6 +139,13 @@
             "summary": "概要",
             "showing": "{total} 件中 {filtered} 件を表示",
             "requiresAction": "{count} 件の対応が必要"
+        },
+        "data": {
+            "title": "データビュー",
+            "selectView": "ビューを選択",
+            "loading": "データを読み込み中...",
+            "noData": "データなし",
+            "error": "データの読み込みエラー"
         }
     },
     "common": {

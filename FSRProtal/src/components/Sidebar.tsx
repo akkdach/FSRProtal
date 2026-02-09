@@ -20,6 +20,7 @@ import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import BuildIcon from '@mui/icons-material/Build';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import { useTranslation } from 'react-i18next';
 
 const drawerWidth = 240;
@@ -49,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose, isMobile, onNav
         { text: t('nav.partsInventory'), icon: <InventoryIcon />, path: '/asc/parts' },
         { text: t('nav.serviceJobs'), icon: <BuildIcon />, path: '/asc/jobs' },
         { text: t('nav.complaints'), icon: <ReportProblemIcon />, path: '/asc/complaints' },
+        { text: t('nav.dataView'), icon: <TableChartIcon />, path: '/asc/data' },
     ];
 
     const handleListItemClick = (index: number, path: string) => {

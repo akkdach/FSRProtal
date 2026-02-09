@@ -14,7 +14,8 @@
         "poManagement": "采购订单管理",
         "partsInventory": "零件库存",
         "serviceJobs": "服务工作",
-        "complaints": "投诉"
+        "complaints": "投诉",
+        "dataView": "数据视图"
     },
     "user": {
         "profile": "个人资料",
@@ -138,6 +139,13 @@
             "summary": "摘要",
             "showing": "显示 {filtered} / {total} 项",
             "requiresAction": "{count} 项需要处理"
+        },
+        "data": {
+            "title": "数据视图",
+            "selectView": "选择视图",
+            "loading": "加载数据中...",
+            "noData": "无数据",
+            "error": "加载数据出错"
         }
     },
     "common": {
