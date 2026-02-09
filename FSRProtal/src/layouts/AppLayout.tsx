@@ -41,6 +41,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, onNavigate }) =>
                     minHeight: '100vh',
                     display: 'flex',
                     flexDirection: 'column',
+                    backgroundColor: '#1e1e2e', // Dark background
                     transition: theme.transitions.create(['margin', 'width'], {
                         easing: theme.transitions.easing.sharp,
                         duration: theme.transitions.duration.leavingScreen,

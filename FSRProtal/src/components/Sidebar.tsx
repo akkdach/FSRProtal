@@ -51,6 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose, isMobile, onNav
         { text: t('nav.serviceJobs'), icon: <BuildIcon />, path: '/asc/jobs' },
         { text: t('nav.complaints'), icon: <ReportProblemIcon />, path: '/asc/complaints' },
         { text: t('nav.dataView'), icon: <TableChartIcon />, path: '/asc/data' },
+        { text: 'Performance', icon: <AssessmentIcon />, path: '/asc/performance' },
     ];
 
     const handleListItemClick = (index: number, path: string) => {
