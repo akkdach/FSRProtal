@@ -209,7 +209,7 @@ export const POManagement: React.FC = () => {
         'exchange_criteria',
         'bpc_model', // Machine Model
         'bpc_modelnodescription', // Machine Type
-        'bpc_slafinishdate', // SLA
+        // 'bpc_slafinishdate', // SLA - Removed
         'actual_received_customer_machine_date',
         'actual_repair_report_sending_date',
         'loan_return_date',
