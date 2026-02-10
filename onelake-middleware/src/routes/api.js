@@ -3,6 +3,7 @@ const router = express.Router();
 const proIoTController = require('../controllers/proIoTController');
 const fsrProtalController = require('../controllers/fsrProtalController_graphql'); // Using GraphQL API (Port 443)
 const reportController = require('../controllers/reportController');
+const otherController = require('../controllers/otherController');
 
 // Project: Pro IoT Board
 router.get('/orders', (req, res) => proIoTController.getOrders(req, res));
@@ -18,5 +19,8 @@ router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req
 // Project: Report Tracking (SharePoint Excel)
 router.get('/report-tracking', (req, res) => reportController.getReportTracking(req, res));
 router.get('/report-tracking/sheets', (req, res) => reportController.getReportSheets(req, res));
+
+// Project: Other (Generic GraphQL Query)
+router.get('/other', (req, res) => otherController.getData(req, res));
 
 module.exports = router;
