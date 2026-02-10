@@ -31,16 +31,20 @@ class OtherGraphQLService {
 
             const token = await this.getAccessToken();
 
-            // Ensure full ISO DateTime format for GraphQL DateTime! type
-            const rawDate = input.PostingDate || new Date().toISOString().split('T')[0];
-            const postingDate = rawDate.includes('T') ? rawDate : `${rawDate}T00:00:00.000Z`;
+            // Calculate current month date range as defaults
+            const now = new Date();
+            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
 
-            logToFile(`[OtherGraphQL] Using PostingDate: ${postingDate}`);
+            const fromDate = input.posting_date_from || firstOfMonth;
+            const toDate = input.posting_date_to || lastOfMonth;
+
+            logToFile(`[OtherGraphQL] Using Date Range: ${fromDate} to ${toDate}`);
 
             // Full query with all fields from Service_Header_Line_Proc
             const queryBody = `
-                query ExecuteServiceHeaderLineProc($posting_date: DateTime!) {
-                    executeService_Header_Line_Proc(posting_date: $posting_date) {
+                query ExecuteServiceHeaderLineProc($posting_date_from: DateTime!, $posting_date_to: DateTime!) {
+                    executeService_Header_Line_Proc(posting_date_from: $posting_date_from, posting_date_to: $posting_date_to) {
                         Id
                         SinkCreatedOn
                         SinkModifiedOn
@@ -161,7 +165,8 @@ class OtherGraphQLService {
             const body = JSON.stringify({
                 query: queryBody,
                 variables: {
-                    posting_date: postingDate
+                    posting_date_from: fromDate,
+                    posting_date_to: toDate
                 }
             });
 
