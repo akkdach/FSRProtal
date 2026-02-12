@@ -51,16 +51,18 @@ class GraphQLService {
                 'Performance_Matrix': 'performance_Matrices',
                 'ServiceOrder_BarCode': 'serviceOrder_BarCodes',
                 // New FSRProtal_API views
-                'service_BN4_NB2CLOAN_New': 'service_BN4_NB2CLOAN_News',
-                'Service_BN4_New': 'service_BN4_News',
+                'service_BN04_NB2CLOAN_New': 'service_BN04_NB2CLOAN_News',
+                'Service_BN04_New': 'service_BN04_News',
+                'service_BN15_New': 'service_BN15_News',
                 'service_BN09_NB2CLOAN_New': 'service_BN09_NB2CLOAN_News',
                 'Service_BN09_New': 'service_BN09_News'
             };
 
             // Views that use the FSRProtal_API endpoint
             const fsrProtalViews = [
-                'service_BN4_NB2CLOAN_New',
-                'Service_BN4_New',
+                'service_BN04_NB2CLOAN_New',
+                'Service_BN04_New',
+                'service_BN15_New',
                 'service_BN09_NB2CLOAN_New',
                 'Service_BN09_New'
             ];
@@ -129,6 +131,7 @@ class GraphQLService {
                             bpc_model
                             bpc_modelnodescription
                             bpc_mobilestatus
+                            bpc_mobileremark
                             custaccount`;
             }
 

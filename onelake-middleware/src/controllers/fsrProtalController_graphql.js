@@ -18,8 +18,9 @@ class FSRProtalController {
                 'Performance_Matrix', // New Matrix View
                 'ServiceOrder_QRCode',
                 // FSRProtal_API views
-                'service_BN4_NB2CLOAN_New',
-                'Service_BN4_New',
+                'service_BN04_NB2CLOAN_New',
+                'Service_BN04_New',
+                'service_BN15_New',
                 'service_BN09_NB2CLOAN_New',
                 'Service_BN09_New'
             ];
