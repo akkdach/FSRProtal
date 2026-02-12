@@ -518,6 +518,7 @@ class GraphQLService {
                     executeServiceOrder_JobsPerMan(FromDate: $fromDate, ToDate: $toDate) {
                         serviceorderid
                         bpc_zonegroup
+                        bpc_workerpersonnelnum
                         technician_name
                         technician_count
                         work_hours
