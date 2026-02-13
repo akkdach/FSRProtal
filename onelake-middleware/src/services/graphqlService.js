@@ -585,6 +585,98 @@ class GraphQLService {
             throw error;
         }
     }
+
+    /**
+     * Execute Stored Procedure-backed query for BN09 Internal Work.
+     * Calling BN09_Internal_Work
+     */
+    async executeBN09InternalWork(input = {}) {
+        try {
+            logToFile('[GraphQL] Executing stored procedure query: executeBN09_Internal_Work');
+
+            const token = await this.getAccessToken();
+
+            // Calculate current month date range as defaults
+            const now = new Date();
+            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+            const startDate = input.StartDate || firstOfMonth;
+            const endDate = input.EndDate || lastOfMonth;
+
+            logToFile(`[GraphQL] Using Date Range: ${startDate} to ${endDate}`);
+
+            const queryBody = `
+                query ExecuteBN09InternalWork($startDate: DateTime!, $endDate: DateTime!) {
+                    executeBN09_Internal_Work(StartDate: $startDate, EndDate: $endDate) {
+                        ID
+                        ServiceObject
+                        Model
+                        ModelDescription
+                        CustomerCode
+                        Customer
+                        Ticket
+                        BKK
+                        PostCode
+                        RemoveDate
+                        RemoveTechnician
+                        CreateServiceOrderDate
+                        CreateServiceOrderBy
+                        TradeCode
+                        TradeName
+                        StartDate
+                        EndDate
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: {
+                    startDate: startDate,
+                    endDate: endDate
+                }
+            });
+
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeBN09_Internal_Work response status: ${response.status}`);
+            if (result.errors) {
+                logToFile(`[GraphQL] executeBN09_Internal_Work errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeBN09_Internal_Work) {
+                const node = result.data.executeBN09_Internal_Work;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeBN09_Internal_Work retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeBN09_Internal_Work Error: ${error.message}`);
+            throw error;
+        }
+    }
 }
 
 module.exports = new GraphQLService();

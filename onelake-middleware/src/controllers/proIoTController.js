@@ -244,6 +244,52 @@ class ProIoTController {
             });
         }
     }
+
+    /**
+     * BN09 Internal Work data source backed by Stored Procedure (GraphQL query).
+     * GET /api/bn09-internal-work?page=0&limit=100&StartDate=YYYY-MM-DD&EndDate=YYYY-MM-DD
+     */
+    async getBN09InternalWork(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+            const startDate = req.query.StartDate;
+            const endDate = req.query.EndDate;
+
+            if (!startDate || !endDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'StartDate and EndDate are required parameters.'
+                });
+            }
+
+            logToFile(`[ProIoT] API Request: /api/bn09-internal-work?page=${page}&limit=${limit}&StartDate=${startDate}&EndDate=${endDate}`);
+
+            // Call GraphQL service (Stored Procedure Query)
+            const allData = await graphqlService.executeBN09InternalWork(req.query);
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] BN09 Internal Work Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] BN09 Internal Work API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
 }
 
 module.exports = new ProIoTController();
