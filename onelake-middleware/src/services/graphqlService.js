@@ -126,12 +126,14 @@ class GraphQLService {
                             bpc_slafinishdate
                             bpc_notifdate
                             bpc_scheduledstart
+                            bpc_scheduledfinish
                             bpc_customerbranch
                             bpc_actualstartdate
                             bpc_model
                             bpc_modelnodescription
                             bpc_mobilestatus
                             bpc_mobileremark
+                            bpc_remarkk2
                             custaccount`;
             }
 
