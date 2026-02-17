@@ -55,7 +55,8 @@ class GraphQLService {
                 'Service_BN04_New': 'service_BN04_News',
                 'service_BN15_New': 'service_BN15_News',
                 'service_BN09_NB2CLOAN_New': 'service_BN09_NB2CLOAN_News',
-                'Service_BN09_New': 'service_BN09_News'
+                'Service_BN09_New': 'service_BN09_News',
+                'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -109,6 +110,54 @@ class GraphQLService {
                             description
                             bpc_tradename
                             serviceobjectid`;
+            } else if (queryName === 'smaserviceobjecttable_Internal_Work_NPSOs') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            sysdatastatecode
+                            description
+                            inventdimid
+                            itemid
+                            serviceobjectgroup
+                            serviceobjectid
+                            templatebomid
+                            bpc_typeofmachinecode
+                            bpc_modelno
+                            bpc_modelcode
+                            bpc_serialnumber
+                            bpc_cdecode
+                            bpc_serviceitemstatuscode
+                            bpc_servicejobcode
+                            bpc_lastestmodelno
+                            bpc_warrantystartdatepart
+                            bpc_warrantyendingdatepart
+                            bpc_warrantyperpart
+                            bpc_warrantyperlabor
+                            bpc_warrantystartdatelabor
+                            bpc_warrantyendingdatelabor
+                            bpc_servicewarrantydate
+                            bpc_objectreceiveddate
+                            bpc_accountnum
+                            bpc_mainassetno
+                            bpc_inventlocationid
+                            bpc_tradecode
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
             } else {
                 // Default fields for Service_BN* views
                 fields = `Id

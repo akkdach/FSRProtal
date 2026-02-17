@@ -290,6 +290,47 @@ class ProIoTController {
             });
         }
     }
+
+    /**
+     * Service Object data source from GraphQL View.
+     * 
+     * This endpoint fetches Service Object data from the GraphQL API.
+     * View: Smaserviceobjecttable_Internal_Work_NPSO
+     * 
+     * GET /api/service-objects-npso?page=0&limit=100
+     */
+    async getServiceObjects(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/service-objects-npso?page=${page}&limit=${limit}`);
+
+            // Call GraphQL service (Generic View Query)
+            const allData = await graphqlService.queryView('Smaserviceobjecttable_Internal_Work_NPSO');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Service Object Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Service Object API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
 }
 
 module.exports = new ProIoTController();
