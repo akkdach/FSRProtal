@@ -206,9 +206,11 @@ class GraphQLService {
      * @param {string} token - Access token
      * @param {string} queryName - GraphQL query name
      * @param {string} fieldsQuery - Fields to query (as string)
+     * @param {string} endpoint - GraphQL endpoint
+     * @param {number} pageSize - Page size for pagination
      */
-    async fetchAllWithPagination(token, queryName, fieldsQuery, endpoint = this.endpoint) {
-        const PAGE_SIZE = 100000;
+    async fetchAllWithPagination(token, queryName, fieldsQuery, endpoint = this.endpoint, pageSize = 100000) {
+        const PAGE_SIZE = pageSize;
         let allItems = [];
         let hasNextPage = true;
         let afterCursor = null;

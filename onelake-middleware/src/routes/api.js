@@ -5,12 +5,7 @@ const fsrProtalController = require('../controllers/fsrProtalController_graphql'
 const reportController = require('../controllers/reportController');
 const otherController = require('../controllers/otherController');
 
-console.log('--- API Routes File Loaded ---');
-if (proIoTController.getServiceObjects) {
-    console.log('proIoTController.getServiceObjects exists');
-} else {
-    console.error('proIoTController.getServiceObjects DOES NOT exist');
-}
+// Project: Pro IoT Board
 
 // Project: Pro IoT Board
 router.get('/orders', (req, res) => proIoTController.getOrders(req, res));
