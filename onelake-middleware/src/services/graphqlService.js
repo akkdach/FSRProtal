@@ -681,11 +681,8 @@ class GraphQLService {
                         StartDate
                         EndDate
                         bpc_maintenanceactivitytypecode
-                        bpc_notifdate
-                        bpc_notiftime
                         bpc_serviceordertypecode
                         custaccount
-                        stageid
                     }
                 }`;
 
