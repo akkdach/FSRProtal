@@ -686,7 +686,6 @@ class GraphQLService {
                         bpc_serviceordertypecode
                         custaccount
                         stageid
-                        bpc_ticketno
                     }
                 }`;
 
