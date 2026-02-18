@@ -671,6 +671,7 @@ class GraphQLService {
                         Ticket
                         BKK
                         PostCode
+                        Province
                         RemoveDate
                         RemoveTechnician
                         CreateServiceOrderDate
