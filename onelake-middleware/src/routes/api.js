@@ -16,6 +16,7 @@ router.get('/barcode', (req, res) => proIoTController.getBarCode(req, res));
 router.get('/jobs-per-man', (req, res) => proIoTController.getJobsPerMan(req, res));
 router.get('/bn09-internal-work', (req, res) => proIoTController.getBN09InternalWork(req, res));
 router.get('/service-objects-npso', (req, res) => proIoTController.getServiceObjects(req, res));
+router.get('/dispatch-pending', (req, res) => proIoTController.getDispatchPending(req, res));
 
 // Project: FSR Protal
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));

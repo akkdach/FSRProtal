@@ -56,7 +56,8 @@ class GraphQLService {
                 'service_BN15_New': 'service_BN15_News',
                 'service_BN09_NB2CLOAN_New': 'service_BN09_NB2CLOAN_News',
                 'Service_BN09_New': 'service_BN09_News',
-                'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs'
+                'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs',
+                'Dispatch_Pending': 'dispatch_Pendings'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -158,6 +159,67 @@ class GraphQLService {
                             modifiedon
                             IsDelete
                             PartitionId`;
+            } else if (queryName === 'dispatch_Pendings') {
+                fields = `serviceorderid
+                            bpc_serviceordertypecode
+                            bpc_servicejobcode
+                            stageid
+                            bpc_mobilestatus
+                            bpc_mobilereasoncode
+                            bpc_maintenanceactivitytypecode
+                            bpc_maintenanceactivitytypedescription
+                            bpc_ticketno
+                            bpc_work
+                            bpc_symptomareaid
+                            bpc_symptomcodeid
+                            bpc_symptomcodedescription
+                            bpc_description
+                            custaccount
+                            bpc_customername
+                            county
+                            state
+                            address
+                            bpc_customerbranch
+                            serviceaddressname
+                            bpc_custclassificationid
+                            bpc_tradecode
+                            bpc_tradename
+                            bpc_phone
+                            bpc_latitude
+                            bpc_longitude
+                            bpc_zonegroup
+                            bpc_servicezone
+                            bpc_subarea
+                            bpc_serviceobject
+                            bpc_modelno
+                            bpc_modelnodescription
+                            bpc_serviceobjectgroup
+                            bpc_notifdate
+                            bpc_notiftime
+                            bpc_saporderdate
+                            bpc_ordertime
+                            bpc_sla_result
+                            bpc_postponedate
+                            bpc_unkhowpostponedate
+                            bpc_postponereasoncode
+                            bpc_requestdate
+                            bpc_requesttime
+                            bpc_slastartdate
+                            bpc_slastarttime
+                            bpc_slafinishdate
+                            bpc_slafinishtime
+                            bpc_postponereasondesc
+                            bpc_remark
+                            bpc_remarkk2
+                            bpc_mobileremark
+                            bpc_inventlocationid
+                            bpc_routingnocode
+                            bpc_scheduledstart
+                            bpc_scheduledfinish
+                            bpc_actualstartdate
+                            bpc_actualstarttime
+                            bpc_actualfinisheddate
+                            bpc_actualfinishedtime`;
             } else {
                 // Default fields for Service_BN* views
                 fields = `Id
@@ -191,7 +253,9 @@ class GraphQLService {
             const endpoint = useFsrProtalEndpoint ? this.fsrProtalEndpoint : this.endpoint;
 
             // Use pagination for all queries
-            return await this.fetchAllWithPagination(token, queryName, fields, endpoint);
+            // For Dispatch_Pending, use smaller page size (5000) to avoid 64MB limit
+            const pageSize = queryName === 'dispatch_Pendings' ? 5000 : 100000;
+            return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize);
 
         } catch (error) {
             logToFile(`[GraphQL] Query Error: ${error.message}`);
@@ -207,7 +271,7 @@ class GraphQLService {
      * @param {string} queryName - GraphQL query name
      * @param {string} fieldsQuery - Fields to query (as string)
      * @param {string} endpoint - GraphQL endpoint
-     * @param {number} pageSize - Page size for pagination
+     * @param {number} pageSize - Page size for pagination (default 100000)
      */
     async fetchAllWithPagination(token, queryName, fieldsQuery, endpoint = this.endpoint, pageSize = 100000) {
         const PAGE_SIZE = pageSize;
