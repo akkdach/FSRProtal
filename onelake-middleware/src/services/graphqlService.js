@@ -747,6 +747,7 @@ class GraphQLService {
                         bpc_maintenanceactivitytypecode
                         bpc_serviceordertypecode
                         custaccount
+                        bpc_serviceobjectgroup
                     }
                 }`;
 
