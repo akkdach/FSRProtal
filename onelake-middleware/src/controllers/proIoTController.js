@@ -336,26 +336,26 @@ class ProIoTController {
      * Dispatch Pending data source from GraphQL View.
      * 
      * This endpoint fetches Dispatch Pending data from the GraphQL API.
-     * View: Dispatch_Pending
+     * View: Dispatch_Pending_Fountain
      * 
-     * GET /api/dispatch-pending?page=0&limit=100
+     * GET /api/dispatch-pending-fountain?page=0&limit=100
      */
     async getDispatchPending(req, res) {
         try {
             const page = parseInt(req.query.page) || 0;
             const limit = parseInt(req.query.limit) || 100;
 
-            logToFile(`[ProIoT] API Request: /api/dispatch-pending?page=${page}&limit=${limit}`);
+            logToFile(`[ProIoT] API Request: /api/dispatch-pending-fountain?page=${page}&limit=${limit}`);
 
             // Call GraphQL service (Generic View Query)
-            const allData = await graphqlService.queryView('Dispatch_Pending');
+            const allData = await graphqlService.queryView('Dispatch_Pending_Fountain');
 
             const total = allData.length;
             const startIndex = page * limit;
             const endIndex = startIndex + limit;
             const paginatedData = allData.slice(startIndex, endIndex);
 
-            logToFile(`[ProIoT] Dispatch_Pending: Total records ${total}, returning ${paginatedData.length}`);
+            logToFile(`[ProIoT] Dispatch_Pending_Fountain: Total records ${total}, returning ${paginatedData.length}`);
 
             res.json({
                 success: true,
@@ -366,6 +366,44 @@ class ProIoTController {
             });
         } catch (err) {
             logToFile(`[ProIoT] Dispatch Pending API Error: ${err.message}`);
+            res.status(500).json({ success: false, message: err.message });
+        }
+    }
+
+    /**
+     * Dispatch Pending New Customer data source from GraphQL View.
+     * 
+     * This endpoint fetches Dispatch Pending New Customer data from the GraphQL API.
+     * View: Dispatch_Pending_New_Customer
+     * 
+     * GET /api/dispatch-pending-new-customer?page=0&limit=100
+     */
+    async getDispatchPendingNewCustomer(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/dispatch-pending-new-customer?page=${page}&limit=${limit}`);
+
+            // Call GraphQL service (Generic View Query)
+            const allData = await graphqlService.queryView('Dispatch_Pending_New_Customer');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const paginatedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Dispatch_Pending_New_Customer: Total records ${total}, returning ${paginatedData.length}`);
+
+            res.json({
+                success: true,
+                data: paginatedData,
+                page: page,
+                limit: limit,
+                total: total
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Dispatch Pending New Customer API Error: ${err.message}`);
             res.status(500).json({ success: false, message: err.message });
         }
     }

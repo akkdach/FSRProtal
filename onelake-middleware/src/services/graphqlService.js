@@ -57,7 +57,8 @@ class GraphQLService {
                 'service_BN09_NB2CLOAN_New': 'service_BN09_NB2CLOAN_News',
                 'Service_BN09_New': 'service_BN09_News',
                 'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs',
-                'Dispatch_Pending': 'dispatch_Pendings'
+                'Dispatch_Pending_Fountain': 'dispatch_Pending_Fountains',
+                'Dispatch_Pending_New_Customer': 'dispatch_Pending_New_Customers'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -159,7 +160,7 @@ class GraphQLService {
                             modifiedon
                             IsDelete
                             PartitionId`;
-            } else if (queryName === 'dispatch_Pendings') {
+            } else if (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers') {
                 fields = `serviceorderid
                             bpc_serviceordertypecode
                             bpc_servicejobcode
@@ -253,8 +254,8 @@ class GraphQLService {
             const endpoint = useFsrProtalEndpoint ? this.fsrProtalEndpoint : this.endpoint;
 
             // Use pagination for all queries
-            // For Dispatch_Pending, use smaller page size (5000) to avoid 64MB limit
-            const pageSize = queryName === 'dispatch_Pendings' ? 5000 : 100000;
+            // For Dispatch_Pending_Fountain and Dispatch_Pending_New_Customer, use smaller page size (5000) to avoid 64MB limit
+            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers') ? 5000 : 100000;
             return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize);
 
         } catch (error) {
