@@ -445,6 +445,44 @@ class ProIoTController {
             res.status(500).json({ success: false, message: err.message });
         }
     }
+
+    /**
+     * Dispatch Pending data source from GraphQL View.
+     * 
+     * This endpoint fetches Dispatch Pending data from the GraphQL API.
+     * View: Dispatch_Pending
+     * 
+     * GET /api/dispatch-pending?page=0&limit=100
+     */
+    async getDispatchPendingAll(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/dispatch-pending?page=${page}&limit=${limit}`);
+
+            // Call GraphQL service (Generic View Query)
+            const allData = await graphqlService.queryView('Dispatch_Pending');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const paginatedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Dispatch_Pending: Total records ${total}, returning ${paginatedData.length}`);
+
+            res.json({
+                success: true,
+                data: paginatedData,
+                page: page,
+                limit: limit,
+                total: total
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Dispatch Pending API Error: ${err.message}`);
+            res.status(500).json({ success: false, message: err.message });
+        }
+    }
 }
 
 module.exports = new ProIoTController();

@@ -59,7 +59,8 @@ class GraphQLService {
                 'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs',
                 'Dispatch_Pending_Fountain': 'dispatch_Pending_Fountains',
                 'Dispatch_Pending_New_Customer': 'dispatch_Pending_New_Customers',
-                'Dispatch_Pending_Cooler': 'dispatch_Pending_Coolers'
+                'Dispatch_Pending_Cooler': 'dispatch_Pending_Coolers',
+                'Dispatch_Pending': 'dispatch_Pendings'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -161,7 +162,7 @@ class GraphQLService {
                             modifiedon
                             IsDelete
                             PartitionId`;
-            } else if (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers') {
+            } else if (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings') {
                 fields = `serviceorderid
                             bpc_serviceordertypecode
                             bpc_servicejobcode
@@ -256,7 +257,7 @@ class GraphQLService {
 
             // Use pagination for all queries
             // For Dispatch_Pending_Fountain, Dispatch_Pending_New_Customer, and Dispatch_Pending_Cooler, use smaller page size (5000) to avoid 64MB limit
-            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers') ? 5000 : 100000;
+            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings') ? 5000 : 100000;
             return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize);
 
         } catch (error) {

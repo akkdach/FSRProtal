@@ -19,6 +19,7 @@ router.get('/service-objects-npso', (req, res) => proIoTController.getServiceObj
 router.get('/dispatch-pending-fountain', (req, res) => proIoTController.getDispatchPending(req, res));
 router.get('/dispatch-pending-new-customer', (req, res) => proIoTController.getDispatchPendingNewCustomer(req, res));
 router.get('/dispatch-pending-cooler', (req, res) => proIoTController.getDispatchPendingCooler(req, res));
+router.get('/dispatch-pending', (req, res) => proIoTController.getDispatchPendingAll(req, res));
 
 // Project: FSR Protal
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));
