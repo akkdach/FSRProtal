@@ -53,6 +53,7 @@ module.exports = {
             idleTimeoutMillis: 30000
         }
     },
+    freezeDataPath: '\\\\10.10.199.16\\web\\Freeze Data\\Total Income',
     cache: {
         memoryDuration: 10 * 60 * 1000, // 10 minutes
         diskDuration: 24 * 60 * 60 * 1000, // 24 hours
