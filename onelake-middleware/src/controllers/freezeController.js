@@ -130,6 +130,30 @@ class FreezeController {
             });
         }
     }
+    /**
+     * GET /api/freeze-income/summary/:filename
+     * Returns pre-computed summary (~2-3KB) instead of full raw data (144MB)
+     */
+    async getFrozenSummary(req, res) {
+        try {
+            const { filename } = req.params;
+            logToFile(`[FreezeController] Loading frozen summary for: ${filename}`);
+
+            const content = await freezeService.readSummaryFile(filename);
+
+            res.json({
+                success: true,
+                ...content,
+            });
+        } catch (error) {
+            logToFile(`[FreezeController] Error reading summary: ${error.message}`);
+            const status = error.message.includes('not found') ? 404 : 500;
+            res.status(status).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    }
 }
 
 module.exports = new FreezeController();

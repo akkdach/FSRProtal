@@ -35,6 +35,7 @@ router.get('/other', (req, res) => otherController.getData(req, res));
 const freezeController = require('../controllers/freezeController');
 router.post('/freeze-income', (req, res) => freezeController.freezeData(req, res));
 router.get('/freeze-income/list', (req, res) => freezeController.listFrozenData(req, res));
+router.get('/freeze-income/summary/:filename', (req, res) => freezeController.getFrozenSummary(req, res));
 router.get('/freeze-income/:filename', (req, res) => freezeController.getFrozenData(req, res));
 router.delete('/freeze-income/:filename', (req, res) => freezeController.deleteFrozenData(req, res));
 
