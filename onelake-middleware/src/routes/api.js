@@ -39,4 +39,11 @@ router.get('/freeze-income/summary/:filename', (req, res) => freezeController.ge
 router.get('/freeze-income/:filename', (req, res) => freezeController.getFrozenData(req, res));
 router.delete('/freeze-income/:filename', (req, res) => freezeController.deleteFrozenData(req, res));
 
+// Cache Income (In-Memory Summary)
+const cacheController = require('../controllers/cacheController');
+router.post('/cache-income', (req, res) => cacheController.cacheData(req, res));
+router.get('/cache-income/list', (req, res) => cacheController.listCached(req, res));
+router.get('/cache-income/summary/:key', (req, res) => cacheController.getCachedSummary(req, res));
+router.delete('/cache-income/:key', (req, res) => cacheController.deleteCache(req, res));
+
 module.exports = router;
