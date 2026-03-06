@@ -14,6 +14,8 @@ services:
     volumes:
       # Mount the debug log for persistence and easy access on the host
       - ./server_debug.log:/app/server_debug.log
+      # Mount Freeze Data directory for persistence on NAS shared drive
+      - /volume1/web/Freeze Data:/volume1/web/Freeze Data
       # If you need to mount local storage/cache for persistence:
       # - ./data_cache_prod_v1.json:/app/data_cache_prod_v1.json
 
