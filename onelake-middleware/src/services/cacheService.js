@@ -1,13 +1,59 @@
 const { logToFile } = require('../utils/logger');
+const fs = require('fs');
+const path = require('path');
+
+const CACHE_DIR = process.env.CACHE_DATA_PATH || '/app/freeze-data';
+const CACHE_FILE = path.join(CACHE_DIR, 'cache_store.json');
 
 /**
  * In-Memory Cache Service for Total Income data.
  * Stores pre-computed summary data in RAM for instant access.
+ * Persists to disk so cache survives container restarts.
  */
 class CacheService {
     constructor() {
         // Map<string, { metadata, summary }> keyed by "YYYY-MM_to_YYYY-MM"
         this.store = new Map();
+        this._loadFromDisk();
+    }
+
+    /**
+     * Save current cache to disk (JSON file)
+     */
+    _saveToDisk() {
+        try {
+            if (!fs.existsSync(CACHE_DIR)) {
+                fs.mkdirSync(CACHE_DIR, { recursive: true });
+            }
+            const data = {};
+            for (const [key, value] of this.store.entries()) {
+                data[key] = value;
+            }
+            fs.writeFileSync(CACHE_FILE, JSON.stringify(data), 'utf8');
+            logToFile(`[CacheService] Saved ${this.store.size} cache(s) to disk`);
+        } catch (err) {
+            logToFile(`[CacheService] ERROR saving to disk: ${err.message}`);
+        }
+    }
+
+    /**
+     * Load cache from disk on startup
+     */
+    _loadFromDisk() {
+        try {
+            if (fs.existsSync(CACHE_FILE)) {
+                const raw = fs.readFileSync(CACHE_FILE, 'utf8');
+                const data = JSON.parse(raw);
+                for (const [key, value] of Object.entries(data)) {
+                    this.store.set(key, value);
+                }
+                logToFile(`[CacheService] Loaded ${this.store.size} cache(s) from disk`);
+            } else {
+                logToFile(`[CacheService] No cache file found on disk, starting fresh`);
+            }
+        } catch (err) {
+            logToFile(`[CacheService] ERROR loading from disk: ${err.message}`);
+        }
     }
 
     /**
@@ -161,6 +207,7 @@ class CacheService {
 
         return {
             kpis: { totalLoad, totalServiceFee, totalSparePart, totalRevenue, avgCostPerJob },
+            serviceOrderIds: Array.from(uniqueServiceOrders),
             topSD: sdResult, topJobs: jobResult, customerMetrics: customerResult,
             efficiencyMetrics, trendData: trendResult,
             costBreakdown: [{ id: 0, value: totalServiceFee, label: 'Service Fee' }, { id: 1, value: totalSparePart, label: 'Spare Part' }],
@@ -201,6 +248,7 @@ class CacheService {
         });
 
         logToFile(`[CacheService] Cached ${data.length} records as summary for ${key} (${this.store.size} total caches)`);
+        this._saveToDisk();
         return { key, recordCount: data.length };
     }
 
@@ -238,6 +286,7 @@ class CacheService {
         }
         this.store.delete(key);
         logToFile(`[CacheService] Deleted cache: ${key}`);
+        this._saveToDisk();
     }
 
     /**
@@ -246,6 +295,7 @@ class CacheService {
     clearAll() {
         this.store.clear();
         logToFile(`[CacheService] Cleared all caches`);
+        this._saveToDisk();
     }
 }
 
