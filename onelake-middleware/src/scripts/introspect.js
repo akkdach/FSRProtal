@@ -13,7 +13,7 @@ async function introspect() {
     );
     const tokenResponse = await credential.getToken('https://analysis.windows.net/powerbi/api/.default');
 
-    const endpoint = 'https://7b2a2b840f674d1f8e9f65abfa88501d.z7b.graphql.fabric.microsoft.com/v1/workspaces/7b2a2b84-0f67-4d1f-8e9f-65abfa88501d/graphqlapis/acf92824-3a5a-4c61-996e-8b10b294787a/graphql';
+    const endpoint = 'https://7b2a2b840f674d1f8e9f65abfa88501d.z7b.graphql.fabric.microsoft.com/v1/workspaces/7b2a2b84-0f67-4d1f-8e9f-65abfa88501d/graphqlapis/e486dea8-7ef1-4806-a269-0385a41be187/graphql';
 
     const query = `{
         __schema {
