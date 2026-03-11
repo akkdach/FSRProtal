@@ -8,8 +8,7 @@ class OtherController {
 
             const limit = req.query.limit ? parseInt(req.query.limit) : null;
             const params = {
-                posting_date_from: req.query.posting_date_from,
-                posting_date_to: req.query.posting_date_to
+                serviceorderid: req.query.serviceorderid || ''
             };
 
             let data = await otherGraphQLService.getData(params);

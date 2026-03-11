@@ -31,20 +31,14 @@ class OtherGraphQLService {
 
             const token = await this.getAccessToken();
 
-            // Calculate current month date range as defaults
-            const now = new Date();
-            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-            const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+            const serviceorderid = input.serviceorderid || '';
 
-            const fromDate = input.posting_date_from || firstOfMonth;
-            const toDate = input.posting_date_to || lastOfMonth;
-
-            logToFile(`[OtherGraphQL] Using Date Range: ${fromDate} to ${toDate}`);
+            logToFile(`[OtherGraphQL] Using serviceorderid: ${serviceorderid}`);
 
             // Full query with all fields from Service_Header_Line_Proc
             const queryBody = `
-                query ExecuteServiceHeaderLineProc($posting_date_from: DateTime!, $posting_date_to: DateTime!) {
-                    executeService_Header_Line_Proc(posting_date_from: $posting_date_from, posting_date_to: $posting_date_to) {
+                query ExecuteServiceHeaderLineProc($serviceorderid: String!) {
+                    executeService_Header_Line_Proc(serviceorderid: $serviceorderid) {
                         Id
                         SinkCreatedOn
                         SinkModifiedOn
@@ -165,8 +159,7 @@ class OtherGraphQLService {
             const body = JSON.stringify({
                 query: queryBody,
                 variables: {
-                    posting_date_from: fromDate,
-                    posting_date_to: toDate
+                    serviceorderid: serviceorderid
                 }
             });
 
