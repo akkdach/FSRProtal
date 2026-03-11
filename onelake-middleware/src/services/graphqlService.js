@@ -56,6 +56,7 @@ class GraphQLService {
                 'service_BN15_New': 'service_BN15_News',
                 'service_BN09_NB2CLOAN_New': 'service_BN09_NB2CLOAN_News',
                 'Service_BN09_New': 'service_BN09_News',
+                'service_BN15_NB2CLOAN_New': 'service_BN15_NB2CLOAN_News',
                 'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs',
                 'Dispatch_Pending_Fountain': 'dispatch_Pending_Fountains',
                 'Dispatch_Pending_New_Customer': 'dispatch_Pending_New_Customers',
@@ -69,7 +70,8 @@ class GraphQLService {
                 'Service_BN04_New',
                 'service_BN15_New',
                 'service_BN09_NB2CLOAN_New',
-                'Service_BN09_New'
+                'Service_BN09_New',
+                'service_BN15_NB2CLOAN_New'
             ];
 
             const queryName = queryMap[viewName] || viewName;

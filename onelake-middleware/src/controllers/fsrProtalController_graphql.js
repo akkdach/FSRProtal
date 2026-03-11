@@ -22,7 +22,8 @@ class FSRProtalController {
                 'Service_BN04_New',
                 'service_BN15_New',
                 'service_BN09_NB2CLOAN_New',
-                'Service_BN09_New'
+                'Service_BN09_New',
+                'service_BN15_NB2CLOAN_New'
             ];
 
             if (!ALLOWED_VIEWS.includes(viewName)) {
