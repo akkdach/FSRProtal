@@ -23,6 +23,7 @@ router.get('/dispatch-pending', (req, res) => proIoTController.getDispatchPendin
 
 // Project: FSR Protal
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));
+router.get('/service-header', (req, res) => fsrProtalController.getServiceHeader(req, res));
 
 // Project: Report Tracking (SharePoint Excel)
 router.get('/report-tracking', (req, res) => reportController.getReportTracking(req, res));

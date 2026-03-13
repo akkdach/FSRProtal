@@ -3,7 +3,8 @@ const config = require('../config');
 
 class OtherGraphQLService {
     constructor() {
-        this.endpoint = 'https://7b2a2b840f674d1f8e9f65abfa88501d.z7b.graphql.fabric.microsoft.com/v1/workspaces/7b2a2b84-0f67-4d1f-8e9f-65abfa88501d/graphqlapis/e486dea8-7ef1-4806-a269-0385a41be187/graphql';
+        // FSRProtal_API endpoint (proc was moved here from IOT_Service Order)
+        this.endpoint = 'https://7b2a2b840f674d1f8e9f65abfa88501d.z7b.graphql.fabric.microsoft.com/v1/workspaces/7b2a2b84-0f67-4d1f-8e9f-65abfa88501d/graphqlapis/47a192e2-8902-46e4-baee-c0ec18c3d629/graphql';
     }
 
     async getAccessToken() {
@@ -161,82 +162,56 @@ class OtherGraphQLService {
             let afterCursor = null;
             let pageNum = 0;
 
-            while (hasNextPage) {
-                pageNum++;
-                logToFile(`[OtherGraphQL] Fetching page ${pageNum}...`);
-
-                // Build query with pagination (first/after)
-                const afterArg = afterCursor ? `, after: "${afterCursor}"` : '';
-                const queryBody = `
-                    query ExecuteServiceHeaderLineProc($serviceorderid: String!) {
-                        executeService_Header_Line_Proc(serviceorderid: $serviceorderid, first: ${PAGE_SIZE}${afterArg}) {
-                            items {
-                                ${fields}
-                            }
-                            endCursor
-                            hasNextPage
-                        }
-                    }`;
-
-                const body = JSON.stringify({
-                    query: queryBody,
-                    variables: { serviceorderid }
-                });
-
-                if (pageNum === 1) {
-                    logToFile(`[OtherGraphQL] Request body: ${body}`);
-                }
-
-                // Set 5-minute timeout per page
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
-
-                const response = await fetch(this.endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body,
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                const result = await response.json();
-                logToFile(`[OtherGraphQL] Page ${pageNum} response status: ${response.status}`);
-
-                if (result.errors) {
-                    logToFile(`[OtherGraphQL] Query errors: ${JSON.stringify(result.errors)}`);
-                    // If pagination not supported, fall back to non-paginated query
-                    if (pageNum === 1 && result.errors[0].message.includes('argument')) {
-                        logToFile(`[OtherGraphQL] Pagination not supported, falling back to simple query...`);
-                        return await this._getDataSimple(token, serviceorderid, fields);
+            // Stored procedure: query fields directly (no pagination wrapper)
+            const queryBody = `
+                query ExecuteServiceHeaderLineProc($serviceorderid: String!) {
+                    executeService_Header_Line_Proc(serviceorderid: $serviceorderid) {
+                        ${fields}
                     }
-                    throw new Error(result.errors[0].message);
-                }
+                }`;
 
-                // Extract rows from paginated response
-                const procData = result.data?.executeService_Header_Line_Proc;
-                if (procData && procData.items && Array.isArray(procData.items)) {
-                    allRows = allRows.concat(procData.items);
-                    hasNextPage = procData.hasNextPage || false;
-                    afterCursor = procData.endCursor || null;
-                    logToFile(`[OtherGraphQL] Page ${pageNum}: got ${procData.items.length} rows, total: ${allRows.length}, hasNextPage: ${hasNextPage}`);
-                } else {
-                    // Response might be non-paginated (direct array)
-                    const node = procData;
-                    if (Array.isArray(node)) {
-                        allRows = node;
-                    } else if (typeof node === 'object' && node !== null) {
-                        allRows = [node];
-                    }
-                    hasNextPage = false;
-                    logToFile(`[OtherGraphQL] Non-paginated response, got ${allRows.length} rows`);
-                }
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: { serviceorderid }
+            });
+
+            logToFile(`[OtherGraphQL] Request body: ${body}`);
+
+            // Set 5-minute timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body,
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            const result = await response.json();
+            logToFile(`[OtherGraphQL] Response status: ${response.status}`);
+
+            if (result.errors) {
+                logToFile(`[OtherGraphQL] Query errors: ${JSON.stringify(result.errors)}`);
+                throw new Error(result.errors[0].message);
             }
 
-            logToFile(`[OtherGraphQL] Total rows fetched: ${allRows.length} across ${pageNum} pages`);
+            // Extract rows from stored procedure response
+            const procData = result.data?.executeService_Header_Line_Proc;
+            if (Array.isArray(procData)) {
+                allRows = procData;
+            } else if (procData && procData.items && Array.isArray(procData.items)) {
+                allRows = procData.items;
+            } else if (typeof procData === 'object' && procData !== null) {
+                allRows = [procData];
+            }
+
+            logToFile(`[OtherGraphQL] Total rows fetched: ${allRows.length}`);
             return allRows;
         } catch (error) {
             logToFile(`[OtherGraphQL] Execution Error: ${error.message}`);

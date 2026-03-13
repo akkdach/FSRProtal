@@ -202,6 +202,35 @@ class FSRProtalController {
             });
         }
     }
+
+    /**
+     * Service Header data source backed by Stored Procedure.
+     * Calling Service_Header_Proc
+     * GET /api/fsr-protal/service-header?serviceorderid=S0005443
+     */
+    async getServiceHeader(req, res) {
+        try {
+            const serviceorderid = req.query.serviceorderid || '';
+
+            logToFile(`[FSRProtal-GraphQL] API Request: /api/fsr-protal/service-header?serviceorderid=${serviceorderid}`);
+
+            const allData = await graphqlService.executeServiceHeaderProc(serviceorderid);
+
+            logToFile(`[FSRProtal-GraphQL] Service Header Response: Returning ${allData.length} records`);
+
+            res.json({
+                success: true,
+                data: allData,
+                total: allData.length
+            });
+        } catch (error) {
+            logToFile(`[FSRProtal-GraphQL] Service Header Error: ${error.message}`);
+            res.status(500).json({
+                error: 'Failed to fetch service header from GraphQL',
+                details: error.message
+            });
+        }
+    }
 }
 
 module.exports = new FSRProtalController();

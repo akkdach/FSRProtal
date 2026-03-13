@@ -233,31 +233,406 @@ class GraphQLService {
                             bpc_actualfinisheddate
                             bpc_actualfinishedtime`;
             } else if (queryName === 'service_BN04_New_B2Bs' || queryName === 'service_BN09_New_B2Bs' || queryName === 'service_BN15_New_B2Bs') {
-                // B2B views - same as default Service_BN* fields + Province
+                // B2B views - all 199 fields
                 fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            calendarconflict
+                            certifiedpayroll
+                            incomingweborder
+                            origin
+                            priority
+                            progress
+                            servicelevelagreementstatus
+                            signoff
+                            bpc_sla_result
+                            bpc_unkhowpostponedate
+                            bpc_interfacesource
+                            bpc_approvefix
+                            bpc_work
+                            bpc_warranty
+                            bpc_replace
+                            sysdatastatecode
+                            activitynumber
+                            activitytypeid
+                            addressrefrecid
+                            addressreftableid
+                            agreementid
+                            compliance
+                            contactpersonid
+                            custaccount
+                            description
+                            projid
+                            serviceaddressname
+                            servicedatetime
+                            servicelevelagreement
                             serviceorderid
-                            bpc_customername
-                            bpc_serialnumber
-                            bpc_ticketno
-                            bpc_zonegroup
-                            bpc_resolutionid
-                            bpc_conditionid
-                            createdon
+                            servicepostaladdress
+                            signoffdatetime
+                            stageid
+                            workerpreferredtechnician
+                            workerresponsible
                             bpc_serviceordertypecode
                             bpc_maintenanceactivitytypecode
-                            bpc_serviceobjectgroup
-                            bpc_slafinishdate
-                            bpc_notifdate
-                            bpc_scheduledstart
-                            bpc_scheduledfinish
-                            bpc_customerbranch
-                            bpc_actualstartdate
+                            bpc_servicejobcode
+                            bpc_zonegroup
+                            bpc_servicezone
+                            bpc_subarea
+                            bpc_ticketno
                             bpc_model
-                            bpc_modelnodescription
+                            bpc_modelno
+                            bpc_lastestmodelno
+                            bpc_serialnumber
+                            bpc_typeofmachine
+                            bpc_description
+                            bpc_actualstartdate
+                            bpc_actualstarttime
+                            bpc_actualfinisheddate
+                            bpc_actualfinishedtime
+                            bpc_postponedate
+                            bpc_remark
+                            bpc_k2remark
                             bpc_mobilestatus
                             bpc_mobileremark
+                            bpc_mobilereasoncode
+                            bpc_routingnocode
+                            bpc_plant
+                            bpc_planplant
+                            bpc_inventlocationid
+                            bpc_workcenter
+                            bpc_sloc
+                            bpc_notificationnosap
+                            bpc_cdecode
+                            bpc_newserviceobject
+                            bpc_serviceobjectgroup
+                            bpc_scheduledstart
+                            bpc_scheduledfinish
+                            bpc_scheduledstarttime
+                            bpc_scheduledfinishtime
+                            bpc_activitytype
+                            bpc_notificationtype
+                            bpc_notifdate
+                            bpc_notiftime
+                            bpc_bstkd
+                            bpc_notiftext
+                            bpc_notificationother
+                            bpc_reportby
+                            bpc_firstorder
+                            bpc_firstorderset
+                            bpc_daterequest
+                            bpc_saporderdate
+                            bpc_checkinorderdate
+                            bpc_checkinordertime
+                            bpc_checkoutorderdate
+                            bpc_checkoutordertime
+                            bpc_originalmile
+                            bpc_destinationmile
+                            bpc_serviceorderinterface
+                            bpc_lastserviceorder
+                            bpc_plangroup
+                            bpc_simmobilenumber
+                            bpc_simiccid
+                            bpc_devicetype
+                            bpc_imeiconnectivitydevice
+                            bpc_serviceprovoder
                             bpc_remarkk2
+                            bpc_customernamesignoff
+                            bpc_approve
+                            bpc_serviceobject
+                            bpc_customerobject
+                            bpc_addresskm
+                            bpc_addressservicecenter
+                            bpc_ordertime
+                            bpc_symptomareaid
+                            bpc_symptomcodeid
+                            bpc_requestdate
+                            bpc_requesttime
+                            bpc_slastartdate
+                            bpc_slastarttime
+                            bpc_slafinishdate
+                            bpc_slafinishtime
+                            bpc_latitude
+                            bpc_longitude
+                            bpc_compcode
+                            bpc_coarea
+                            bpc_mainassetno
+                            bpc_enterdate
+                            bpc_eqktx
+                            bpc_profitctr
+                            bpc_costcenter
+                            bpc_zzcdecode
+                            bpc_checkinodpdate
+                            bpc_approvename
+                            bpc_approvedate
+                            bpc_notifcodetext
+                            bpc_customerbranch
+                            bpc_modelcode
+                            bpc_feepercent
+                            bpc_postponetime
+                            bpc_linenum
+                            bpc_tradecode
+                            bpc_tradename
+                            bpc_custclassificationid
+                            bpc_custclassificationdescription
+                            bpc_refinvoiceid
+                            bpc_postponereasoncode
+                            bpc_maintenanceactivitytypedescription
+                            bpc_symptomcodedescription
+                            bpc_modelnodescription
+                            bpc_assetvalue
+                            bpc_resolutionid
+                            bpc_conditionid
+                            bpc_problemcode
+                            bpc_smatemplatebomid
+                            bpc_smatemplatebomid2
+                            bpc_diagnosiscodeid
+                            bpc_diagnosisareaid
+                            bpc_diagnosiscodename
+                            bpc_diagnosisareaname
+                            bpc_conditiondescription
+                            bpc_problemcodedesc
+                            bpc_resolutiondescription
+                            bpc_objectreceivedate
+                            bpc_objectreceivetime
+                            bpc_objectshipdate
+                            bpc_objectshiptime
+                            bpc_phone
+                            bpc_customername
+                            bpc_signoffbyname
+                            bpc_targetstageid
+                            bpc_partsremark
+                            bpc_routingnocodechange
+                            bpc_auditremark
+                            bpc_serviceobjectgroupmobile
+                            bpc_mobilekmdistance
+                            bpc_startma
+                            bpc_assetendwarrantydate
+                            bpc_mamonth
+                            bpc_workorderwarranty
+                            bpc_compressorwarranty
+                            bpc_postponereasondesc
+                            bpc_sysstatus
+                            bpc_servicepostdate
+                            bpc_unsignoffname
+                            bpc_smaservicepoteddatetime
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId
+                            Province`;
+            } else if (queryName === 'service_BN04_News' || queryName === 'service_BN09_News' || queryName === 'service_BN15_News' || queryName === 'service_BN04_NB2CLOAN_News' || queryName === 'service_BN09_NB2CLOAN_News' || queryName === 'service_BN15_NB2CLOAN_News') {
+                // FSR Protal views - all 199 fields
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            calendarconflict
+                            certifiedpayroll
+                            incomingweborder
+                            origin
+                            priority
+                            progress
+                            servicelevelagreementstatus
+                            signoff
+                            bpc_sla_result
+                            bpc_unkhowpostponedate
+                            bpc_interfacesource
+                            bpc_approvefix
+                            bpc_work
+                            bpc_warranty
+                            bpc_replace
+                            sysdatastatecode
+                            activitynumber
+                            activitytypeid
+                            addressrefrecid
+                            addressreftableid
+                            agreementid
+                            compliance
+                            contactpersonid
                             custaccount
+                            description
+                            projid
+                            serviceaddressname
+                            servicedatetime
+                            servicelevelagreement
+                            serviceorderid
+                            servicepostaladdress
+                            signoffdatetime
+                            stageid
+                            workerpreferredtechnician
+                            workerresponsible
+                            bpc_serviceordertypecode
+                            bpc_maintenanceactivitytypecode
+                            bpc_servicejobcode
+                            bpc_zonegroup
+                            bpc_servicezone
+                            bpc_subarea
+                            bpc_ticketno
+                            bpc_model
+                            bpc_modelno
+                            bpc_lastestmodelno
+                            bpc_serialnumber
+                            bpc_typeofmachine
+                            bpc_description
+                            bpc_actualstartdate
+                            bpc_actualstarttime
+                            bpc_actualfinisheddate
+                            bpc_actualfinishedtime
+                            bpc_postponedate
+                            bpc_remark
+                            bpc_k2remark
+                            bpc_mobilestatus
+                            bpc_mobileremark
+                            bpc_mobilereasoncode
+                            bpc_routingnocode
+                            bpc_plant
+                            bpc_planplant
+                            bpc_inventlocationid
+                            bpc_workcenter
+                            bpc_sloc
+                            bpc_notificationnosap
+                            bpc_cdecode
+                            bpc_newserviceobject
+                            bpc_serviceobjectgroup
+                            bpc_scheduledstart
+                            bpc_scheduledfinish
+                            bpc_scheduledstarttime
+                            bpc_scheduledfinishtime
+                            bpc_activitytype
+                            bpc_notificationtype
+                            bpc_notifdate
+                            bpc_notiftime
+                            bpc_bstkd
+                            bpc_notiftext
+                            bpc_notificationother
+                            bpc_reportby
+                            bpc_firstorder
+                            bpc_firstorderset
+                            bpc_daterequest
+                            bpc_saporderdate
+                            bpc_checkinorderdate
+                            bpc_checkinordertime
+                            bpc_checkoutorderdate
+                            bpc_checkoutordertime
+                            bpc_originalmile
+                            bpc_destinationmile
+                            bpc_serviceorderinterface
+                            bpc_lastserviceorder
+                            bpc_plangroup
+                            bpc_simmobilenumber
+                            bpc_simiccid
+                            bpc_devicetype
+                            bpc_imeiconnectivitydevice
+                            bpc_serviceprovoder
+                            bpc_remarkk2
+                            bpc_customernamesignoff
+                            bpc_approve
+                            bpc_serviceobject
+                            bpc_customerobject
+                            bpc_addresskm
+                            bpc_addressservicecenter
+                            bpc_ordertime
+                            bpc_symptomareaid
+                            bpc_symptomcodeid
+                            bpc_requestdate
+                            bpc_requesttime
+                            bpc_slastartdate
+                            bpc_slastarttime
+                            bpc_slafinishdate
+                            bpc_slafinishtime
+                            bpc_latitude
+                            bpc_longitude
+                            bpc_compcode
+                            bpc_coarea
+                            bpc_mainassetno
+                            bpc_enterdate
+                            bpc_eqktx
+                            bpc_profitctr
+                            bpc_costcenter
+                            bpc_zzcdecode
+                            bpc_checkinodpdate
+                            bpc_approvename
+                            bpc_approvedate
+                            bpc_notifcodetext
+                            bpc_customerbranch
+                            bpc_modelcode
+                            bpc_feepercent
+                            bpc_postponetime
+                            bpc_linenum
+                            bpc_tradecode
+                            bpc_tradename
+                            bpc_custclassificationid
+                            bpc_custclassificationdescription
+                            bpc_refinvoiceid
+                            bpc_postponereasoncode
+                            bpc_maintenanceactivitytypedescription
+                            bpc_symptomcodedescription
+                            bpc_modelnodescription
+                            bpc_assetvalue
+                            bpc_resolutionid
+                            bpc_conditionid
+                            bpc_problemcode
+                            bpc_smatemplatebomid
+                            bpc_smatemplatebomid2
+                            bpc_diagnosiscodeid
+                            bpc_diagnosisareaid
+                            bpc_diagnosiscodename
+                            bpc_diagnosisareaname
+                            bpc_conditiondescription
+                            bpc_problemcodedesc
+                            bpc_resolutiondescription
+                            bpc_objectreceivedate
+                            bpc_objectreceivetime
+                            bpc_objectshipdate
+                            bpc_objectshiptime
+                            bpc_phone
+                            bpc_customername
+                            bpc_signoffbyname
+                            bpc_targetstageid
+                            bpc_partsremark
+                            bpc_routingnocodechange
+                            bpc_auditremark
+                            bpc_serviceobjectgroupmobile
+                            bpc_mobilekmdistance
+                            bpc_startma
+                            bpc_assetendwarrantydate
+                            bpc_mamonth
+                            bpc_workorderwarranty
+                            bpc_compressorwarranty
+                            bpc_postponereasondesc
+                            bpc_sysstatus
+                            bpc_servicepostdate
+                            bpc_unsignoffname
+                            bpc_smaservicepoteddatetime
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId
                             Province`;
             } else {
                 // Default fields for Service_BN* views
@@ -835,6 +1210,271 @@ class GraphQLService {
             return rows;
         } catch (error) {
             logToFile(`[GraphQL] executeBN09_Internal_Work Error: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Execute Stored Procedure-backed query for Service Header.
+     * Calling Service_Header_Proc
+     * Takes @serviceorderid parameter and returns header fields from smaserviceordertable
+     */
+    async executeServiceHeaderProc(serviceorderid = '') {
+        try {
+            logToFile(`[GraphQL] Executing stored procedure query: executeService_Header_Proc`);
+
+            const token = await this.getAccessToken();
+
+            logToFile(`[GraphQL] Using serviceorderid: ${serviceorderid}`);
+
+            const queryBody = `
+                query ExecuteServiceHeaderProc($serviceorderid: String!) {
+                    executeService_Header_Proc(serviceorderid: $serviceorderid) {
+                        Id
+                        SinkCreatedOn
+                        SinkModifiedOn
+                        calendarconflict
+                        certifiedpayroll
+                        incomingweborder
+                        origin
+                        priority
+                        progress
+                        servicelevelagreementstatus
+                        signoff
+                        bpc_sla_result
+                        bpc_unkhowpostponedate
+                        bpc_interfacesource
+                        bpc_approvefix
+                        bpc_work
+                        bpc_warranty
+                        bpc_replace
+                        sysdatastatecode
+                        activitynumber
+                        activitytypeid
+                        addressrefrecid
+                        addressreftableid
+                        agreementid
+                        compliance
+                        contactpersonid
+                        custaccount
+                        description
+                        projid
+                        serviceaddressname
+                        servicedatetime
+                        servicelevelagreement
+                        serviceorderid
+                        servicepostaladdress
+                        signoffdatetime
+                        stageid
+                        workerpreferredtechnician
+                        workerresponsible
+                        bpc_serviceordertypecode
+                        bpc_maintenanceactivitytypecode
+                        bpc_servicejobcode
+                        bpc_zonegroup
+                        bpc_servicezone
+                        bpc_subarea
+                        bpc_ticketno
+                        bpc_model
+                        bpc_modelno
+                        bpc_lastestmodelno
+                        bpc_serialnumber
+                        bpc_typeofmachine
+                        bpc_description
+                        bpc_actualstartdate
+                        bpc_actualstarttime
+                        bpc_actualfinisheddate
+                        bpc_actualfinishedtime
+                        bpc_postponedate
+                        bpc_remark
+                        bpc_k2remark
+                        bpc_mobilestatus
+                        bpc_mobileremark
+                        bpc_mobilereasoncode
+                        bpc_routingnocode
+                        bpc_plant
+                        bpc_planplant
+                        bpc_inventlocationid
+                        bpc_workcenter
+                        bpc_sloc
+                        bpc_notificationnosap
+                        bpc_cdecode
+                        bpc_newserviceobject
+                        bpc_serviceobjectgroup
+                        bpc_scheduledstart
+                        bpc_scheduledfinish
+                        bpc_scheduledstarttime
+                        bpc_scheduledfinishtime
+                        bpc_activitytype
+                        bpc_notificationtype
+                        bpc_notifdate
+                        bpc_notiftime
+                        bpc_bstkd
+                        bpc_notiftext
+                        bpc_notificationother
+                        bpc_reportby
+                        bpc_firstorder
+                        bpc_firstorderset
+                        bpc_daterequest
+                        bpc_saporderdate
+                        bpc_checkinorderdate
+                        bpc_checkinordertime
+                        bpc_checkoutorderdate
+                        bpc_checkoutordertime
+                        bpc_originalmile
+                        bpc_destinationmile
+                        bpc_serviceorderinterface
+                        bpc_lastserviceorder
+                        bpc_plangroup
+                        bpc_simmobilenumber
+                        bpc_simiccid
+                        bpc_devicetype
+                        bpc_imeiconnectivitydevice
+                        bpc_serviceprovoder
+                        bpc_remarkk2
+                        bpc_customernamesignoff
+                        bpc_approve
+                        bpc_serviceobject
+                        bpc_customerobject
+                        bpc_addresskm
+                        bpc_addressservicecenter
+                        bpc_ordertime
+                        bpc_symptomareaid
+                        bpc_symptomcodeid
+                        bpc_requestdate
+                        bpc_requesttime
+                        bpc_slastartdate
+                        bpc_slastarttime
+                        bpc_slafinishdate
+                        bpc_slafinishtime
+                        bpc_latitude
+                        bpc_longitude
+                        bpc_compcode
+                        bpc_coarea
+                        bpc_mainassetno
+                        bpc_enterdate
+                        bpc_eqktx
+                        bpc_profitctr
+                        bpc_costcenter
+                        bpc_zzcdecode
+                        bpc_checkinodpdate
+                        bpc_approvename
+                        bpc_approvedate
+                        bpc_notifcodetext
+                        bpc_customerbranch
+                        bpc_modelcode
+                        bpc_feepercent
+                        bpc_postponetime
+                        bpc_linenum
+                        bpc_tradecode
+                        bpc_tradename
+                        bpc_custclassificationid
+                        bpc_custclassificationdescription
+                        bpc_refinvoiceid
+                        bpc_postponereasoncode
+                        bpc_maintenanceactivitytypedescription
+                        bpc_symptomcodedescription
+                        bpc_modelnodescription
+                        bpc_assetvalue
+                        bpc_resolutionid
+                        bpc_conditionid
+                        bpc_problemcode
+                        bpc_smatemplatebomid
+                        bpc_smatemplatebomid2
+                        bpc_diagnosiscodeid
+                        bpc_diagnosisareaid
+                        bpc_diagnosiscodename
+                        bpc_diagnosisareaname
+                        bpc_conditiondescription
+                        bpc_problemcodedesc
+                        bpc_resolutiondescription
+                        bpc_objectreceivedate
+                        bpc_objectreceivetime
+                        bpc_objectshipdate
+                        bpc_objectshiptime
+                        bpc_phone
+                        bpc_customername
+                        bpc_signoffbyname
+                        bpc_targetstageid
+                        bpc_partsremark
+                        bpc_routingnocodechange
+                        bpc_auditremark
+                        bpc_serviceobjectgroupmobile
+                        bpc_mobilekmdistance
+                        bpc_startma
+                        bpc_assetendwarrantydate
+                        bpc_mamonth
+                        bpc_workorderwarranty
+                        bpc_compressorwarranty
+                        bpc_postponereasondesc
+                        bpc_sysstatus
+                        bpc_servicepostdate
+                        bpc_unsignoffname
+                        bpc_smaservicepoteddatetime
+                        modifieddatetime
+                        modifiedby
+                        modifiedtransactionid
+                        createddatetime
+                        createdby
+                        createdtransactionid
+                        dataareaid
+                        recversion
+                        partition
+                        sysrowversion
+                        recid
+                        tableid
+                        versionnumber
+                        createdon
+                        modifiedon
+                        IsDelete
+                        PartitionId
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: { serviceorderid }
+            });
+
+            // Use main IOT Service Order endpoint
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeService_Header_Proc response status: ${response.status}`);
+
+            if (result.errors) {
+                logToFile(`[GraphQL] executeService_Header_Proc errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeService_Header_Proc) {
+                const node = result.data.executeService_Header_Proc;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeService_Header_Proc retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeService_Header_Proc Error: ${error.message}`);
             throw error;
         }
     }
