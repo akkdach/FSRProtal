@@ -57,6 +57,10 @@ class GraphQLService {
                 'service_BN09_NB2CLOAN_New': 'service_BN09_NB2CLOAN_News',
                 'Service_BN09_New': 'service_BN09_News',
                 'service_BN15_NB2CLOAN_New': 'service_BN15_NB2CLOAN_News',
+                // New B2B views
+                'Service_BN04_New_B2B': 'service_BN04_New_B2Bs',
+                'Service_BN09_New_B2B': 'service_BN09_New_B2Bs',
+                'Service_BN15_New_B2B': 'service_BN15_New_B2Bs',
                 'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs',
                 'Dispatch_Pending_Fountain': 'dispatch_Pending_Fountains',
                 'Dispatch_Pending_New_Customer': 'dispatch_Pending_New_Customers',
@@ -71,7 +75,10 @@ class GraphQLService {
                 'service_BN15_New',
                 'service_BN09_NB2CLOAN_New',
                 'Service_BN09_New',
-                'service_BN15_NB2CLOAN_New'
+                'service_BN15_NB2CLOAN_New',
+                'Service_BN04_New_B2B',
+                'Service_BN09_New_B2B',
+                'Service_BN15_New_B2B'
             ];
 
             const queryName = queryMap[viewName] || viewName;
@@ -225,6 +232,33 @@ class GraphQLService {
                             bpc_actualstarttime
                             bpc_actualfinisheddate
                             bpc_actualfinishedtime`;
+            } else if (queryName === 'service_BN04_New_B2Bs' || queryName === 'service_BN09_New_B2Bs' || queryName === 'service_BN15_New_B2Bs') {
+                // B2B views - same as default Service_BN* fields + Province
+                fields = `Id
+                            serviceorderid
+                            bpc_customername
+                            bpc_serialnumber
+                            bpc_ticketno
+                            bpc_zonegroup
+                            bpc_resolutionid
+                            bpc_conditionid
+                            createdon
+                            bpc_serviceordertypecode
+                            bpc_maintenanceactivitytypecode
+                            bpc_serviceobjectgroup
+                            bpc_slafinishdate
+                            bpc_notifdate
+                            bpc_scheduledstart
+                            bpc_scheduledfinish
+                            bpc_customerbranch
+                            bpc_actualstartdate
+                            bpc_model
+                            bpc_modelnodescription
+                            bpc_mobilestatus
+                            bpc_mobileremark
+                            bpc_remarkk2
+                            custaccount
+                            Province`;
             } else {
                 // Default fields for Service_BN* views
                 fields = `Id

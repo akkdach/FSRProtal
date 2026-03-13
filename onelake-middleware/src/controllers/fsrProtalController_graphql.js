@@ -23,7 +23,11 @@ class FSRProtalController {
                 'service_BN15_New',
                 'service_BN09_NB2CLOAN_New',
                 'Service_BN09_New',
-                'service_BN15_NB2CLOAN_New'
+                'service_BN15_NB2CLOAN_New',
+                // B2B views
+                'Service_BN04_New_B2B',
+                'Service_BN09_New_B2B',
+                'Service_BN15_New_B2B'
             ];
 
             if (!ALLOWED_VIEWS.includes(viewName)) {
