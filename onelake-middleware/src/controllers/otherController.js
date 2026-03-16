@@ -8,7 +8,7 @@ class OtherController {
 
             const limit = req.query.limit ? parseInt(req.query.limit) : null;
             const params = {
-                serviceorderid: req.query.serviceorderid || ''
+                ticketno: req.query.ticketno || ''
             };
 
             let data = await otherGraphQLService.getData(params);

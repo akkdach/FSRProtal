@@ -1215,21 +1215,21 @@ class GraphQLService {
     }
 
     /**
-     * Execute Stored Procedure-backed query for Service Header.
-     * Calling Service_Header_Proc
-     * Takes @serviceorderid parameter and returns header fields from smaserviceordertable
+     * Execute Stored Procedure-backed query for Service Header + Line.
+     * Calling Service_Header_Line_Proc
+     * Takes @ticketno parameter and returns header + line fields (JOIN smaserviceordertable + smaserviceorderline)
      */
-    async executeServiceHeaderProc(serviceorderid = '') {
+    async executeServiceHeaderLineProc(ticketno = '') {
         try {
-            logToFile(`[GraphQL] Executing stored procedure query: executeService_Header_Proc`);
+            logToFile(`[GraphQL] Executing stored procedure query: executeService_Header_Line_Proc`);
 
             const token = await this.getAccessToken();
 
-            logToFile(`[GraphQL] Using serviceorderid: ${serviceorderid}`);
+            logToFile(`[GraphQL] Using ticketno: ${ticketno}`);
 
             const queryBody = `
-                query ExecuteServiceHeaderProc($serviceorderid: String!) {
-                    executeService_Header_Proc(serviceorderid: $serviceorderid) {
+                query ExecuteServiceHeaderLineProc($ticketno: String!) {
+                    executeService_Header_Line_Proc(ticketno: $ticketno) {
                         Id
                         SinkCreatedOn
                         SinkModifiedOn
@@ -1309,131 +1309,47 @@ class GraphQLService {
                         bpc_notificationtype
                         bpc_notifdate
                         bpc_notiftime
-                        bpc_bstkd
-                        bpc_notiftext
-                        bpc_notificationother
-                        bpc_reportby
-                        bpc_firstorder
-                        bpc_firstorderset
-                        bpc_daterequest
-                        bpc_saporderdate
-                        bpc_checkinorderdate
-                        bpc_checkinordertime
-                        bpc_checkoutorderdate
-                        bpc_checkoutordertime
-                        bpc_originalmile
-                        bpc_destinationmile
-                        bpc_serviceorderinterface
-                        bpc_lastserviceorder
-                        bpc_plangroup
-                        bpc_simmobilenumber
-                        bpc_simiccid
-                        bpc_devicetype
-                        bpc_imeiconnectivitydevice
-                        bpc_serviceprovoder
-                        bpc_remarkk2
-                        bpc_customernamesignoff
-                        bpc_approve
-                        bpc_serviceobject
-                        bpc_customerobject
-                        bpc_addresskm
-                        bpc_addressservicecenter
-                        bpc_ordertime
-                        bpc_symptomareaid
-                        bpc_symptomcodeid
-                        bpc_requestdate
-                        bpc_requesttime
-                        bpc_slastartdate
-                        bpc_slastarttime
-                        bpc_slafinishdate
-                        bpc_slafinishtime
-                        bpc_latitude
-                        bpc_longitude
-                        bpc_compcode
-                        bpc_coarea
-                        bpc_mainassetno
-                        bpc_enterdate
-                        bpc_eqktx
-                        bpc_profitctr
-                        bpc_costcenter
-                        bpc_zzcdecode
-                        bpc_checkinodpdate
-                        bpc_approvename
-                        bpc_approvedate
-                        bpc_notifcodetext
-                        bpc_customerbranch
-                        bpc_modelcode
-                        bpc_feepercent
-                        bpc_postponetime
-                        bpc_linenum
-                        bpc_tradecode
-                        bpc_tradename
-                        bpc_custclassificationid
-                        bpc_custclassificationdescription
-                        bpc_refinvoiceid
-                        bpc_postponereasoncode
-                        bpc_maintenanceactivitytypedescription
-                        bpc_symptomcodedescription
-                        bpc_modelnodescription
-                        bpc_assetvalue
-                        bpc_resolutionid
-                        bpc_conditionid
-                        bpc_problemcode
-                        bpc_smatemplatebomid
-                        bpc_smatemplatebomid2
-                        bpc_diagnosiscodeid
-                        bpc_diagnosisareaid
-                        bpc_diagnosiscodename
-                        bpc_diagnosisareaname
-                        bpc_conditiondescription
-                        bpc_problemcodedesc
-                        bpc_resolutiondescription
-                        bpc_objectreceivedate
-                        bpc_objectreceivetime
-                        bpc_objectshipdate
-                        bpc_objectshiptime
-                        bpc_phone
-                        bpc_customername
-                        bpc_signoffbyname
-                        bpc_targetstageid
-                        bpc_partsremark
-                        bpc_routingnocodechange
-                        bpc_auditremark
-                        bpc_serviceobjectgroupmobile
-                        bpc_mobilekmdistance
-                        bpc_startma
-                        bpc_assetendwarrantydate
-                        bpc_mamonth
-                        bpc_workorderwarranty
-                        bpc_compressorwarranty
-                        bpc_postponereasondesc
-                        bpc_sysstatus
-                        bpc_servicepostdate
-                        bpc_unsignoffname
-                        bpc_smaservicepoteddatetime
-                        modifieddatetime
-                        modifiedby
-                        modifiedtransactionid
-                        createddatetime
-                        createdby
-                        createdtransactionid
-                        dataareaid
-                        recversion
-                        partition
-                        sysrowversion
-                        recid
-                        tableid
-                        versionnumber
-                        createdon
-                        modifiedon
-                        IsDelete
-                        PartitionId
+                        Id2
+                        SinkCreatedOn2
+                        SinkModifiedOn2
+                        serviceorderstatus2
+                        transactiontype
+                        dateexecution
+                        itemid
+                        description2
+                        qty
+                        unit
+                        serviceobjectid
+                        serviceorderid2
+                        serviceorderlinenum
+                        servicetaskid
+                        worker
+                        bpc_movetype
+                        bpc_warrantycheck
+                        bpc_templatebomid
+                        bpc_refsalesid
+                        bpc_feedescription
+                        bpc_feecode
+                        bpc_actualstartdate2
+                        bpc_actualstarttime2
+                        bpc_actualfinisheddate2
+                        bpc_actualfinishedtime2
+                        bpc_actualhour
+                        bpc_workerpersonnelnum
+                        bpc_smaservicetaskdescription
+                        bpc_invoiceaccount
+                        modifieddatetime2
+                        modifiedby2
+                        createddatetime2
+                        createdby2
+                        dataareaid2
+                        recid2
                     }
                 }`;
 
             const body = JSON.stringify({
                 query: queryBody,
-                variables: { serviceorderid }
+                variables: { ticketno }
             });
 
             // Use main IOT Service Order endpoint
@@ -1447,16 +1363,16 @@ class GraphQLService {
             });
 
             const result = await response.json();
-            logToFile(`[GraphQL] Raw executeService_Header_Proc response status: ${response.status}`);
+            logToFile(`[GraphQL] Raw executeService_Header_Line_Proc response status: ${response.status}`);
 
             if (result.errors) {
-                logToFile(`[GraphQL] executeService_Header_Proc errors: ${JSON.stringify(result.errors)}`);
+                logToFile(`[GraphQL] executeService_Header_Line_Proc errors: ${JSON.stringify(result.errors)}`);
             }
 
             let rows = [];
 
-            if (result.data && result.data.executeService_Header_Proc) {
-                const node = result.data.executeService_Header_Proc;
+            if (result.data && result.data.executeService_Header_Line_Proc) {
+                const node = result.data.executeService_Header_Line_Proc;
                 if (Array.isArray(node)) {
                     rows = node;
                 } else if (node.items && Array.isArray(node.items)) {
@@ -1466,7 +1382,7 @@ class GraphQLService {
                 }
             }
 
-            logToFile(`[GraphQL] executeService_Header_Proc retrieved ${rows.length} rows`);
+            logToFile(`[GraphQL] executeService_Header_Line_Proc retrieved ${rows.length} rows`);
 
             if (result.errors && !rows.length) {
                 throw new Error(result.errors[0].message);
@@ -1474,7 +1390,7 @@ class GraphQLService {
 
             return rows;
         } catch (error) {
-            logToFile(`[GraphQL] executeService_Header_Proc Error: ${error.message}`);
+            logToFile(`[GraphQL] executeService_Header_Line_Proc Error: ${error.message}`);
             throw error;
         }
     }

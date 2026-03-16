@@ -151,10 +151,10 @@ class OtherGraphQLService {
 
             const token = await this.getAccessToken();
 
-            const serviceorderid = input.serviceorderid || '';
+            const ticketno = input.ticketno || '';
             const PAGE_SIZE = 5000;
 
-            logToFile(`[OtherGraphQL] Using serviceorderid: ${serviceorderid}, pageSize: ${PAGE_SIZE}`);
+            logToFile(`[OtherGraphQL] Using ticketno: ${ticketno}, pageSize: ${PAGE_SIZE}`);
 
             const fields = this._getFieldsString();
             let allRows = [];
@@ -164,15 +164,15 @@ class OtherGraphQLService {
 
             // Stored procedure: query fields directly (no pagination wrapper)
             const queryBody = `
-                query ExecuteServiceHeaderLineProc($serviceorderid: String!) {
-                    executeService_Header_Line_Proc(serviceorderid: $serviceorderid) {
+                query ExecuteServiceHeaderLineProc($ticketno: String!) {
+                    executeService_Header_Line_Proc(ticketno: $ticketno) {
                         ${fields}
                     }
                 }`;
 
             const body = JSON.stringify({
                 query: queryBody,
-                variables: { serviceorderid }
+                variables: { ticketno }
             });
 
             logToFile(`[OtherGraphQL] Request body: ${body}`);
@@ -220,17 +220,17 @@ class OtherGraphQLService {
     }
 
     // Fallback: simple query without pagination
-    async _getDataSimple(token, serviceorderid, fields) {
+    async _getDataSimple(token, ticketno, fields) {
         const queryBody = `
-            query ExecuteServiceHeaderLineProc($serviceorderid: String!) {
-                executeService_Header_Line_Proc(serviceorderid: $serviceorderid) {
+            query ExecuteServiceHeaderLineProc($ticketno: String!) {
+                executeService_Header_Line_Proc(ticketno: $ticketno) {
                     ${fields}
                 }
             }`;
 
         const body = JSON.stringify({
             query: queryBody,
-            variables: { serviceorderid }
+            variables: { ticketno }
         });
 
         const controller = new AbortController();

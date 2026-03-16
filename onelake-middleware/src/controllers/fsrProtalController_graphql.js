@@ -204,19 +204,19 @@ class FSRProtalController {
     }
 
     /**
-     * Service Header data source backed by Stored Procedure.
-     * Calling Service_Header_Proc
-     * GET /api/fsr-protal/service-header?serviceorderid=S0005443
+     * Service Header + Line data source backed by Stored Procedure.
+     * Calling Service_Header_Line_Proc
+     * GET /api/fsr-protal/service-header?ticketno=T0001234
      */
     async getServiceHeader(req, res) {
         try {
-            const serviceorderid = req.query.serviceorderid || '';
+            const ticketno = req.query.ticketno || '';
 
-            logToFile(`[FSRProtal-GraphQL] API Request: /api/fsr-protal/service-header?serviceorderid=${serviceorderid}`);
+            logToFile(`[FSRProtal-GraphQL] API Request: /api/fsr-protal/service-header?ticketno=${ticketno}`);
 
-            const allData = await graphqlService.executeServiceHeaderProc(serviceorderid);
+            const allData = await graphqlService.executeServiceHeaderLineProc(ticketno);
 
-            logToFile(`[FSRProtal-GraphQL] Service Header Response: Returning ${allData.length} records`);
+            logToFile(`[FSRProtal-GraphQL] Service Header Line Response: Returning ${allData.length} records`);
 
             res.json({
                 success: true,
@@ -224,9 +224,9 @@ class FSRProtalController {
                 total: allData.length
             });
         } catch (error) {
-            logToFile(`[FSRProtal-GraphQL] Service Header Error: ${error.message}`);
+            logToFile(`[FSRProtal-GraphQL] Service Header Line Error: ${error.message}`);
             res.status(500).json({
-                error: 'Failed to fetch service header from GraphQL',
+                error: 'Failed to fetch service header + line from GraphQL',
                 details: error.message
             });
         }
