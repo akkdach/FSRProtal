@@ -6,6 +6,7 @@ const config = require('./src/config');
 const { logToFile } = require('./src/utils/logger');
 
 const apiRoutes = require('./src/routes/api');
+const { validateJwt } = require('./src/middleware/authMiddleware');
 
 const app = express();
 
@@ -13,8 +14,8 @@ const app = express();
 app.use(cors()); // Allow all origins
 app.use(express.json({ limit: '100mb' }));
 
-// Routes
-app.use('/api', apiRoutes);
+// Routes (JWT protected)
+app.use('/api', validateJwt, apiRoutes);
 
 // Health Check
 app.get('/', (req, res) => res.send('OneLake ADLS Middleware Running (MVC)'));
