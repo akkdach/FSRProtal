@@ -65,7 +65,8 @@ class GraphQLService {
                 'Dispatch_Pending_Fountain': 'dispatch_Pending_Fountains',
                 'Dispatch_Pending_New_Customer': 'dispatch_Pending_New_Customers',
                 'Dispatch_Pending_Cooler': 'dispatch_Pending_Coolers',
-                'Dispatch_Pending': 'dispatch_Pendings'
+                'Dispatch_Pending': 'dispatch_Pendings',
+                'Service_RequiField_Dispatch': 'service_RequiField_Dispatches'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -171,6 +172,12 @@ class GraphQLService {
                             modifiedon
                             IsDelete
                             PartitionId`;
+            } else if (queryName === 'service_RequiField_Dispatches') {
+                fields = `bpc_postponedate
+                            bpc_unkhowpostponedate
+                            bpc_postponereasondesc
+                            bpc_scheduledstart
+                            stageid`;
             } else if (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings') {
                 fields = `serviceorderid
                             bpc_serviceordertypecode
