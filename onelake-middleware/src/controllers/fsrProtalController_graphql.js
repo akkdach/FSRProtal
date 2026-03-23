@@ -31,6 +31,8 @@ class FSRProtalController {
                 // BN02 views
                 'Service_BN02_New',
                 'Service_BN02_New_B2B',
+                // BN01 views
+                'Service_BN01_New_B2B',
                 // Dispatch Required Fields
                 'Service_RequiField_Dispatch'
             ];
