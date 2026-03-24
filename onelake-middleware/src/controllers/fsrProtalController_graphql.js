@@ -238,6 +238,59 @@ class FSRProtalController {
             });
         }
     }
+
+    /**
+     * Request Status data source backed by Stored Procedure.
+     * Calling REFERENCEDPONUMBER
+     * GET /api/request-status/:referencedPoNumber (Basic Auth)
+     */
+    async getRequestStatus(req, res) {
+        try {
+            const referencedPoNumber = req.params.referencedPoNumber || '';
+
+            logToFile(`[FSRProtal-GraphQL] API Request: /api/request-status/${referencedPoNumber}`);
+
+            const allData = await graphqlService.executeReferencedPoNumber(referencedPoNumber);
+
+            logToFile(`[FSRProtal-GraphQL] Request Status Response: Returning ${allData.length} records`);
+
+            // Return first row as flat object with STATUS and MESSAGE
+            const row = allData.length > 0 ? allData[0] : {};
+
+            res.json({
+                REFERENCEDPONUMBER: row.REFERENCEDPONUMBER || '',
+                POSTPONDATE: row.POSTPONDATE || '',
+                POSTPONREASON: row.POSTPONREASON || '',
+                SCHEDULESTARTDATE: row.SCHEDULESTARTDATE || '',
+                SCHEDULESTARTTIME: row.SCHEDULESTARTTIME || '',
+                REMARKK2: row.REMARKK2 || '',
+                ORDERSTATUS: row.ORDERSTATUS || '',
+                RESERVEFIELD1: row.RESERVEFIELD1 || '',
+                RESERVEFIELD2: row.RESERVEFIELD2 || '',
+                RESERVEFIELD3: row.RESERVEFIELD3 || '',
+                RESERVEFIELD4: row.RESERVEFIELD4 || '',
+                STATUS: allData.length > 0 ? 'SUCCESS' : 'NOT_FOUND',
+                MESSAGE: allData.length > 0 ? 'Data retrieved successfully' : 'No data found for the given reference PO number'
+            });
+        } catch (error) {
+            logToFile(`[FSRProtal-GraphQL] Request Status Error: ${error.message}`);
+            res.status(500).json({
+                REFERENCEDPONUMBER: '',
+                POSTPONDATE: '',
+                POSTPONREASON: '',
+                SCHEDULESTARTDATE: '',
+                SCHEDULESTARTTIME: '',
+                REMARKK2: '',
+                ORDERSTATUS: '',
+                RESERVEFIELD1: '',
+                RESERVEFIELD2: '',
+                RESERVEFIELD3: '',
+                RESERVEFIELD4: '',
+                STATUS: 'ERROR',
+                MESSAGE: error.message
+            });
+        }
+    }
 }
 
 module.exports = new FSRProtalController();

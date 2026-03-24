@@ -1,0 +1,39 @@
+const BASIC_AUTH_USER = process.env.BASIC_AUTH_USER;
+const BASIC_AUTH_PASS = process.env.BASIC_AUTH_PASS;
+
+/**
+ * Middleware to validate Basic Authentication.
+ * Expects: Authorization: Basic <base64(username:password)>
+ */
+function validateBasicAuth(req, res, next) {
+    const authHeader = req.headers['authorization'];
+
+    if (!authHeader) {
+        return res.status(401).json({ STATUS: 'ERROR', MESSAGE: 'Access denied. No credentials provided.' });
+    }
+
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Basic') {
+        return res.status(401).json({ STATUS: 'ERROR', MESSAGE: 'Access denied. Invalid authorization format. Use: Basic <base64(username:password)>' });
+    }
+
+    if (!BASIC_AUTH_USER || !BASIC_AUTH_PASS) {
+        console.error('[Auth] BASIC_AUTH_USER or BASIC_AUTH_PASS is not defined in environment variables.');
+        return res.status(500).json({ STATUS: 'ERROR', MESSAGE: 'Server configuration error.' });
+    }
+
+    try {
+        const decoded = Buffer.from(parts[1], 'base64').toString('utf-8');
+        const [username, password] = decoded.split(':');
+
+        if (username === BASIC_AUTH_USER && password === BASIC_AUTH_PASS) {
+            next();
+        } else {
+            return res.status(401).json({ STATUS: 'ERROR', MESSAGE: 'Invalid credentials.' });
+        }
+    } catch (err) {
+        return res.status(401).json({ STATUS: 'ERROR', MESSAGE: 'Invalid authorization header.' });
+    }
+}
+
+module.exports = { validateBasicAuth };

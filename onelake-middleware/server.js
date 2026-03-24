@@ -7,12 +7,17 @@ const { logToFile } = require('./src/utils/logger');
 
 const apiRoutes = require('./src/routes/api');
 const { validateJwt } = require('./src/middleware/authMiddleware');
+const { validateBasicAuth } = require('./src/middleware/basicAuthMiddleware');
+const fsrProtalController = require('./src/controllers/fsrProtalController_graphql');
 
 const app = express();
 
 // Middleware
 app.use(cors()); // Allow all origins
 app.use(express.json({ limit: '100mb' }));
+
+// Routes with Basic Auth (registered before JWT middleware)
+app.get('/api/request-status/:referencedPoNumber', validateBasicAuth, (req, res) => fsrProtalController.getRequestStatus(req, res));
 
 // Routes (JWT protected)
 app.use('/api', validateJwt, apiRoutes);
