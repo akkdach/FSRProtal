@@ -4,16 +4,19 @@ const BASIC_AUTH_PASS = process.env.BASIC_AUTH_PASS;
 /**
  * Middleware to validate Basic Authentication.
  * Expects: Authorization: Basic <base64(username:password)>
+ * Returns WWW-Authenticate header so browsers show login popup.
  */
 function validateBasicAuth(req, res, next) {
     const authHeader = req.headers['authorization'];
 
     if (!authHeader) {
+        res.set('WWW-Authenticate', 'Basic realm="Request Status API"');
         return res.status(401).json({ STATUS: 'ERROR', MESSAGE: 'Access denied. No credentials provided.' });
     }
 
     const parts = authHeader.split(' ');
     if (parts.length !== 2 || parts[0] !== 'Basic') {
+        res.set('WWW-Authenticate', 'Basic realm="Request Status API"');
         return res.status(401).json({ STATUS: 'ERROR', MESSAGE: 'Access denied. Invalid authorization format. Use: Basic <base64(username:password)>' });
     }
 
@@ -29,9 +32,11 @@ function validateBasicAuth(req, res, next) {
         if (username === BASIC_AUTH_USER && password === BASIC_AUTH_PASS) {
             next();
         } else {
+            res.set('WWW-Authenticate', 'Basic realm="Request Status API"');
             return res.status(401).json({ STATUS: 'ERROR', MESSAGE: 'Invalid credentials.' });
         }
     } catch (err) {
+        res.set('WWW-Authenticate', 'Basic realm="Request Status API"');
         return res.status(401).json({ STATUS: 'ERROR', MESSAGE: 'Invalid authorization header.' });
     }
 }
