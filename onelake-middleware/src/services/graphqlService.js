@@ -1409,6 +1409,84 @@ class GraphQLService {
             throw error;
         }
     }
+
+    /**
+     * Execute Stored Procedure-backed query for Referenced PO Number.
+     * Calling REFERENCEDPONUMBER proc
+     * @param {string} referencedPoNumber - The bpc_notificationnosap value to search
+     */
+    async executeReferencedPoNumber(referencedPoNumber = '') {
+        try {
+            logToFile(`[GraphQL] Executing stored procedure query: executeREFERENCEDPONUMBER`);
+
+            const token = await this.getAccessToken();
+
+            logToFile(`[GraphQL] Using REFERENCEDPONUMBER: ${referencedPoNumber}`);
+
+            const queryBody = `
+                query ExecuteReferencedPoNumber($referencedPoNumber: String!) {
+                    executeREFERENCEDPONUMBER(REFERENCEDPONUMBER: $referencedPoNumber) {
+                        REFERENCEDPONUMBER
+                        POSTPONDATE
+                        POSTPONREASON
+                        SCHEDULESTARTDATE
+                        SCHEDULESTARTTIME
+                        REMARKK2
+                        ORDERSTATUS
+                        RESERVEFIELD1
+                        RESERVEFIELD2
+                        RESERVEFIELD3
+                        RESERVEFIELD4
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: { referencedPoNumber }
+            });
+
+            // Use main IOT Service Order endpoint
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeREFERENCEDPONUMBER response status: ${response.status}`);
+
+            if (result.errors) {
+                logToFile(`[GraphQL] executeREFERENCEDPONUMBER errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeREFERENCEDPONUMBER) {
+                const node = result.data.executeREFERENCEDPONUMBER;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeREFERENCEDPONUMBER retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeREFERENCEDPONUMBER Error: ${error.message}`);
+            throw error;
+        }
+    }
 }
 
 module.exports = new GraphQLService();
