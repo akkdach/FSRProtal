@@ -22,6 +22,10 @@ router.get('/dispatch-pending-cooler', (req, res) => proIoTController.getDispatc
 router.get('/dispatch-pending', (req, res) => proIoTController.getDispatchPendingAll(req, res));
 
 // Project: FSR Protal
+// Using SQL Service for direct queries
+const fsrProtalControllerSql = require('../controllers/fsrProtalController_sql');
+router.get('/fsr-protal/bom-referbush', (req, res) => fsrProtalControllerSql.getBomReferbush(req, res));
+
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));
 router.get('/service-header', (req, res) => fsrProtalController.getServiceHeader(req, res));
 

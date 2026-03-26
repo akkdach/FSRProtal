@@ -48,6 +48,32 @@ class FSRProtalController {
             });
         }
     }
+
+    async getBomReferbush(req, res) {
+        try {
+            logToFile(`[FSRProtal-SQL] API Request: /api/fsr-protal/bom-referbush`);
+
+            // Require the service dynamically or at the top of the file
+            const qasSqlService = require('../services/qasSqlService');
+            
+            // Query SQL View directly from BevproFsQas
+            const allData = await qasSqlService.getBomReferbush();
+
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from BOM_Referbush`);
+
+            res.json({
+                data: allData,
+                total: allData.length
+            });
+
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
+            res.status(500).json({
+                error: 'Failed to fetch BOM_Referbush from BevproFsQas SQL',
+                details: error.message
+            });
+        }
+    }
 }
 
 module.exports = new FSRProtalController();
