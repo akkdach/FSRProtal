@@ -1490,6 +1490,210 @@ class GraphQLService {
             throw error;
         }
     }
+    /**
+     * Execute Stored Procedure-backed query for Operation Evaluate Post/Fins.
+     * Calling operation_evaluate_post_Fins
+     * @param {object} input - { StartDate, FinishDate }
+     */
+    async executeOperationEvaluatePostFins(input = {}) {
+        try {
+            logToFile('[GraphQL] Executing stored procedure query: executeoperation_evaluate_post_Fins');
+
+            const token = await this.getAccessToken();
+
+            // Calculate current month date range as defaults
+            const now = new Date();
+            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+            // Ensure dates are in ISO DateTime format (GraphQL DateTime! type)
+            const rawStartDate = input.StartDate || firstOfMonth;
+            const rawFinishDate = input.FinishDate || lastOfMonth;
+            const startDate = rawStartDate.includes('T') ? rawStartDate : `${rawStartDate}T00:00:00.000Z`;
+            const finishDate = rawFinishDate.includes('T') ? rawFinishDate : `${rawFinishDate}T23:59:59.999Z`;
+
+            logToFile(`[GraphQL] Using Date Range: ${startDate} to ${finishDate}`);
+
+            const queryBody = `
+                query ExecuteOperationEvaluatePostFins($startDate: DateTime!, $finishDate: DateTime!) {
+                    executeoperation_evaluate_post_Fins(StartDate: $startDate, FinishDate: $finishDate) {
+                        serviceorderid
+                        bpc_zonegroup
+                        bpc_workerpersonnelnum
+                        firstname
+                        worker
+                        qty
+                        projsalespriceTotal
+                        bpc_inventlocationid
+                        bpc_tradecode
+                        bpc_tradename
+                        stageid
+                        bpc_mobilestatus
+                        bpc_serviceordertypecode
+                        bpc_maintenanceactivitytypecode
+                        bpc_maintenanceactivitytypedescription
+                        bpc_servicezone
+                        bpc_actualstartdate
+                        bpc_actualstarttime
+                        bpc_actualfinisheddate
+                        bpc_actualfinishedtime
+                        bpc_slafinishdate
+                        transactiontype
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: {
+                    startDate: startDate,
+                    finishDate: finishDate
+                }
+            });
+
+            // Use main IOT Service Order endpoint
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeoperation_evaluate_post_Fins response status: ${response.status}`);
+
+            if (result.errors) {
+                logToFile(`[GraphQL] executeoperation_evaluate_post_Fins errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeoperation_evaluate_post_Fins) {
+                const node = result.data.executeoperation_evaluate_post_Fins;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeoperation_evaluate_post_Fins retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeoperation_evaluate_post_Fins Error: ${error.message}`);
+            throw error;
+        }
+    }
+    /**
+     * Execute Stored Procedure-backed query for Operation Evaluate INPR/INIT.
+     * Calling operation_evaluate_inpr_init
+     * @param {object} input - { StartDate, FinishDate }
+     */
+    async executeOperationEvaluateInprInit(input = {}) {
+        try {
+            logToFile('[GraphQL] Executing stored procedure query: executeoperation_evaluate_inpr_init');
+
+            const token = await this.getAccessToken();
+
+            // Calculate current month date range as defaults
+            const now = new Date();
+            const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+            // Ensure dates are in ISO DateTime format (GraphQL DateTime! type)
+            const rawStartDate = input.StartDate || firstOfMonth;
+            const rawFinishDate = input.FinishDate || lastOfMonth;
+            const startDate = rawStartDate.includes('T') ? rawStartDate : `${rawStartDate}T00:00:00.000Z`;
+            const finishDate = rawFinishDate.includes('T') ? rawFinishDate : `${rawFinishDate}T23:59:59.999Z`;
+
+            logToFile(`[GraphQL] Using Date Range: ${startDate} to ${finishDate}`);
+
+            const queryBody = `
+                query ExecuteOperationEvaluateInprInit($startDate: DateTime!, $finishDate: DateTime!) {
+                    executeoperation_evaluate_inpr_init(StartDate: $startDate, FinishDate: $finishDate) {
+                        serviceorderid
+                        bpc_zonegroup
+                        bpc_workerpersonnelnum
+                        firstname
+                        worker
+                        qty
+                        projsalespriceTotal
+                        bpc_inventlocationid
+                        bpc_tradecode
+                        bpc_tradename
+                        stageid
+                        bpc_mobilestatus
+                        bpc_serviceordertypecode
+                        bpc_maintenanceactivitytypecode
+                        bpc_maintenanceactivitytypedescription
+                        bpc_servicezone
+                        bpc_actualstartdate
+                        bpc_actualstarttime
+                        bpc_actualfinisheddate
+                        bpc_actualfinishedtime
+                        bpc_slafinishdate
+                        transactiontype
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: {
+                    startDate: startDate,
+                    finishDate: finishDate
+                }
+            });
+
+            // Use main IOT Service Order endpoint
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeoperation_evaluate_inpr_init response status: ${response.status}`);
+
+            if (result.errors) {
+                logToFile(`[GraphQL] executeoperation_evaluate_inpr_init errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeoperation_evaluate_inpr_init) {
+                const node = result.data.executeoperation_evaluate_inpr_init;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeoperation_evaluate_inpr_init retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeoperation_evaluate_inpr_init Error: ${error.message}`);
+            throw error;
+        }
+    }
 }
 
 module.exports = new GraphQLService();

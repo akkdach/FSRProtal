@@ -19,8 +19,10 @@
     "hyparquet": "^1.23.3",
     "isomorphic-fetch": "^3.0.0",
     "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^4.0.1",
     "mssql": "^10.0.2",
     "parquetjs": "^0.11.2",
-    "snappyjs": "^0.7.0"
+    "snappyjs": "^0.7.0",
+    "swagger-ui-express": "^5.0.1"
   }
 }

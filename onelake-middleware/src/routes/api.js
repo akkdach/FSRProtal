@@ -20,10 +20,13 @@ router.get('/dispatch-pending-fountain', (req, res) => proIoTController.getDispa
 router.get('/dispatch-pending-new-customer', (req, res) => proIoTController.getDispatchPendingNewCustomer(req, res));
 router.get('/dispatch-pending-cooler', (req, res) => proIoTController.getDispatchPendingCooler(req, res));
 router.get('/dispatch-pending', (req, res) => proIoTController.getDispatchPendingAll(req, res));
+router.get('/operation-evaluate-post-fins', (req, res) => proIoTController.getOperationEvaluatePostFins(req, res));
+router.get('/operation-evaluate-inpr-init', (req, res) => proIoTController.getOperationEvaluateInprInit(req, res));
 
 // Project: Other SQL Queries (Not FSR Protal)
 const fsrProtalControllerSql = require('../controllers/fsrProtalController_sql');
 router.get('/bom-referbush', (req, res) => fsrProtalControllerSql.getBomReferbush(req, res));
+router.get('/operation-evaluate', (req, res) => fsrProtalControllerSql.getOperationEvaluate(req, res));
 
 // Project: FSR Protal
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));

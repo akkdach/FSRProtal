@@ -483,6 +483,96 @@ class ProIoTController {
             res.status(500).json({ success: false, message: err.message });
         }
     }
+    /**
+     * Operation Evaluate Post/Fins data source backed by Stored Procedure.
+     * GET /api/operation-evaluate-post-fins?page=0&limit=100&StartDate=YYYY-MM-DD&FinishDate=YYYY-MM-DD
+     */
+    async getOperationEvaluatePostFins(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+            const startDate = req.query.StartDate;
+            const finishDate = req.query.FinishDate;
+
+            if (!startDate || !finishDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'StartDate and FinishDate are required parameters.'
+                });
+            }
+
+            logToFile(`[ProIoT] API Request: /api/operation-evaluate-post-fins?page=${page}&limit=${limit}&StartDate=${startDate}&FinishDate=${finishDate}`);
+
+            // Call GraphQL service (Stored Procedure Query)
+            const allData = await graphqlService.executeOperationEvaluatePostFins(req.query);
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Operation Evaluate Post/Fins Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Operation Evaluate Post/Fins API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
+    /**
+     * Operation Evaluate INPR/INIT data source backed by Stored Procedure.
+     * GET /api/operation-evaluate-inpr-init?page=0&limit=100&StartDate=YYYY-MM-DD&FinishDate=YYYY-MM-DD
+     */
+    async getOperationEvaluateInprInit(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+            const startDate = req.query.StartDate;
+            const finishDate = req.query.FinishDate;
+
+            if (!startDate || !finishDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'StartDate and FinishDate are required parameters.'
+                });
+            }
+
+            logToFile(`[ProIoT] API Request: /api/operation-evaluate-inpr-init?page=${page}&limit=${limit}&StartDate=${startDate}&FinishDate=${finishDate}`);
+
+            // Call GraphQL service (Stored Procedure Query)
+            const allData = await graphqlService.executeOperationEvaluateInprInit(req.query);
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Operation Evaluate INPR/INIT Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Operation Evaluate INPR/INIT API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
 }
 
 module.exports = new ProIoTController();

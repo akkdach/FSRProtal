@@ -74,6 +74,40 @@ class FSRProtalController {
             });
         }
     }
+    async getOperationEvaluate(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[FSRProtal-SQL] API Request: /api/operation-evaluate?page=${page}&limit=${limit}`);
+
+            const qasSqlService = require('../services/qasSqlService');
+            const allData = await qasSqlService.getOperationEvaluate();
+
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from Operation_Evaluate`);
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch Operation_Evaluate from BevproFsQas SQL',
+                details: error.message
+            });
+        }
+    }
 }
 
 module.exports = new FSRProtalController();

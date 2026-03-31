@@ -71,6 +71,10 @@ module.exports = {
             idleTimeoutMillis: 30000
         }
     },
+    entra: {
+        tenantId: process.env.ENTRA_TENANT_ID || process.env.AZURE_TENANT_ID,
+        clientId: process.env.ENTRA_CLIENT_ID
+    },
     freezeDataPath: '/app/freeze-data',
     cache: {
         memoryDuration: 10 * 60 * 1000, // 10 minutes

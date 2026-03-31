@@ -54,6 +54,39 @@ class QasSqlService {
             throw err;
         }
     }
+    async getOperationEvaluate() {
+        try {
+            const pool = await this.connect();
+            logToFile(`Querying Table: Operation_Evaluate from BevproFsQas`);
+
+            const query = `
+                SELECT [EmployeeCode]
+                    ,[FullName]
+                    ,[Position]
+                    ,[Department]
+                    ,[WorkLocation]
+                    ,[VanNo]
+                    ,[LicensePlate]
+                    ,[TelephoneNo]
+                    ,[Supervisor]
+                    ,[SO2]
+                    ,[CostCenter]
+                    ,[NewCostCenter]
+                    ,[ActivityTypeName]
+                    ,[DirectReport]
+                    ,[TargetPerHead]
+                FROM [BevproFsQas].[dbo].[Operation_Evaluate]
+            `;
+
+            const result = await pool.request().query(query);
+            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from Operation_Evaluate`);
+
+            return result.recordset;
+        } catch (err) {
+            logToFile(`SQL Query Error (Operation_Evaluate): ${err.message}`);
+            throw err;
+        }
+    }
 }
 
 module.exports = new QasSqlService();
