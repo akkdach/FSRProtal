@@ -60,7 +60,8 @@ class QasSqlService {
             logToFile(`Querying Table: Operation_Evaluate from BevproFsQas`);
 
             const query = `
-                SELECT [EmployeeCode]
+                SELECT [No]
+                    ,[EmployeeCode]
                     ,[FullName]
                     ,[Position]
                     ,[Department]
@@ -69,10 +70,10 @@ class QasSqlService {
                     ,[LicensePlate]
                     ,[TelephoneNo]
                     ,[Supervisor]
-                    ,[SO2]
+                    ,[SD2]
                     ,[CostCenter]
                     ,[NewCostCenter]
-                    ,[ActivityTypeName]
+                    ,[ActivityInsRm]
                     ,[DirectReport]
                     ,[TargetPerHead]
                 FROM [BevproFsQas].[dbo].[Operation_Evaluate]
