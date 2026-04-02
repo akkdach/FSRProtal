@@ -573,6 +573,43 @@ class ProIoTController {
             });
         }
     }
+
+    /**
+     * InventtableView data source backed by GraphQL query.
+     * GET /api/inventtable-views?page=0&limit=100
+     */
+    async getInventtableViews(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/inventtable-views?page=${page}&limit=${limit}`);
+
+            // Call GraphQL service
+            const allData = await graphqlService.queryView('InventtableView');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] InventtableView Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] InventtableView API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
 }
 
 module.exports = new ProIoTController();
