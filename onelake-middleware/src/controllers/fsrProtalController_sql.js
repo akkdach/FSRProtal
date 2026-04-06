@@ -74,17 +74,17 @@ class FSRProtalController {
             });
         }
     }
-    async getOperationEvaluate(req, res) {
+    async getWorker(req, res) {
         try {
             const page = parseInt(req.query.page) || 0;
             const limit = parseInt(req.query.limit) || 100;
 
-            logToFile(`[FSRProtal-SQL] API Request: /api/operation-evaluate?page=${page}&limit=${limit}`);
+            logToFile(`[FSRProtal-SQL] API Request: /api/worker?page=${page}&limit=${limit}`);
 
             const qasSqlService = require('../services/qasSqlService');
-            const allData = await qasSqlService.getOperationEvaluate();
+            const allData = await qasSqlService.getWorker();
 
-            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from Operation_Evaluate`);
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from worker`);
 
             const total = allData.length;
             const startIndex = page * limit;
@@ -103,7 +103,7 @@ class FSRProtalController {
             logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
             res.status(500).json({
                 success: false,
-                message: 'Failed to fetch Operation_Evaluate from BevproFsQas SQL',
+                message: 'Failed to fetch worker from BevproFsQas SQL',
                 details: error.message
             });
         }

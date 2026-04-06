@@ -54,10 +54,10 @@ class QasSqlService {
             throw err;
         }
     }
-    async getOperationEvaluate() {
+    async getWorker() {
         try {
             const pool = await this.connect();
-            logToFile(`Querying Table: Operation_Evaluate from BevproFsQas`);
+            logToFile(`Querying Table: worker from BevproFsQas`);
 
             const query = `
                 SELECT [No]
@@ -76,15 +76,15 @@ class QasSqlService {
                     ,[ActivityInsRm]
                     ,[DirectReport]
                     ,[TargetPerHead]
-                FROM [BevproFsQas].[dbo].[Operation_Evaluate]
+                FROM [BevproFsQas].[dbo].[worker]
             `;
 
             const result = await pool.request().query(query);
-            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from Operation_Evaluate`);
+            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from worker`);
 
             return result.recordset;
         } catch (err) {
-            logToFile(`SQL Query Error (Operation_Evaluate): ${err.message}`);
+            logToFile(`SQL Query Error (worker): ${err.message}`);
             throw err;
         }
     }

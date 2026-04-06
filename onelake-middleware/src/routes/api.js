@@ -27,7 +27,7 @@ router.get('/inventtable-views', (req, res) => proIoTController.getInventtableVi
 // Project: Other SQL Queries (Not FSR Protal)
 const fsrProtalControllerSql = require('../controllers/fsrProtalController_sql');
 router.get('/bom-referbush', (req, res) => fsrProtalControllerSql.getBomReferbush(req, res));
-router.get('/operation-evaluate', (req, res) => fsrProtalControllerSql.getOperationEvaluate(req, res));
+router.get('/worker', (req, res) => fsrProtalControllerSql.getWorker(req, res));
 
 // Project: FSR Protal
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));
