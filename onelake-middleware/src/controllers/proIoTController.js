@@ -333,6 +333,47 @@ class ProIoTController {
     }
 
     /**
+     * Service Object (Internal Work) data source from GraphQL View.
+     * 
+     * This endpoint fetches Service Object data from the GraphQL API.
+     * View: Smaserviceobjecttable_Internal_Work
+     * 
+     * GET /api/service-objects-internal-work?page=0&limit=100
+     */
+    async getServiceObjectsInternalWork(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/service-objects-internal-work?page=${page}&limit=${limit}`);
+
+            // Call GraphQL service (Generic View Query)
+            const allData = await graphqlService.queryView('Smaserviceobjecttable_Internal_Work');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Service Object Internal Work Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Service Object Internal Work API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
+
+    /**
      * Dispatch Pending data source from GraphQL View.
      * 
      * This endpoint fetches Dispatch Pending data from the GraphQL API.

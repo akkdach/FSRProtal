@@ -16,6 +16,7 @@ router.get('/barcode', (req, res) => proIoTController.getBarCode(req, res));
 router.get('/jobs-per-man', (req, res) => proIoTController.getJobsPerMan(req, res));
 router.get('/bn09-internal-work', (req, res) => proIoTController.getBN09InternalWork(req, res));
 router.get('/service-objects-npso', (req, res) => proIoTController.getServiceObjects(req, res));
+router.get('/service-objects-internal-work', (req, res) => proIoTController.getServiceObjectsInternalWork(req, res));
 router.get('/dispatch-pending-fountain', (req, res) => proIoTController.getDispatchPending(req, res));
 router.get('/dispatch-pending-new-customer', (req, res) => proIoTController.getDispatchPendingNewCustomer(req, res));
 router.get('/dispatch-pending-cooler', (req, res) => proIoTController.getDispatchPendingCooler(req, res));

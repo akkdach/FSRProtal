@@ -69,6 +69,7 @@ class GraphQLService {
                 // New B2B view
                 'Service_New_B2B': 'service_New_B2Bs',
                 'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs',
+                'Smaserviceobjecttable_Internal_Work': 'smaserviceobjecttable_Internal_Works',
                 'Dispatch_Pending_Fountain': 'dispatch_Pending_Fountains',
                 'Dispatch_Pending_New_Customer': 'dispatch_Pending_New_Customers',
                 'Dispatch_Pending_Cooler': 'dispatch_Pending_Coolers',
@@ -136,7 +137,7 @@ class GraphQLService {
                             description
                             bpc_tradename
                             serviceobjectid`;
-            } else if (queryName === 'smaserviceobjecttable_Internal_Work_NPSOs') {
+            } else if (queryName === 'smaserviceobjecttable_Internal_Work_NPSOs' || queryName === 'smaserviceobjecttable_Internal_Works') {
                 fields = `Id
                             SinkCreatedOn
                             SinkModifiedOn
@@ -891,7 +892,7 @@ class GraphQLService {
 
             // Use pagination for all queries
             // For Dispatch_Pending_Fountain, Dispatch_Pending_New_Customer, and Dispatch_Pending_Cooler, use smaller page size (5000) to avoid 64MB limit
-            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings') ? 5000 : 100000;
+            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works') ? 5000 : 100000;
             return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize);
 
         } catch (error) {
@@ -962,9 +963,9 @@ class GraphQLService {
 
             pageNum++;
 
-            // Safety limit to prevent infinite loops (max 2 million records)
-            if (pageNum > 20) {
-                logToFile(`[GraphQL] Safety limit reached (20 pages). Stopping pagination.`);
+            // Safety limit to prevent infinite loops (max 5 million records)
+            if (pageNum > 1000) {
+                logToFile(`[GraphQL] Safety limit reached (1000 pages). Stopping pagination.`);
                 break;
             }
         }
