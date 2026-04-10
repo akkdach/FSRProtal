@@ -170,6 +170,30 @@ class FSRProtalController {
             });
         }
     }
+    async getVanFuelAvg(req, res) {
+        try {
+            logToFile(`[FSRProtal-SQL] API Request: /api/van-fuel-avg`);
+
+            const prodSqlService = require('../services/prodSqlService');
+            const allData = await prodSqlService.getVanFuelAvg();
+
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from van_fuel_avg`);
+
+            res.json({
+                success: true,
+                data: allData,
+                total: allData.length
+            });
+
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch van_fuel_avg from BevproFsProd SQL',
+                details: error.message
+            });
+        }
+    }
 }
 
 module.exports = new FSRProtalController();

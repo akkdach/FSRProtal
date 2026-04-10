@@ -31,6 +31,7 @@ router.get('/bom-referbush', (req, res) => fsrProtalControllerSql.getBomReferbus
 router.get('/worker', (req, res) => fsrProtalControllerSql.getWorker(req, res));
 router.get('/work-log', (req, res) => fsrProtalControllerSql.getWorkLog(req, res));
 router.get('/work-center', (req, res) => fsrProtalControllerSql.getWorkCenter(req, res));
+router.get('/van-fuel-avg', (req, res) => fsrProtalControllerSql.getVanFuelAvg(req, res));
 
 // Project: FSR Protal
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));

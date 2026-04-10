@@ -78,6 +78,34 @@ class ProdSqlService {
             throw err;
         }
     }
+    async getVanFuelAvg() {
+        try {
+            const pool = await this.connect();
+            logToFile(`Querying Table: van_fuel_avg from BevproFsProd`);
+
+            const query = `
+                SELECT [id]
+                    ,[van_code]
+                    ,[license_plate]
+                    ,[service_zone]
+                    ,[name_group]
+                    ,[service_zone_control]
+                    ,[supervisor_name]
+                    ,[fuel_avg_km_l]
+                    ,[created_at]
+                    ,[updated_at]
+                FROM [dbo].[van_fuel_avg]
+            `;
+
+            const result = await pool.request().query(query);
+            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from van_fuel_avg`);
+
+            return result.recordset;
+        } catch (err) {
+            logToFile(`SQL Query Error (van_fuel_avg): ${err.message}`);
+            throw err;
+        }
+    }
 }
 
 module.exports = new ProdSqlService();
