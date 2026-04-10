@@ -108,6 +108,68 @@ class FSRProtalController {
             });
         }
     }
+    async getWorkLog(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = req.query.limit ? parseInt(req.query.limit) : null;
+
+            logToFile(`[FSRProtal-SQL] API Request: /api/work-log?page=${page}&limit=${limit || 'all'}`);
+
+            const prodSqlService = require('../services/prodSqlService');
+            const allData = await prodSqlService.getWorkLog();
+
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from work_log`);
+
+            const total = allData.length;
+            let responseData = allData;
+
+            if (limit) {
+                const startIndex = page * limit;
+                const endIndex = startIndex + limit;
+                responseData = allData.slice(startIndex, endIndex);
+            }
+
+            res.json({
+                success: true,
+                data: responseData,
+                total,
+                page,
+                limit: limit || total
+            });
+
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch work_log from BevproFsProd SQL',
+                details: error.message
+            });
+        }
+    }
+    async getWorkCenter(req, res) {
+        try {
+            logToFile(`[FSRProtal-SQL] API Request: /api/work-center`);
+
+            const prodSqlService = require('../services/prodSqlService');
+            const allData = await prodSqlService.getWorkCenter();
+
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from work_center`);
+
+            res.json({
+                success: true,
+                data: allData,
+                total: allData.length
+            });
+
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch work_center from BevproFsProd SQL',
+                details: error.message
+            });
+        }
+    }
 }
 
 module.exports = new FSRProtalController();
