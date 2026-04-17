@@ -68,6 +68,8 @@ class GraphQLService {
                 'Service_BN01_New_B2B': 'service_BN01_New_B2Bs',
                 // New B2B view
                 'Service_New_B2B': 'service_New_B2Bs',
+                // New NB2C view
+                'Service_New_NB2C': 'service_New_NB2Cs',
                 'Smaserviceobjecttable_Internal_Work_NPSO': 'smaserviceobjecttable_Internal_Work_NPSOs',
                 'Smaserviceobjecttable_Internal_Work': 'smaserviceobjecttable_Internal_Works',
                 'Dispatch_Pending_Fountain': 'dispatch_Pending_Fountains',
@@ -92,7 +94,8 @@ class GraphQLService {
                 'Service_BN02_New',
                 'Service_BN02_New_B2B',
                 'Service_BN01_New_B2B',
-                'Service_New_B2B'
+                'Service_New_B2B',
+                'Service_New_NB2C'
             ];
 
             const queryName = queryMap[viewName] || viewName;
@@ -456,7 +459,7 @@ class GraphQLService {
                             bpc_actualstarttime
                             bpc_actualfinisheddate
                             bpc_actualfinishedtime`;
-            } else if (queryName === 'service_BN04_New_B2Bs' || queryName === 'service_BN09_New_B2Bs' || queryName === 'service_BN15_New_B2Bs' || queryName === 'service_BN02_New_B2Bs' || queryName === 'service_BN01_New_B2Bs' || queryName === 'service_New_B2Bs') {
+            } else if (queryName === 'service_BN04_New_B2Bs' || queryName === 'service_BN09_New_B2Bs' || queryName === 'service_BN15_New_B2Bs' || queryName === 'service_BN02_New_B2Bs' || queryName === 'service_BN01_New_B2Bs' || queryName === 'service_New_B2Bs' || queryName === 'service_New_NB2Cs') {
                 // B2B views - all 199 fields
                 fields = `Id
                             SinkCreatedOn

@@ -36,7 +36,9 @@ class FSRProtalController {
                 // Dispatch Required Fields
                 'Service_RequiField_Dispatch',
                 // New B2B view
-                'Service_New_B2B'
+                'Service_New_B2B',
+                // New NB2C view
+                'Service_New_NB2C'
             ];
 
             if (!ALLOWED_VIEWS.includes(viewName)) {
