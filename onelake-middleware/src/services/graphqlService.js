@@ -77,7 +77,8 @@ class GraphQLService {
                 'Dispatch_Pending_Cooler': 'dispatch_Pending_Coolers',
                 'Dispatch_Pending': 'dispatch_Pendings',
                 'Service_RequiField_Dispatch': 'service_RequiField_Dispatches',
-                'InventtableView': 'inventtableViews'
+                'InventtableView': 'inventtableViews',
+                'inventtransfer': 'inventtransfers'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -392,6 +393,18 @@ class GraphQLService {
                             modifiedon
                             IsDelete
                             PartitionId`;
+            } else if (queryName === 'inventtransfers') {
+                fields = `transferid
+                            transferstatus
+                            inventlocationidfrom
+                            inventlocationidto
+                            itemid
+                            namealias
+                            qtytransfer
+                            qtyremainreceive
+                            qtyreceived
+                            shipdate
+                            receivedate`;
             } else if (queryName === 'service_RequiField_Dispatches') {
                 fields = `bpc_postponedate
                             bpc_unkhowpostponedate

@@ -24,6 +24,7 @@ router.get('/dispatch-pending', (req, res) => proIoTController.getDispatchPendin
 router.get('/operation-evaluate-post-fins', (req, res) => proIoTController.getOperationEvaluatePostFins(req, res));
 router.get('/operation-evaluate-inpr-init', (req, res) => proIoTController.getOperationEvaluateInprInit(req, res));
 router.get('/inventtable-views', (req, res) => proIoTController.getInventtableViews(req, res));
+router.get('/inventtransfer', (req, res) => proIoTController.getInventtransfer(req, res));
 
 // Project: Other SQL Queries (Not FSR Protal)
 const fsrProtalControllerSql = require('../controllers/fsrProtalController_sql');
