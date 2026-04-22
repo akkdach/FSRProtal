@@ -37,13 +37,13 @@ async function introspectSchema() {
 
         const result = await response.json();
 
-        console.log('Available GraphQL Queries:');
+        console.log('Result:', JSON.stringify(result));
         if (result.data && result.data.__schema && result.data.__schema.queryType) {
             const queries = result.data.__schema.queryType.fields;
             const incomeQuery = queries.find(q => q.name.toLowerCase().includes('income'));
 
             queries.forEach(q => {
-                if (q.name.toLowerCase().includes('service') || q.name.toLowerCase().includes('income')) {
+                if(true) {
                     console.log(`  - ${q.name}`);
                 }
             });

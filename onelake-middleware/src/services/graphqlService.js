@@ -1929,6 +1929,183 @@ class GraphQLService {
             throw error;
         }
     }
+    /**
+     * Execute Stored Procedure-backed query for Service__Line
+     * Calling Service__Line
+     * @param {string} serviceorderid - The serviceorderid to search for
+     */
+    async executeServiceLine(serviceorderid = '') {
+        try {
+            logToFile(`[GraphQL] Executing stored procedure query: executeService__Line`);
+
+            const token = await this.getAccessToken();
+
+            const queryBody = `
+                query ExecuteServiceLine($serviceorderid: String!) {
+                    executeService__Line(serviceorderid: $serviceorderid) {
+recid
+                tableid
+                dataareaid
+                partition
+                recversion
+                sysrowversion
+                versionnumber
+                createdon
+                modifiedon
+                createddatetime
+                createdby
+                createdtransactionid
+                modifieddatetime
+                modifiedby
+                modifiedtransactionid
+                SinkCreatedOn
+                SinkModifiedOn
+                IsDelete
+                PartitionId
+                projtransid
+                serviceorderid
+                serviceorderlinenum
+                activityid
+                activitynumber
+                servicetaskid
+                agreementid
+                agreementlinenum
+                projid
+                itemid
+                description
+                descriptionservice
+                qty
+                unit
+                projcategoryid
+                projcostprice
+                projsalesprice
+                projcurrencycode
+                currencyidcost
+                worker
+                serviceobjectid
+                serviceobjectrelationid
+                datecalculated
+                dateexecution
+                daterangefrom
+                daterangeto
+                servicetimestartafter
+                servicetimeendbefore
+                timesheetstarttime
+                timesheetendtime
+                serviceorderstatus
+                transactiontype
+                projtranstxt
+                ledgerdimension
+                defaultdimension
+                inventdimid
+                invoiceid
+                projlinepropertyid
+                projtaxgroup
+                projtaxitemgroup
+                taxgroupexpense
+                taxitemgroupexpense
+                issalespricemodified
+                offsetaccounttypeexpense
+                origin
+                signoff
+                directsettlement_in
+                dsa_in
+                exciserecordtype_in
+                excisetype_in
+                exempt_in
+                itccategory_in
+                assessablevalue_in
+                companylocation_in
+                customerlocation_in
+                customertaxinformation_in
+                customstariffcodetable_in
+                excisetariffcodes_in
+                hsncodetable_in
+                maximumretailprice_in
+                postaladdress_in
+                salestaxformtypes_in
+                serviceaccountingcodetable_in
+                servicecodetable_in
+                taxinventvatcommoditycodeid_in
+                tcsgroup_in
+                tdsgroup_in
+                vendorlocation_in
+                vendortaxinformation_in
+                warehouselocation_in
+                bpc_smaexpensetype
+                bpc_movetype
+                bpc_warrantycheck
+                bpc_templatebomid
+                bpc_refsalesid
+                bpc_feedescription
+                bpc_saleslinerefrecid
+                bpc_feecode
+                bpc_actualstartdate
+                bpc_actualstarttime
+                bpc_actualfinisheddate
+                bpc_actualfinishedtime
+                bpc_actualhour
+                bpc_workerpersonnelnum
+                bpc_smaservicetaskdescription
+                bpc_activitytype
+                bpc_refinvoiceid
+                bpc_invoiceaccount
+                sysdatastatecode
+                    }
+                }`;
+
+            const body = JSON.stringify({
+                query: queryBody,
+                variables: {
+                    serviceorderid: serviceorderid
+                }
+            });
+
+            // Use main IOT Service Order endpoint
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            const result = await response.json();
+            logToFile(`[GraphQL] Raw executeService__Line response status: ${response.status}`);
+
+            if (result.errors) {
+                // If the error is about max result size, we fallback to pagination if possible,
+                // but for stored procedures in Fabric, pagination is not directly supported via native items.
+                // We will throw the error to the frontend.
+                logToFile(`[GraphQL] executeService__Line errors: ${JSON.stringify(result.errors)}`);
+            }
+
+            let rows = [];
+
+            if (result.data && result.data.executeService__Line) {
+                const node = result.data.executeService__Line;
+                if (Array.isArray(node)) {
+                    rows = node;
+                } else if (node.items && Array.isArray(node.items)) {
+                    rows = node.items;
+                } else if (typeof node === 'object' && node !== null) {
+                    rows = [node];
+                }
+            }
+
+            logToFile(`[GraphQL] executeService__Line retrieved ${rows.length} rows`);
+
+            if (result.errors && !rows.length) {
+                throw new Error(result.errors[0].message);
+            }
+
+            return rows;
+        } catch (error) {
+            logToFile(`[GraphQL] executeService__Line Error: ${error.message}`);
+            throw error;
+        }
+    }
 }
 
 module.exports = new GraphQLService();
