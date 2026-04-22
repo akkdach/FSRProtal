@@ -78,7 +78,8 @@ class GraphQLService {
                 'Dispatch_Pending': 'dispatch_Pendings',
                 'Service_RequiField_Dispatch': 'service_RequiField_Dispatches',
                 'InventtableView': 'inventtableViews',
-                'inventtransfer': 'inventtransfers'
+                'inventtransfer': 'inventtransfers',
+                'Service_Level_Refurbish': 'service_Level_Refurbishes'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -405,6 +406,18 @@ class GraphQLService {
                             qtyreceived
                             shipdate
                             receivedate`;
+            } else if (queryName === 'service_Level_Refurbishes') {
+                fields = `serviceorderid
+                            projid
+                            custaccount
+                            stageid
+                            bpc_maintenanceactivitytypecode
+                            bpc_serviceordertypecode
+                            bpc_scheduledstart
+                            bpc_scheduledstarttime
+                            bpc_scheduledfinish
+                            bpc_scheduledfinishtime
+                            bpc_serviceobject`;
             } else if (queryName === 'service_RequiField_Dispatches') {
                 fields = `bpc_postponedate
                             bpc_unkhowpostponedate

@@ -687,5 +687,42 @@ class ProIoTController {
             });
         }
     }
+
+    /**
+     * Service Level Refurbish data source backed by GraphQL query.
+     * GET /api/service-level-refurbish?page=0&limit=100
+     */
+    async getServiceLevelRefurbish(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/service-level-refurbish?page=${page}&limit=${limit}`);
+
+            // Call GraphQL service
+            const allData = await graphqlService.queryView('Service_Level_Refurbish');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Service Level Refurbish Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Service Level Refurbish API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
 }
 module.exports = new ProIoTController();
