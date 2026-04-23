@@ -79,7 +79,8 @@ class GraphQLService {
                 'Service_RequiField_Dispatch': 'service_RequiField_Dispatches',
                 'InventtableView': 'inventtableViews',
                 'inventtransfer': 'inventtransfers',
-                'Service_Level_Refurbish': 'service_Level_Refurbishes'
+                'Service_Level_Refurbish': 'service_Level_Refurbishes',
+                'Service_Level_PM': 'service_Level_PMs'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -406,6 +407,28 @@ class GraphQLService {
                             qtyreceived
                             shipdate
                             receivedate`;
+            } else if (queryName === 'service_Level_PMs') {
+                fields = `itemid
+                            namealias
+                            inventlocationid
+                            wmslocationid
+                            inventserialid
+                            physicalinvent
+                            availphysical
+                            postedqty
+                            reservphysical
+                            reservordered
+                            ordered
+                            onorder
+                            availordered
+                            picked
+                            received
+                            deducted
+                            physicalvalue
+                            postedvalue
+                            lastupddatephysical
+                            lastupddateexpected
+                            modifiedon`;
             } else if (queryName === 'service_Level_Refurbishes') {
                 fields = `serviceorderid
                             projid
