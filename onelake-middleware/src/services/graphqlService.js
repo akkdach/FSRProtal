@@ -80,7 +80,7 @@ class GraphQLService {
                 'InventtableView': 'inventtableViews',
                 'inventtransfer': 'inventtransfers',
                 'Service_Level_Refurbish': 'service_Level_Refurbishes',
-                'Service_Level_PM': 'service_Level_PMs'
+                'Out_Of_Stock_Inventsum': 'out_Of_Stock_Inventsums'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -407,7 +407,7 @@ class GraphQLService {
                             qtyreceived
                             shipdate
                             receivedate`;
-            } else if (queryName === 'service_Level_PMs') {
+            } else if (queryName === 'out_Of_Stock_Inventsums') {
                 fields = `itemid
                             namealias
                             inventlocationid

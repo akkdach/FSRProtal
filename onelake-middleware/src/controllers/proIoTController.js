@@ -764,25 +764,25 @@ class ProIoTController {
     }
 
     /**
-     * Service Level PM data source backed by GraphQL query.
-     * GET /api/service-level-pm?page=0&limit=100
+     * Out Of Stock Inventsum data source backed by GraphQL query.
+     * GET /api/out-of-stock-inventsum?page=0&limit=100
      */
-    async getServiceLevelPM(req, res) {
+    async getOutOfStockInventsum(req, res) {
         try {
             const page = parseInt(req.query.page) || 0;
             const limit = parseInt(req.query.limit) || 100;
 
-            logToFile(`[ProIoT] API Request: /api/service-level-pm?page=${page}&limit=${limit}`);
+            logToFile(`[ProIoT] API Request: /api/out-of-stock-inventsum?page=${page}&limit=${limit}`);
 
             // Call GraphQL service
-            const allData = await graphqlService.queryView('Service_Level_PM');
+            const allData = await graphqlService.queryView('Out_Of_Stock_Inventsum');
 
             const total = allData.length;
             const startIndex = page * limit;
             const endIndex = startIndex + limit;
             const slicedData = allData.slice(startIndex, endIndex);
 
-            logToFile(`[ProIoT] Service Level PM Response: Returning ${slicedData.length} records (from total ${total})`);
+            logToFile(`[ProIoT] Out Of Stock Inventsum Response: Returning ${slicedData.length} records (from total ${total})`);
 
             res.json({
                 success: true,
@@ -792,7 +792,7 @@ class ProIoTController {
                 limit
             });
         } catch (err) {
-            logToFile(`[ProIoT] Service Level PM API Error: ${err.message}`);
+            logToFile(`[ProIoT] Out Of Stock Inventsum API Error: ${err.message}`);
             res.status(500).json({
                 success: false,
                 message: err.message

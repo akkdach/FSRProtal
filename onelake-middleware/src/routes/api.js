@@ -26,7 +26,7 @@ router.get('/operation-evaluate-inpr-init', (req, res) => proIoTController.getOp
 router.get('/inventtable-views', (req, res) => proIoTController.getInventtableViews(req, res));
 router.get('/inventtransfer', (req, res) => proIoTController.getInventtransfer(req, res));
 router.get('/service-level-refurbish', (req, res) => proIoTController.getServiceLevelRefurbish(req, res));
-router.get('/service-level-pm', (req, res) => proIoTController.getServiceLevelPM(req, res));
+router.get('/out-of-stock-inventsum', (req, res) => proIoTController.getOutOfStockInventsum(req, res));
 router.get('/service_Line', (req, res) => proIoTController.getServiceLine(req, res));
 
 // Project: Other SQL Queries (Not FSR Protal)
