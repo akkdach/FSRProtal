@@ -1995,6 +1995,7 @@ recid
                 agreementlinenum
                 projid
                 itemid
+                namealias
                 description
                 descriptionservice
                 qty
