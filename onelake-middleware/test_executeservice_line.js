@@ -20,7 +20,7 @@ async function testExecuteProcedure() {
 
         console.log('Testing stored procedure names on FSRProtal Endpoint...');
         for (const qName of procNames) {
-            const queryBody = `query { ${qName}(serviceorderid signoff transactiontype bpc_workerpersonnelnum worker qty projcategoryid description serviceobjectrelationid serviceobjectid: "123") { serviceorderid signoff transactiontype bpc_workerpersonnelnum worker qty projcategoryid description serviceobjectrelationid serviceobjectid } }`;
+            const queryBody = `query { ${qName}(serviceorderid: "123") { serviceorderid signoff transactiontype bpc_workerpersonnelnum worker firstname qty projcategoryid description serviceobjectrelationid serviceobjectid } }`;
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

@@ -1996,6 +1996,7 @@ recid
                 projid
                 itemid
                 namealias
+                firstname
                 description
                 descriptionservice
                 qty
