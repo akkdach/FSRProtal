@@ -75,6 +75,7 @@ class QasSqlService {
                     ,[NewCostCenter]
                     ,[ActivityInsRm]
                     ,[DirectReport]
+                    ,[No_Leader]
                 FROM [BevproFsQas].[dbo].[worker]
             `;
 
