@@ -1687,17 +1687,13 @@ class GraphQLService {
             const queryBody = `
                 query ExecuteReferencedPoNumber($referencedPoNumber: String!) {
                     executeREFERENCEDPONUMBER(REFERENCEDPONUMBER: $referencedPoNumber) {
-                        REFERENCEDPONUMBER
-                        POSTPONDATE
-                        POSTPONREASON
-                        SCHEDULESTARTDATE
-                        SCHEDULESTARTTIME
-                        REMARKK2
-                        ORDERSTATUS
-                        RESERVEFIELD1
-                        RESERVEFIELD2
-                        RESERVEFIELD3
-                        RESERVEFIELD4
+                        Serviceorderid
+                        ServiceStage
+                        PostponeDate
+                        UnkhowpostponeDate
+                        PostponereasonDesc
+                        Scheduledstart
+                        Modelnodescription
                     }
                 }`;
 

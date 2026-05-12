@@ -262,34 +262,26 @@ class FSRProtalController {
             const row = allData.length > 0 ? allData[0] : {};
 
             res.json({
-                REFERENCEDPONUMBER: row.REFERENCEDPONUMBER || '',
-                POSTPONDATE: row.POSTPONDATE || '',
-                POSTPONREASON: row.POSTPONREASON || '',
-                SCHEDULESTARTDATE: row.SCHEDULESTARTDATE || '',
-                SCHEDULESTARTTIME: row.SCHEDULESTARTTIME || '',
-                REMARKK2: row.REMARKK2 || '',
-                ORDERSTATUS: row.ORDERSTATUS || '',
-                RESERVEFIELD1: row.RESERVEFIELD1 || '',
-                RESERVEFIELD2: row.RESERVEFIELD2 || '',
-                RESERVEFIELD3: row.RESERVEFIELD3 || '',
-                RESERVEFIELD4: row.RESERVEFIELD4 || '',
+                Serviceorderid: row.Serviceorderid || '',
+                ServiceStage: row.ServiceStage || '',
+                PostponeDate: row.PostponeDate || '',
+                UnkhowpostponeDate: row.UnkhowpostponeDate || '',
+                PostponereasonDesc: row.PostponereasonDesc || '',
+                Scheduledstart: row.Scheduledstart || '',
+                Modelnodescription: row.Modelnodescription || '',
                 STATUS: allData.length > 0 ? 'SUCCESS' : 'NOT_FOUND',
                 MESSAGE: allData.length > 0 ? 'Data retrieved successfully' : 'No data found for the given reference PO number'
             });
         } catch (error) {
             logToFile(`[FSRProtal-GraphQL] Request Status Error: ${error.message}`);
             res.status(500).json({
-                REFERENCEDPONUMBER: '',
-                POSTPONDATE: '',
-                POSTPONREASON: '',
-                SCHEDULESTARTDATE: '',
-                SCHEDULESTARTTIME: '',
-                REMARKK2: '',
-                ORDERSTATUS: '',
-                RESERVEFIELD1: '',
-                RESERVEFIELD2: '',
-                RESERVEFIELD3: '',
-                RESERVEFIELD4: '',
+                Serviceorderid: '',
+                ServiceStage: '',
+                PostponeDate: '',
+                UnkhowpostponeDate: '',
+                PostponereasonDesc: '',
+                Scheduledstart: '',
+                Modelnodescription: '',
                 STATUS: 'ERROR',
                 MESSAGE: error.message
             });
