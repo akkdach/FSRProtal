@@ -21,6 +21,7 @@ router.get('/dispatch-pending-fountain', (req, res) => proIoTController.getDispa
 router.get('/dispatch-pending-new-customer', (req, res) => proIoTController.getDispatchPendingNewCustomer(req, res));
 router.get('/dispatch-pending-cooler', (req, res) => proIoTController.getDispatchPendingCooler(req, res));
 router.get('/dispatch-pending', (req, res) => proIoTController.getDispatchPendingAll(req, res));
+router.get('/dispatch-plan-pending', (req, res) => proIoTController.getDispatchPlanPending(req, res));
 router.get('/operation-evaluate-post-fins', (req, res) => proIoTController.getOperationEvaluatePostFins(req, res));
 router.get('/operation-evaluate-inpr-init', (req, res) => proIoTController.getOperationEvaluateInprInit(req, res));
 router.get('/inventtable-views', (req, res) => proIoTController.getInventtableViews(req, res));

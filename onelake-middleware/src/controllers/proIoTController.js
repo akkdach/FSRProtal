@@ -524,6 +524,44 @@ class ProIoTController {
             res.status(500).json({ success: false, message: err.message });
         }
     }
+
+    /**
+     * Dispatch Plan Pending data source from GraphQL View.
+     * 
+     * This endpoint fetches Dispatch Plan Pending data from the GraphQL API.
+     * View: Dispatch_Plan_Pending (INIT/INPR + ZC04/ZC09)
+     * 
+     * GET /api/dispatch-plan-pending?page=0&limit=100
+     */
+    async getDispatchPlanPending(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/dispatch-plan-pending?page=${page}&limit=${limit}`);
+
+            // Call GraphQL service (Generic View Query)
+            const allData = await graphqlService.queryView('Dispatch_Plan_Pending');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const paginatedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] Dispatch_Plan_Pending: Total records ${total}, returning ${paginatedData.length}`);
+
+            res.json({
+                success: true,
+                data: paginatedData,
+                page: page,
+                limit: limit,
+                total: total
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] Dispatch Plan Pending API Error: ${err.message}`);
+            res.status(500).json({ success: false, message: err.message });
+        }
+    }
     /**
      * Operation Evaluate Post/Fins data source backed by Stored Procedure.
      * GET /api/operation-evaluate-post-fins?page=0&limit=100&StartDate=YYYY-MM-DD&FinishDate=YYYY-MM-DD

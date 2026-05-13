@@ -80,7 +80,8 @@ class GraphQLService {
                 'InventtableView': 'inventtableViews',
                 'inventtransfer': 'inventtransfers',
                 'Service_Level_Refurbish': 'service_Level_Refurbishes',
-                'Out_Of_Stock_Inventsum': 'out_Of_Stock_Inventsums'
+                'Out_Of_Stock_Inventsum': 'out_Of_Stock_Inventsums',
+                'Dispatch_Plan_Pending': 'dispatch_Plan_Pendings'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -447,7 +448,7 @@ class GraphQLService {
                             bpc_postponereasondesc
                             bpc_scheduledstart
                             stageid`;
-            } else if (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings') {
+            } else if (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'dispatch_Plan_Pendings') {
                 fields = `serviceorderid
                             bpc_serviceordertypecode
                             bpc_servicejobcode
