@@ -1773,11 +1773,14 @@ class GraphQLService {
                 query ExecuteOperationEvaluatePostFins($startDate: DateTime!, $finishDate: DateTime!) {
                     executeoperation_evaluate_post_Fins(StartDate: $startDate, FinishDate: $finishDate) {
                         serviceorderid
+                        projcategoryid
                         bpc_zonegroup
                         bpc_workerpersonnelnum
                         firstname
                         worker
                         qty
+                        serviceFeeTotal
+                        travelFeeTotal
                         projsalespriceTotal
                         bpc_inventlocationid
                         bpc_tradecode
