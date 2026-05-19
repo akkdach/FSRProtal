@@ -91,7 +91,7 @@ module.exports = {
     },
     syncSql: {
         server: process.env.SYNC_DB_SERVER || '20.33.118.76',
-        database: process.env.SYNC_DB_DATABASE || 'BevproFsProd',
+        database: process.env.SYNC_DB_DATABASE || 'D365',
         user: process.env.SYNC_DB_USER || 'sync_user',
         password: process.env.SYNC_DB_PASSWORD || 'Dui11223344@!',
         options: {
