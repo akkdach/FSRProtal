@@ -81,7 +81,8 @@ class GraphQLService {
                 'inventtransfer': 'inventtransfers',
                 'Service_Level_Refurbish': 'service_Level_Refurbishes',
                 'Out_Of_Stock_Inventsum': 'out_Of_Stock_Inventsums',
-                'Dispatch_Plan_Pending': 'dispatch_Plan_Pendings'
+                'Dispatch_Plan_Pending': 'dispatch_Plan_Pendings',
+                'ServiceOrderTable_Import_DataBase_238': 'serviceOrderTable_Import_DataBase_238s'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -710,6 +711,205 @@ class GraphQLService {
                             IsDelete
                             PartitionId
                             Province`;
+            } else if (queryName === 'serviceOrderTable_Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            calendarconflict
+                            certifiedpayroll
+                            incomingweborder
+                            origin
+                            priority
+                            progress
+                            servicelevelagreementstatus
+                            signoff
+                            bpc_sla_result
+                            bpc_unkhowpostponedate
+                            bpc_interfacesource
+                            bpc_approvefix
+                            bpc_work
+                            bpc_warranty
+                            bpc_replace
+                            sysdatastatecode
+                            activitynumber
+                            activitytypeid
+                            addressrefrecid
+                            addressreftableid
+                            agreementid
+                            compliance
+                            contactpersonid
+                            custaccount
+                            description
+                            projid
+                            serviceaddressname
+                            servicedatetime
+                            servicelevelagreement
+                            serviceorderid
+                            servicepostaladdress
+                            signoffdatetime
+                            stageid
+                            workerpreferredtechnician
+                            workerresponsible
+                            bpc_serviceordertypecode
+                            bpc_maintenanceactivitytypecode
+                            bpc_servicejobcode
+                            bpc_zonegroup
+                            bpc_servicezone
+                            bpc_subarea
+                            bpc_ticketno
+                            bpc_model
+                            bpc_modelno
+                            bpc_lastestmodelno
+                            bpc_serialnumber
+                            bpc_typeofmachine
+                            bpc_description
+                            bpc_actualstartdate
+                            bpc_actualstarttime
+                            bpc_actualfinisheddate
+                            bpc_actualfinishedtime
+                            bpc_postponedate
+                            bpc_remark
+                            bpc_k2remark
+                            bpc_mobilestatus
+                            bpc_mobileremark
+                            bpc_mobilereasoncode
+                            bpc_routingnocode
+                            bpc_plant
+                            bpc_planplant
+                            bpc_inventlocationid
+                            bpc_workcenter
+                            bpc_sloc
+                            bpc_notificationnosap
+                            bpc_cdecode
+                            bpc_newserviceobject
+                            bpc_serviceobjectgroup
+                            bpc_scheduledstart
+                            bpc_scheduledfinish
+                            bpc_scheduledstarttime
+                            bpc_scheduledfinishtime
+                            bpc_activitytype
+                            bpc_notificationtype
+                            bpc_notifdate
+                            bpc_notiftime
+                            bpc_bstkd
+                            bpc_notiftext
+                            bpc_notificationother
+                            bpc_reportby
+                            bpc_firstorder
+                            bpc_firstorderset
+                            bpc_daterequest
+                            bpc_saporderdate
+                            bpc_checkinorderdate
+                            bpc_checkinordertime
+                            bpc_checkoutorderdate
+                            bpc_checkoutordertime
+                            bpc_originalmile
+                            bpc_destinationmile
+                            bpc_serviceorderinterface
+                            bpc_lastserviceorder
+                            bpc_plangroup
+                            bpc_simmobilenumber
+                            bpc_simiccid
+                            bpc_devicetype
+                            bpc_imeiconnectivitydevice
+                            bpc_serviceprovoder
+                            bpc_remarkk2
+                            bpc_customernamesignoff
+                            bpc_approve
+                            bpc_serviceobject
+                            bpc_customerobject
+                            bpc_addresskm
+                            bpc_addressservicecenter
+                            bpc_ordertime
+                            bpc_symptomareaid
+                            bpc_symptomcodeid
+                            bpc_requestdate
+                            bpc_requesttime
+                            bpc_slastartdate
+                            bpc_slastarttime
+                            bpc_slafinishdate
+                            bpc_slafinishtime
+                            bpc_latitude
+                            bpc_longitude
+                            bpc_compcode
+                            bpc_coarea
+                            bpc_mainassetno
+                            bpc_enterdate
+                            bpc_eqktx
+                            bpc_profitctr
+                            bpc_costcenter
+                            bpc_zzcdecode
+                            bpc_checkinodpdate
+                            bpc_approvename
+                            bpc_approvedate
+                            bpc_notifcodetext
+                            bpc_customerbranch
+                            bpc_modelcode
+                            bpc_feepercent
+                            bpc_postponetime
+                            bpc_linenum
+                            bpc_tradecode
+                            bpc_tradename
+                            bpc_custclassificationid
+                            bpc_custclassificationdescription
+                            bpc_refinvoiceid
+                            bpc_postponereasoncode
+                            bpc_maintenanceactivitytypedescription
+                            bpc_symptomcodedescription
+                            bpc_modelnodescription
+                            bpc_assetvalue
+                            bpc_resolutionid
+                            bpc_conditionid
+                            bpc_problemcode
+                            bpc_smatemplatebomid
+                            bpc_smatemplatebomid2
+                            bpc_diagnosiscodeid
+                            bpc_diagnosisareaid
+                            bpc_diagnosiscodename
+                            bpc_diagnosisareaname
+                            bpc_conditiondescription
+                            bpc_problemcodedesc
+                            bpc_resolutiondescription
+                            bpc_objectreceivedate
+                            bpc_objectreceivetime
+                            bpc_objectshipdate
+                            bpc_objectshiptime
+                            bpc_phone
+                            bpc_customername
+                            bpc_signoffbyname
+                            bpc_targetstageid
+                            bpc_partsremark
+                            bpc_routingnocodechange
+                            bpc_auditremark
+                            bpc_serviceobjectgroupmobile
+                            bpc_mobilekmdistance
+                            bpc_startma
+                            bpc_assetendwarrantydate
+                            bpc_mamonth
+                            bpc_workorderwarranty
+                            bpc_compressorwarranty
+                            bpc_postponereasondesc
+                            bpc_sysstatus
+                            bpc_servicepostdate
+                            bpc_unsignoffname
+                            bpc_smaservicepoteddatetime
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
             } else if (queryName === 'service_BN04_News' || queryName === 'service_BN09_News' || queryName === 'service_BN15_News' || queryName === 'service_BN04_NB2CLOAN_News' || queryName === 'service_BN09_NB2CLOAN_News' || queryName === 'service_BN15_NB2CLOAN_News' || queryName === 'service_BN02_News') {
                 // FSR Protal views - all 199 fields
                 fields = `Id
@@ -945,7 +1145,7 @@ class GraphQLService {
 
             // Use pagination for all queries
             // For Dispatch_Pending_Fountain, Dispatch_Pending_New_Customer, and Dispatch_Pending_Cooler, use smaller page size (5000) to avoid 64MB limit
-            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works') ? 5000 : 100000;
+            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s') ? 5000 : 100000;
             return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize);
 
         } catch (error) {

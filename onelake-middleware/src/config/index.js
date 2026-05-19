@@ -89,6 +89,24 @@ module.exports = {
             idleTimeoutMillis: 30000
         }
     },
+    syncSql: {
+        server: process.env.SYNC_DB_SERVER || '20.33.118.76',
+        database: process.env.SYNC_DB_DATABASE || 'BevproFsProd',
+        user: process.env.SYNC_DB_USER || 'sync_user',
+        password: process.env.SYNC_DB_PASSWORD || 'Dui11223344@!',
+        options: {
+            encrypt: false,
+            trustServerCertificate: true,
+            connectTimeout: 30000,
+            requestTimeout: 30000,
+            port: 14330
+        },
+        pool: {
+            max: 10,
+            min: 0,
+            idleTimeoutMillis: 30000
+        }
+    },
     entra: {
         tenantId: process.env.ENTRA_TENANT_ID || process.env.AZURE_TENANT_ID,
         clientId: process.env.ENTRA_CLIENT_ID

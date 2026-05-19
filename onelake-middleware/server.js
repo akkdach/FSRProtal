@@ -7,7 +7,7 @@ const { logToFile } = require('./src/utils/logger');
 
 const apiRoutes = require('./src/routes/api');
 const { validateJwt } = require('./src/middleware/authMiddleware');
-const { validateBasicAuth } = require('./src/middleware/basicAuthMiddleware');
+const { validateBasicAuth, validateSyncBasicAuth } = require('./src/middleware/basicAuthMiddleware');
 const fsrProtalController = require('./src/controllers/fsrProtalController_graphql');
 
 const app = express();
@@ -30,6 +30,10 @@ app.get('/test-login', (req, res) => res.sendFile(path.join(__dirname, 'test_log
 
 // Routes with Basic Auth (registered before JWT middleware)
 app.get('/api/request-status/:referencedPoNumber', validateBasicAuth, (req, res) => fsrProtalController.getRequestStatus(req, res));
+
+// Sync Data Route (Protected by Basic Auth for easy automated triggering)
+const syncController = require('./src/controllers/syncController');
+app.post('/api/sync/service-order-table-sync', validateSyncBasicAuth, (req, res) => syncController.syncServiceOrderTable(req, res));
 
 // Entra ID Login (public - no JWT required)
 const jwt = require('jsonwebtoken');
@@ -93,4 +97,8 @@ app.listen(config.port, () => {
     logToFile(`Server running on http://localhost:${config.port}`);
     logToFile(`[ProIoT] Config Loaded. Path: ${config.oneLake.proIoT.tableUrl}`);
     logToFile(`[FSRProtal] Config Loaded. DB: ${config.sql.database}`);
+    
+    // Initialize Cron Jobs
+    const { initCronJobs } = require('./src/jobs/cronJobs');
+    initCronJobs();
 });
