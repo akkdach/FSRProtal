@@ -82,7 +82,8 @@ class GraphQLService {
                 'Service_Level_Refurbish': 'service_Level_Refurbishes',
                 'Out_Of_Stock_Inventsum': 'out_Of_Stock_Inventsums',
                 'Dispatch_Plan_Pending': 'dispatch_Plan_Pendings',
-                'ServiceOrderTable_Import_DataBase_238': 'serviceOrderTable_Import_DataBase_238s'
+                'ServiceOrderTable_Import_DataBase_238': 'serviceOrderTable_Import_DataBase_238s',
+                'ServiceOrderLine_Import_DataBase_238': 'serviceOrderLine_Import_DataBase_238s'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -910,6 +911,116 @@ class GraphQLService {
                             modifiedon
                             IsDelete
                             PartitionId`;
+            } else if (queryName === 'serviceOrderLine_Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            issalespricemodified
+                            offsetaccounttypeexpense
+                            origin
+                            serviceorderstatus
+                            signoff
+                            transactiontype
+                            directsettlement_in
+                            dsa_in
+                            exciserecordtype_in
+                            excisetype_in
+                            exempt_in
+                            itccategory_in
+                            bpc_smaexpensetype
+                            sysdatastatecode
+                            projcurrencycode
+                            activityid
+                            activitynumber
+                            agreementid
+                            agreementlinenum
+                            currencyidcost
+                            datecalculated
+                            dateexecution
+                            daterangefrom
+                            daterangeto
+                            defaultdimension
+                            description
+                            descriptionservice
+                            inventdimid
+                            invoiceid
+                            itemid
+                            ledgerdimension
+                            projcategoryid
+                            projcostprice
+                            projid
+                            projlinepropertyid
+                            projsalesprice
+                            projtaxgroup
+                            projtaxitemgroup
+                            projtransid
+                            projtranstxt
+                            qty
+                            serviceobjectid
+                            serviceobjectrelationid
+                            serviceorderid
+                            serviceorderlinenum
+                            servicetaskid
+                            servicetimeendbefore
+                            servicetimestartafter
+                            taxgroupexpense
+                            taxitemgroupexpense
+                            timesheetendtime
+                            timesheetstarttime
+                            unit
+                            worker
+                            assessablevalue_in
+                            companylocation_in
+                            customerlocation_in
+                            customertaxinformation_in
+                            customstariffcodetable_in
+                            excisetariffcodes_in
+                            hsncodetable_in
+                            maximumretailprice_in
+                            postaladdress_in
+                            salestaxformtypes_in
+                            serviceaccountingcodetable_in
+                            servicecodetable_in
+                            taxinventvatcommoditycodeid_in
+                            tcsgroup_in
+                            tdsgroup_in
+                            vendorlocation_in
+                            vendortaxinformation_in
+                            warehouselocation_in
+                            bpc_movetype
+                            bpc_warrantycheck
+                            bpc_templatebomid
+                            bpc_refsalesid
+                            bpc_feedescription
+                            bpc_saleslinerefrecid
+                            bpc_feecode
+                            bpc_actualstartdate
+                            bpc_actualstarttime
+                            bpc_actualfinisheddate
+                            bpc_actualfinishedtime
+                            bpc_actualhour
+                            bpc_workerpersonnelnum
+                            bpc_smaservicetaskdescription
+                            bpc_activitytype
+                            bpc_refinvoiceid
+                            bpc_invoiceaccount
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
             } else if (queryName === 'service_BN04_News' || queryName === 'service_BN09_News' || queryName === 'service_BN15_News' || queryName === 'service_BN04_NB2CLOAN_News' || queryName === 'service_BN09_NB2CLOAN_News' || queryName === 'service_BN15_NB2CLOAN_News' || queryName === 'service_BN02_News') {
                 // FSR Protal views - all 199 fields
                 fields = `Id
@@ -1145,7 +1256,7 @@ class GraphQLService {
 
             // Use pagination for all queries
             // For Dispatch_Pending_Fountain, Dispatch_Pending_New_Customer, and Dispatch_Pending_Cooler, use smaller page size (5000) to avoid 64MB limit
-            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s') ? 5000 : 100000;
+            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s' || queryName === 'serviceOrderLine_Import_DataBase_238s') ? 5000 : 100000;
 
             // Using fetchAllWithPagination to handle large datasets safely
             return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize, filterArgString, onPageCallback);

@@ -33,6 +33,36 @@ class SyncController {
             });
         }
     }
+
+    /**
+     * Trigger sync from GraphQL ServiceOrderLine_Import_DataBase_238 to SQL Server
+     * POST /api/sync/service-order-line-sync
+     */
+    async syncServiceOrderLine(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/service-order-line-sync`);
+            
+            const viewName = 'ServiceOrderLine_Import_DataBase_238';
+            const targetTableName = 'ServiceOrderLine_Sync';
+            const primaryKey = 'Id'; 
+            const modifyField = 'modifiedon';
+            
+            const result = await syncService.syncFromGraphQL(viewName, targetTableName, primaryKey, modifyField);
+            
+            res.json({
+                success: true,
+                message: "ServiceOrderLine Sync completed successfully",
+                data: result
+            });
+            
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Line): ${error.message}`);
+            res.status(500).json({
+                success: false,
+                message: `ServiceOrderLine Sync failed: ${error.message}`
+            });
+        }
+    }
 }
 
 module.exports = new SyncController();

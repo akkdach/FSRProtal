@@ -34,6 +34,7 @@ app.get('/api/request-status/:referencedPoNumber', validateBasicAuth, (req, res)
 // Sync Data Route (Protected by Basic Auth for easy automated triggering)
 const syncController = require('./src/controllers/syncController');
 app.post('/api/sync/service-order-table-sync', validateSyncBasicAuth, (req, res) => syncController.syncServiceOrderTable(req, res));
+app.post('/api/sync/service-order-line-sync', validateSyncBasicAuth, (req, res) => syncController.syncServiceOrderLine(req, res));
 
 // Entra ID Login (public - no JWT required)
 const jwt = require('jsonwebtoken');
