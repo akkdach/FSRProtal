@@ -336,67 +336,35 @@ class SyncService {
 
             // 1. Check if target table exists
             let exists = await this.tableExists(pool, targetTableName);
-            let filterArgString = '';
             
             if (exists) {
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                // Formatting to standard ISO without milliseconds to be safe: YYYY-MM-DD
-                const yyyy = today.getFullYear();
-                const mm = String(today.getMonth() + 1).padStart(2, '0');
-                const dd = String(today.getDate()).padStart(2, '0');
-                const dateString = `${yyyy}-${mm}-${dd}`;
-                
-                filterArgString = `{ ${modifyField}: { gte: "${dateString}" } }`;
-                logToFile(`[SyncService] Target table ${targetTableName} exists. Initiating incremental load since ${dateString}.`);
+                logToFile(`[SyncService] Target table ${targetTableName} exists. Truncating for full daily sync.`);
+                await pool.request().query(`TRUNCATE TABLE [dbo].[${targetTableName}]`);
             } else {
-                logToFile(`[SyncService] Target table ${targetTableName} does not exist. Initiating full load.`);
+                logToFile(`[SyncService] Target table ${targetTableName} does not exist. Initiating full load and table creation.`);
             }
 
-            if (!exists) {
-                // First Run: Create table and Full Load in chunks (Streaming)
-                logToFile(`[SyncService] Target table ${targetTableName} does not exist. Initiating chunked full load.`);
+            // Full Load in chunks (Streaming)
+            let isFirstChunk = !exists;
+            let totalInserted = 0;
+            
+            await graphqlService.queryView(viewName, '', async (chunkData, pageNum) => {
+                if (!chunkData || chunkData.length === 0) return;
                 
-                let isFirstChunk = true;
-                let totalInserted = 0;
+                // Always use latest pool reference (may have been reconnected)
+                let currentPool = this._pool;
                 
-                await graphqlService.queryView(viewName, '', async (chunkData, pageNum) => {
-                    if (!chunkData || chunkData.length === 0) return;
-                    
-                    // Always use latest pool reference (may have been reconnected)
-                    let currentPool = this._pool;
-                    
-                    if (isFirstChunk) {
-                        await this.createTable(currentPool, targetTableName, chunkData[0]);
-                        isFirstChunk = false;
-                    }
-                    
-                    logToFile(`[SyncService] Inserting chunk page ${pageNum} (${chunkData.length} records) into ${targetTableName}...`);
-                    const result = await this.appendChunk(currentPool, targetTableName, chunkData);
-                    totalInserted += (result.inserted || chunkData.length);
-                });
-                
-                return { success: true, mode: 'Full Load (Chunked)', inserted: totalInserted };
-            } else {
-                // Fetch data from GraphQL with the appropriate filter
-                logToFile(`[SyncService] Fetching data from GraphQL (Filter: ${filterArgString})...`);
-                let allData = await graphqlService.queryView(viewName, filterArgString);
-                
-                if (!allData || allData.length === 0) {
-                    return { success: true, mode: 'Incremental Load', modified: 0, message: "No new or updated records found today." };
+                if (isFirstChunk) {
+                    await this.createTable(currentPool, targetTableName, chunkData[0]);
+                    isFirstChunk = false;
                 }
-
-                // Subsequent Run: Incremental load
-                let dataToSync = allData; // Data is already filtered by GraphQL
-                logToFile(`[SyncService] Found ${dataToSync.length} records to sync (GraphQL filtered)`);
                 
-                if (dataToSync.length === 0) {
-                    return { success: true, mode: 'Incremental Load', modified: 0, message: "No new or updated records found today." };
-                }
-
-                const result = await this.incrementalLoadWithStaging(pool, targetTableName, dataToSync, primaryKey);
-                return { success: true, mode: 'Incremental Load', ...result };
-            }
+                logToFile(`[SyncService] Inserting chunk page ${pageNum} (${chunkData.length} records) into ${targetTableName}...`);
+                const result = await this.appendChunk(currentPool, targetTableName, chunkData);
+                totalInserted += (result.inserted || chunkData.length);
+            });
+            
+            return { success: true, mode: 'Full Daily Sync', inserted: totalInserted };
         } catch (err) {
             logToFile(`[SyncService] Sync Error: ${err.message}`);
             throw err;
