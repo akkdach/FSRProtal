@@ -43,6 +43,9 @@ app.post('/api/sync/logisticslocation-sync', validateSyncBasicAuth, (req, res) =
 app.post('/api/sync/inventtransorigin-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventtransorigin(req, res));
 app.post('/api/sync/inventtransfertable-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventtransfertable(req, res));
 app.post('/api/sync/inventtransferline-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventtransferline(req, res));
+app.post('/api/sync/inventtrans-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventtrans(req, res));
+app.post('/api/sync/inventtable-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventtable(req, res));
+app.post('/api/sync/inventsum-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventsum(req, res));
 
 // Entra ID Login (public - no JWT required)
 const jwt = require('jsonwebtoken');

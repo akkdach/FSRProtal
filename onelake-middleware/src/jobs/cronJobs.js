@@ -18,6 +18,9 @@ function initCronJobs() {
             { view: 'Inventtransorigin_Import_DataBase_238', table: 'Inventtransorigin_Sync', label: 'Inventtransorigin' },
             { view: 'Inventtransfertable_Import_DataBase_238', table: 'Inventtransfertable_Sync', label: 'Inventtransfertable' },
             { view: 'Inventtransferline_Import_DataBase_238', table: 'Inventtransferline_Sync', label: 'Inventtransferline' },
+            { view: 'Inventtrans_Import_DataBase_238', table: 'Inventtrans_Sync', label: 'Inventtrans' },
+            { view: 'Inventtable_Import_DataBase_238', table: 'Inventtable_Sync', label: 'Inventtable' },
+            { view: 'Inventsum_Import_DataBase_238', table: 'Inventsum_Sync', label: 'Inventsum' },
         ];
 
         for (const task of syncTasks) {

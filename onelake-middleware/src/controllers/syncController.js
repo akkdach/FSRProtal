@@ -111,6 +111,37 @@ class SyncController {
             res.status(500).json({ success: false, message: `Inventtransferline Sync failed: ${error.message}` });
         }
     }
+
+    async syncInventtrans(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/inventtrans-sync`);
+            const result = await syncService.syncFromGraphQL('Inventtrans_Import_DataBase_238', 'Inventtrans_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Inventtrans Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Inventtrans): ${error.message}`);
+            res.status(500).json({ success: false, message: `Inventtrans Sync failed: ${error.message}` });
+        }
+    }
+    async syncInventtable(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/inventtable-sync`);
+            const result = await syncService.syncFromGraphQL('Inventtable_Import_DataBase_238', 'Inventtable_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Inventtable Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Inventtable): ${error.message}`);
+            res.status(500).json({ success: false, message: `Inventtable Sync failed: ${error.message}` });
+        }
+    }
+    async syncInventsum(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/inventsum-sync`);
+            const result = await syncService.syncFromGraphQL('Inventsum_Import_DataBase_238', 'Inventsum_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Inventsum Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Inventsum): ${error.message}`);
+            res.status(500).json({ success: false, message: `Inventsum Sync failed: ${error.message}` });
+        }
+    }
 }
 
 module.exports = new SyncController();
