@@ -5,8 +5,8 @@ const { logToFile } = require('../utils/logger');
 function initCronJobs() {
     logToFile('[Cron] Initializing scheduled jobs...');
 
-    // Run every day at 14:00 (2:00 PM / บ่ายสอง)
-    cron.schedule('0 14 * * *', async () => {
+    // Run every day at 09:30 (9:30 AM / เก้าโมงครึ่ง)
+    cron.schedule('30 9 * * *', async () => {
         logToFile('[Cron] Triggering Automated ServiceOrderTable Sync...');
         try {
             const viewName = 'ServiceOrderTable_Import_DataBase_238';
@@ -24,7 +24,7 @@ function initCronJobs() {
         timezone: "Asia/Bangkok"
     });
 
-    logToFile('[Cron] Scheduled job set for 14:00 (Asia/Bangkok) every day.');
+    logToFile('[Cron] Scheduled job set for 09:30 (Asia/Bangkok) every day.');
 }
 
 module.exports = { initCronJobs };

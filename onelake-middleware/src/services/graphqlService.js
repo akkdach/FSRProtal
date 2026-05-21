@@ -32,7 +32,7 @@ class GraphQLService {
 
     // We don't need initClient anymore as we'll use fetch directly
 
-    async queryView(viewName) {
+    async queryView(viewName, filterArgString = '', onPageCallback = null) {
         try {
             logToFile(`[GraphQL] Querying view: ${viewName}`);
 
@@ -1146,7 +1146,9 @@ class GraphQLService {
             // Use pagination for all queries
             // For Dispatch_Pending_Fountain, Dispatch_Pending_New_Customer, and Dispatch_Pending_Cooler, use smaller page size (5000) to avoid 64MB limit
             const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s') ? 5000 : 100000;
-            return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize);
+
+            // Using fetchAllWithPagination to handle large datasets safely
+            return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize, filterArgString, onPageCallback);
 
         } catch (error) {
             logToFile(`[GraphQL] Query Error: ${error.message}`);
@@ -1163,8 +1165,10 @@ class GraphQLService {
      * @param {string} fieldsQuery - Fields to query (as string)
      * @param {string} endpoint - GraphQL endpoint
      * @param {number} pageSize - Page size for pagination (default 100000)
+     * @param {string} filterArgString - GraphQL filter string
+     * @param {function} onPageCallback - Optional callback for chunked processing
      */
-    async fetchAllWithPagination(token, queryName, fieldsQuery, endpoint = this.endpoint, pageSize = 100000) {
+    async fetchAllWithPagination(token, queryName, fieldsQuery, endpoint = this.endpoint, pageSize = 100000, filterArgString = '', onPageCallback = null) {
         const PAGE_SIZE = pageSize;
         let allItems = [];
         let hasNextPage = true;
@@ -1174,10 +1178,15 @@ class GraphQLService {
         while (hasNextPage) {
             logToFile(`[GraphQL] Fetching ${queryName} page ${pageNum}...`);
 
-            const afterArg = afterCursor ? `, after: "${afterCursor}"` : '';
+            const argsArray = [`first: ${PAGE_SIZE}`];
+            if (afterCursor) argsArray.push(`after: "${afterCursor}"`);
+            if (filterArgString) argsArray.push(`filter: ${filterArgString}`);
+            
+            const argsString = argsArray.join(', ');
+
             const queryBody = `
             query {
-                ${queryName}(first: ${PAGE_SIZE}${afterArg}) {
+                ${queryName}(${argsString}) {
                     items {
                         ${fieldsQuery}
                     }
@@ -1206,10 +1215,14 @@ class GraphQLService {
 
             const node = result.data?.[queryName];
             if (node && node.items) {
-                allItems = allItems.concat(node.items);
+                if (onPageCallback) {
+                    await onPageCallback(node.items, pageNum);
+                } else {
+                    allItems = allItems.concat(node.items);
+                }
                 hasNextPage = node.hasNextPage === true;
                 afterCursor = node.endCursor;
-                logToFile(`[GraphQL] Page ${pageNum}: Got ${node.items.length} records. Total so far: ${allItems.length}. HasNextPage: ${hasNextPage}`);
+                logToFile(`[GraphQL] Page ${pageNum}: Got ${node.items.length} records. HasNextPage: ${hasNextPage}`);
             } else {
                 hasNextPage = false;
             }
