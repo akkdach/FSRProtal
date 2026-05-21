@@ -87,7 +87,11 @@ class GraphQLService {
                 'ServiceObjectTable_Import_DataBase_238': 'smaserviceobjecttables',
                 'Pickingroute_Import_DataBase_238': 'pickingroute_Import_DataBase_238s',
                 'Reasontable_Import_DataBase_238': 'reasontable_Import_DataBase_238s',
-                'Logisticspostaladdress_Import_DataBase_238': 'logisticspostaladdress_Import_DataBase_238s'
+                'Logisticspostaladdress_Import_DataBase_238': 'logisticspostaladdress_Import_DataBase_238s',
+                'Logisticslocation_Import_DataBase_238': 'logisticslocation_Import_DataBase_238s',
+                'Inventtransorigin_Import_DataBase_238': 'inventtransorigin_Import_DataBase_238s',
+                'Inventtransfertable_Import_DataBase_238': 'inventtransfertable_Import_DataBase_238s',
+                'Inventtransferline_Import_DataBase_238': 'inventtransferline__Import_DataBase_238s'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -1233,6 +1237,297 @@ class GraphQLService {
                             modifiedon
                             IsDelete
                             PartitionId`;
+            } else if (queryName === 'logisticslocation_Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            ispostaladdress
+                            sysdatastatecode
+                            description
+                            dunsnumberrecid
+                            locationid
+                            parentlocation
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
+            } else if (queryName === 'inventtransorigin_Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            referencecategory
+                            isexcludedfrominventoryvalue
+                            sysdatastatecode
+                            inventtransid
+                            itemid
+                            iteminventdimid
+                            party
+                            referenceid
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
+            } else if (queryName === 'inventtransfertable_Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            atpinclplannedorders
+                            autoreservation
+                            carriertype_ru
+                            deliverydatecontroltype
+                            freightsliptype
+                            inventprofiletype_ru
+                            inventprofileuserelated_ru
+                            licensecardtype_ru
+                            pdsoverridefefo
+                            retailretailstatustype
+                            transferstatus
+                            transfertype_in
+                            transfertype_ru
+                            transportationpayertype_ru
+                            transportinvoicetype_ru
+                            trpackingslipautonumbering_lt
+                            exempt_in
+                            cfdienabled_mx
+                            listcode
+                            cfdicartaporteenabled_mx
+                            pricetype_in
+                            stocktransfercostpricehandlingimprovement_in
+                            sysdatastatecode
+                            atpapplydemandtimefence
+                            atpapplysupplytimefence
+                            atpbackwarddemandtimefence
+                            atpbackwardsupplytimefence
+                            atptimefence
+                            cargodescription_ru
+                            cargopacking_ru
+                            carriercode_ru
+                            currencycode_ru
+                            deliverydate_ru
+                            dlvmodeid
+                            dlvtermid
+                            driver_ru
+                            drivercontact_ru
+                            drivername_ru
+                            drivinglicensenum_ru
+                            freightzoneid
+                            fromaddressname
+                            fromcontactperson
+                            frompostaladdress
+                            intrastatfulfillmentdate_hu
+                            intrastatspecmove_cz
+                            inventlocationidfrom
+                            inventlocationidto
+                            inventlocationidtransit
+                            inventprofileid_ru
+                            inventprofileidto_ru
+                            ladingpostaladdress_ru
+                            licensecardnum_ru
+                            licensecardregnum_ru
+                            licensecardseries_ru
+                            partyaccountnum_ru
+                            partyagreementheaderext_ru
+                            port
+                            pricegroupid_ru
+                            receivedate
+                            retailreplenishrefrecid
+                            retailreplenishreftableid
+                            shipdate
+                            statprocid
+                            toaddressname
+                            tocontactperson
+                            topostaladdress
+                            transactioncode
+                            transferid
+                            transport
+                            transportationdocument
+                            transportationpayer_ru
+                            transportationtype_ru
+                            unladingpostaladdress_ru
+                            vehiclemodel_ru
+                            vehicleplatenum_ru
+                            waybillnum_ru
+                            reasontableref
+                            bpc_ordernumber
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
+            } else if (queryName === 'inventtransferline__Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            atpinclplannedorders
+                            autoreservation
+                            deliverydatecontroltype
+                            pdsoverridefefo
+                            remainstatus
+                            exempt_in
+                            fromdirectsettlement_in
+                            fromdsa_in
+                            fromexciserecordtype_in
+                            fromexcisetype_in
+                            itccategory_in
+                            pricetype_in
+                            servicecategory_in
+                            todirectsettlement_in
+                            todsa_in
+                            toexciserecordtype_in
+                            toexcisetype_in
+                            toitccategory_in
+                            vatpricetype_in
+                            overridesalestaxshipment
+                            overridesalestaxreceipt
+                            inventoryserviceautooffset
+                            sysdatastatecode
+                            amountvalue
+                            atpapplydemandtimefence
+                            atpapplysupplytimefence
+                            atpbackwarddemandtimefence
+                            atpbackwardsupplytimefence
+                            atptimefence
+                            combinedtransferorderlinedelivery
+                            hhthandhelduserid
+                            hhttransdate
+                            hhttranstime
+                            intrastatcommodity
+                            intrastatfulfillmentdate_hu
+                            intrastatspecmove_cz
+                            inventdimid
+                            inventdimidto_ru
+                            inventtransid
+                            inventtransidreceive
+                            inventtransidscrap
+                            inventtransidtransitfrom
+                            inventtransidtransitto
+                            itemid
+                            lineamount_ru
+                            linenum
+                            origcountryregionid
+                            origcountyid
+                            origstateid
+                            overdeliverypct
+                            pdscwqtyreceived
+                            pdscwqtyreceivenow
+                            pdscwqtyremainreceive
+                            pdscwqtyremainship
+                            pdscwqtyscrapped
+                            pdscwqtyshipnow
+                            pdscwqtyshipped
+                            pdscwqtytransfer
+                            port
+                            price_ru
+                            priceunit_ru
+                            qtyreceived
+                            qtyreceivenow
+                            qtyremainreceive
+                            qtyremainship
+                            qtyscrapped
+                            qtyshipnow
+                            qtyshipped
+                            qtytransfer
+                            receivedate
+                            retailareaid
+                            retailinfocodeidex2
+                            retailinformationsubcodeidex2
+                            retailreplenishrefrecid
+                            retailreplenishreftableid
+                            shipdate
+                            statisticalvalue
+                            statprocid
+                            transactioncode
+                            transferid
+                            transport
+                            underdeliverypct
+                            unitid
+                            dimensiondefaultshipfrom
+                            dimensiondefaultshipto
+                            intracode
+                            currencycode_in
+                            defaultdimension_in
+                            excisetariffcodes_in
+                            hsncodetable_in
+                            invntcostprice_in
+                            netamount_in
+                            nonbusinessusagepercentage_in
+                            purchprice_in
+                            retention_in
+                            salestaxformtypes_in
+                            serviceaccountingcodetable_in
+                            taxgroup_in
+                            taxitemgroup_in
+                            unitid_in
+                            unitprice_in
+                            vatretentioncode_in
+                            netamount
+                            unitprice
+                            planningpriority
+                            taxgroupshipment
+                            taxitemgroupshipment
+                            taxgroupreceipt
+                            taxitemgroupreceipt
+                            inventoryservicereservationid
+                            itmstatusid
+                            itmid
+                            itmarrivalgroupid
+                            bpc_ordernumber
+                            bpc_refserviceorder
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
             } else if (queryName === 'service_BN04_News' || queryName === 'service_BN09_News' || queryName === 'service_BN15_News' || queryName === 'service_BN04_NB2CLOAN_News' || queryName === 'service_BN09_NB2CLOAN_News' || queryName === 'service_BN15_NB2CLOAN_News' || queryName === 'service_BN02_News') {
                 // FSR Protal views - all 199 fields
                 fields = `Id
@@ -1468,7 +1763,7 @@ class GraphQLService {
 
             // Use pagination for all queries
             // For Dispatch_Pending_Fountain, Dispatch_Pending_New_Customer, and Dispatch_Pending_Cooler, use smaller page size (5000) to avoid 64MB limit
-            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s' || queryName === 'serviceOrderLine_Import_DataBase_238s' || queryName === 'smaserviceobjecttables' || queryName === 'pickingroute_Import_DataBase_238s' || queryName === 'reasontable_Import_DataBase_238s' || queryName === 'logisticspostaladdress_Import_DataBase_238s') ? 5000 : 100000;
+            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s' || queryName === 'serviceOrderLine_Import_DataBase_238s' || queryName === 'smaserviceobjecttables' || queryName === 'pickingroute_Import_DataBase_238s' || queryName === 'reasontable_Import_DataBase_238s' || queryName === 'logisticspostaladdress_Import_DataBase_238s' || queryName === 'logisticslocation_Import_DataBase_238s' || queryName === 'inventtransorigin_Import_DataBase_238s' || queryName === 'inventtransfertable_Import_DataBase_238s' || queryName === 'inventtransferline__Import_DataBase_238s') ? 5000 : 100000;
 
             // Using fetchAllWithPagination to handle large datasets safely
             return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize, filterArgString, onPageCallback);

@@ -67,6 +67,50 @@ class SyncController {
             res.status(500).json({ success: false, message: `Logisticspostaladdress Sync failed: ${error.message}` });
         }
     }
+
+    async syncLogisticslocation(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/logisticslocation-sync`);
+            const result = await syncService.syncFromGraphQL('Logisticslocation_Import_DataBase_238', 'Logisticslocation_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Logisticslocation Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Location): ${error.message}`);
+            res.status(500).json({ success: false, message: `Logisticslocation Sync failed: ${error.message}` });
+        }
+    }
+
+    async syncInventtransorigin(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/inventtransorigin-sync`);
+            const result = await syncService.syncFromGraphQL('Inventtransorigin_Import_DataBase_238', 'Inventtransorigin_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Inventtransorigin Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Inventtransorigin): ${error.message}`);
+            res.status(500).json({ success: false, message: `Inventtransorigin Sync failed: ${error.message}` });
+        }
+    }
+
+    async syncInventtransfertable(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/inventtransfertable-sync`);
+            const result = await syncService.syncFromGraphQL('Inventtransfertable_Import_DataBase_238', 'Inventtransfertable_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Inventtransfertable Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Inventtransfertable): ${error.message}`);
+            res.status(500).json({ success: false, message: `Inventtransfertable Sync failed: ${error.message}` });
+        }
+    }
+
+    async syncInventtransferline(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/inventtransferline-sync`);
+            const result = await syncService.syncFromGraphQL('Inventtransferline_Import_DataBase_238', 'Inventtransferline_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Inventtransferline Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Inventtransferline): ${error.message}`);
+            res.status(500).json({ success: false, message: `Inventtransferline Sync failed: ${error.message}` });
+        }
+    }
 }
 
 module.exports = new SyncController();

@@ -14,6 +14,10 @@ function initCronJobs() {
             { view: 'Pickingroute_Import_DataBase_238', table: 'Pickingroute_Sync', label: 'Pickingroute' },
             { view: 'Reasontable_Import_DataBase_238', table: 'Reasontable_Sync', label: 'Reasontable' },
             { view: 'Logisticspostaladdress_Import_DataBase_238', table: 'Logisticspostaladdress_Sync', label: 'Logisticspostaladdress' },
+            { view: 'Logisticslocation_Import_DataBase_238', table: 'Logisticslocation_Sync', label: 'Logisticslocation' },
+            { view: 'Inventtransorigin_Import_DataBase_238', table: 'Inventtransorigin_Sync', label: 'Inventtransorigin' },
+            { view: 'Inventtransfertable_Import_DataBase_238', table: 'Inventtransfertable_Sync', label: 'Inventtransfertable' },
+            { view: 'Inventtransferline_Import_DataBase_238', table: 'Inventtransferline_Sync', label: 'Inventtransferline' },
         ];
 
         for (const task of syncTasks) {
