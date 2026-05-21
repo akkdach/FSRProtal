@@ -99,7 +99,7 @@ module.exports = {
             trustServerCertificate: true,
             connectTimeout: 30000,
             requestTimeout: 30000,
-            port: 14330
+            port: parseInt(process.env.SYNC_DB_PORT) || 1433
         },
         pool: {
             max: 10,

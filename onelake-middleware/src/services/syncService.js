@@ -167,12 +167,20 @@ class SyncService {
     }
 
     /**
-     * Full load: Truncate and insert all data
+     * Full load: Truncate and insert all data (use only for standalone full reload)
      */
     async fullLoad(pool, tableName, data) {
         logToFile(`[SyncService] Starting full load of ${data.length} records into ${tableName}`);
         
         await pool.request().query(`TRUNCATE TABLE [dbo].[${tableName}]`);
+        return await this.appendChunk(pool, tableName, data);
+    }
+
+    /**
+     * Append a chunk of data (bulk insert WITHOUT truncating)
+     */
+    async appendChunk(pool, tableName, data) {
+        logToFile(`[SyncService] Appending ${data.length} records into ${tableName}`);
 
         // Insert in batches
         for (let i = 0; i < data.length; i += this.batchSize) {
@@ -208,7 +216,7 @@ class SyncService {
             await new Promise(resolve => setTimeout(resolve, 50));
         }
         
-        logToFile(`[SyncService] Full load completed. Inserted ${data.length} records.`);
+        logToFile(`[SyncService] Chunk completed. Inserted ${data.length} records.`);
         return { inserted: data.length, updated: 0 };
     }
 
@@ -358,7 +366,7 @@ class SyncService {
                     }
                     
                     logToFile(`[SyncService] Inserting chunk page ${pageNum} (${chunkData.length} records) into ${targetTableName}...`);
-                    const result = await this.fullLoad(pool, targetTableName, chunkData);
+                    const result = await this.appendChunk(pool, targetTableName, chunkData);
                     totalInserted += (result.inserted || chunkData.length);
                 });
                 
