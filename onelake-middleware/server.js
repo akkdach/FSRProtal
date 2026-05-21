@@ -46,6 +46,11 @@ app.post('/api/sync/inventtransferline-sync', validateSyncBasicAuth, (req, res) 
 app.post('/api/sync/inventtrans-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventtrans(req, res));
 app.post('/api/sync/inventtable-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventtable(req, res));
 app.post('/api/sync/inventsum-sync', validateSyncBasicAuth, (req, res) => syncController.syncInventsum(req, res));
+app.post('/api/sync/hcmworker-sync', validateSyncBasicAuth, (req, res) => syncController.syncHcmworker(req, res));
+app.post('/api/sync/dirpersonname-sync', validateSyncBasicAuth, (req, res) => syncController.syncDirpersonname(req, res));
+app.post('/api/sync/dirperson-sync', validateSyncBasicAuth, (req, res) => syncController.syncDirperson(req, res));
+app.post('/api/sync/custtable-sync', validateSyncBasicAuth, (req, res) => syncController.syncCusttable(req, res));
+app.post('/api/sync/maintenanceactivitytype-sync', validateSyncBasicAuth, (req, res) => syncController.syncMaintenanceactivitytype(req, res));
 
 // Entra ID Login (public - no JWT required)
 const jwt = require('jsonwebtoken');

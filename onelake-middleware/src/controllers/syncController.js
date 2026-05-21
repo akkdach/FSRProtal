@@ -142,6 +142,56 @@ class SyncController {
             res.status(500).json({ success: false, message: `Inventsum Sync failed: ${error.message}` });
         }
     }
+    async syncHcmworker(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/hcmworker-sync`);
+            const result = await syncService.syncFromGraphQL('Hcmworker_Import_DataBase_238', 'Hcmworker_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Hcmworker Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Hcmworker): ${error.message}`);
+            res.status(500).json({ success: false, message: `Hcmworker Sync failed: ${error.message}` });
+        }
+    }
+    async syncDirpersonname(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/dirpersonname-sync`);
+            const result = await syncService.syncFromGraphQL('Dirpersonname_Import_DataBase_238', 'Dirpersonname_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Dirpersonname Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Dirpersonname): ${error.message}`);
+            res.status(500).json({ success: false, message: `Dirpersonname Sync failed: ${error.message}` });
+        }
+    }
+    async syncDirperson(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/dirperson-sync`);
+            const result = await syncService.syncFromGraphQL('Dirperson_Import_DataBase_238', 'Dirperson_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Dirperson Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Dirperson): ${error.message}`);
+            res.status(500).json({ success: false, message: `Dirperson Sync failed: ${error.message}` });
+        }
+    }
+    async syncCusttable(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/custtable-sync`);
+            const result = await syncService.syncFromGraphQL('Custtable_Import_DataBase_238', 'Custtable_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Custtable Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Custtable): ${error.message}`);
+            res.status(500).json({ success: false, message: `Custtable Sync failed: ${error.message}` });
+        }
+    }
+    async syncMaintenanceactivitytype(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/maintenanceactivitytype-sync`);
+            const result = await syncService.syncFromGraphQL('Maintenanceactivitytype_Import_DataBase_238', 'Maintenanceactivitytype_Sync', 'Id', 'modifiedon');
+            res.json({ success: true, message: "Maintenanceactivitytype Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (Maintenanceactivitytype): ${error.message}`);
+            res.status(500).json({ success: false, message: `Maintenanceactivitytype Sync failed: ${error.message}` });
+        }
+    }
 }
 
 module.exports = new SyncController();

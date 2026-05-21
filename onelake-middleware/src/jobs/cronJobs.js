@@ -5,8 +5,8 @@ const { logToFile } = require('../utils/logger');
 function initCronJobs() {
     logToFile('[Cron] Initializing scheduled jobs...');
 
-    // Run every day at 12:30 (12:30 PM / เที่ยงครึ่ง)
-    cron.schedule('30 12 * * *', async () => {
+    // Run every day at 23:00 (11:00 PM / ห้าทุ่ม)
+    cron.schedule('0 23 * * *', async () => {
         const syncTasks = [
             { view: 'ServiceOrderTable_Import_DataBase_238', table: 'ServiceOrderTable_Sync', label: 'ServiceOrderTable' },
             { view: 'ServiceOrderLine_Import_DataBase_238', table: 'ServiceOrderLine_Sync', label: 'ServiceOrderLine' },
@@ -21,6 +21,11 @@ function initCronJobs() {
             { view: 'Inventtrans_Import_DataBase_238', table: 'Inventtrans_Sync', label: 'Inventtrans' },
             { view: 'Inventtable_Import_DataBase_238', table: 'Inventtable_Sync', label: 'Inventtable' },
             { view: 'Inventsum_Import_DataBase_238', table: 'Inventsum_Sync', label: 'Inventsum' },
+            { view: 'Hcmworker_Import_DataBase_238', table: 'Hcmworker_Sync', label: 'Hcmworker' },
+            { view: 'Dirpersonname_Import_DataBase_238', table: 'Dirpersonname_Sync', label: 'Dirpersonname' },
+            { view: 'Dirperson_Import_DataBase_238', table: 'Dirperson_Sync', label: 'Dirperson' },
+            { view: 'Custtable_Import_DataBase_238', table: 'Custtable_Sync', label: 'Custtable' },
+            { view: 'Maintenanceactivitytype_Import_DataBase_238', table: 'Maintenanceactivitytype_Sync', label: 'Maintenanceactivitytype' },
         ];
 
         for (const task of syncTasks) {
@@ -37,7 +42,7 @@ function initCronJobs() {
         timezone: "Asia/Bangkok"
     });
 
-    logToFile('[Cron] Scheduled job set for 12:30 (Asia/Bangkok) every day — 5 table sync.');
+    logToFile('[Cron] Scheduled job set for 23:00 (Asia/Bangkok) every day — 18 table sync.');
 }
 
 module.exports = { initCronJobs };

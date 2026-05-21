@@ -201,11 +201,13 @@ class SyncService {
                     if (retries === 0) throw err;
                     
                     // Reconnect on network drop
-                    if (err.code === 'ECONNRESET' || err.message.includes('ECONNRESET') || err.message.includes('Connection lost')) {
+                    if (err.code === 'ECONNRESET' || err.message.includes('ECONNRESET') || err.message.includes('Connection lost') || err.message.includes('Connection is closed')) {
                         logToFile(`[SyncService] Attempting to reconnect pool after connection lost...`);
                         try { await pool.close(); } catch(e) {}
-                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        await new Promise(resolve => setTimeout(resolve, 5000));
                         pool = await sql.connect(config.syncSql);
+                        // Update instance reference so callers get the new pool
+                        this._pool = pool;
                     } else {
                         await new Promise(resolve => setTimeout(resolve, 2000));
                     }
@@ -327,6 +329,7 @@ class SyncService {
         try {
             logToFile(`Connecting to specific Sync SQL Endpoint (${config.syncSql.server})...`);
             pool = await sql.connect(config.syncSql);
+            this._pool = pool; // Store reference for reconnection
             logToFile(`Connected to Sync SQL Endpoint successfully.`);
             
             logToFile(`[SyncService] Starting sync for ${viewName} -> ${targetTableName}`);
@@ -360,13 +363,16 @@ class SyncService {
                 await graphqlService.queryView(viewName, '', async (chunkData, pageNum) => {
                     if (!chunkData || chunkData.length === 0) return;
                     
+                    // Always use latest pool reference (may have been reconnected)
+                    let currentPool = this._pool;
+                    
                     if (isFirstChunk) {
-                        await this.createTable(pool, targetTableName, chunkData[0]);
+                        await this.createTable(currentPool, targetTableName, chunkData[0]);
                         isFirstChunk = false;
                     }
                     
                     logToFile(`[SyncService] Inserting chunk page ${pageNum} (${chunkData.length} records) into ${targetTableName}...`);
-                    const result = await this.appendChunk(pool, targetTableName, chunkData);
+                    const result = await this.appendChunk(currentPool, targetTableName, chunkData);
                     totalInserted += (result.inserted || chunkData.length);
                 });
                 
