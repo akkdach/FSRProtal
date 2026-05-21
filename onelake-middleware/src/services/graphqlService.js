@@ -83,7 +83,11 @@ class GraphQLService {
                 'Out_Of_Stock_Inventsum': 'out_Of_Stock_Inventsums',
                 'Dispatch_Plan_Pending': 'dispatch_Plan_Pendings',
                 'ServiceOrderTable_Import_DataBase_238': 'serviceOrderTable_Import_DataBase_238s',
-                'ServiceOrderLine_Import_DataBase_238': 'serviceOrderLine_Import_DataBase_238s'
+                'ServiceOrderLine_Import_DataBase_238': 'serviceOrderLine_Import_DataBase_238s',
+                'ServiceObjectTable_Import_DataBase_238': 'smaserviceobjecttables',
+                'Pickingroute_Import_DataBase_238': 'pickingroute_Import_DataBase_238s',
+                'Reasontable_Import_DataBase_238': 'reasontable_Import_DataBase_238s',
+                'Logisticspostaladdress_Import_DataBase_238': 'logisticspostaladdress_Import_DataBase_238s'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -1021,6 +1025,214 @@ class GraphQLService {
                             modifiedon
                             IsDelete
                             PartitionId`;
+            } else if (queryName === 'smaserviceobjecttables') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            sysdatastatecode
+                            description
+                            inventdimid
+                            itemid
+                            serviceobjectgroup
+                            serviceobjectid
+                            templatebomid
+                            bpc_typeofmachinecode
+                            bpc_modelno
+                            bpc_modelcode
+                            bpc_serialnumber
+                            bpc_cdecode
+                            bpc_serviceitemstatuscode
+                            bpc_servicejobcode
+                            bpc_lastestmodelno
+                            bpc_warrantystartdatepart
+                            bpc_warrantyendingdatepart
+                            bpc_warrantyperpart
+                            bpc_warrantyperlabor
+                            bpc_warrantystartdatelabor
+                            bpc_warrantyendingdatelabor
+                            bpc_servicewarrantydate
+                            bpc_objectreceiveddate
+                            bpc_accountnum
+                            bpc_mainassetno
+                            bpc_inventlocationid
+                            bpc_tradecode
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
+            } else if (queryName === 'pickingroute_Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            autodecreaseqty
+                            expeditionstatus
+                            handlingtype
+                            intercompanyposted
+                            optimizedpicking
+                            shipmenttype
+                            transtype
+                            sysdatastatecode
+                            activationdatetime
+                            currentpickpalletid
+                            customer
+                            deliveryname
+                            deliverypostaladdress
+                            dlvdate
+                            dlvmodeid
+                            dlvtermid
+                            enddatetime
+                            expectedexpeditiontime
+                            inventlocationid
+                            mcrpackingboxname
+                            mcrpickingwaveref
+                            operatorworker
+                            parmid
+                            pickingareaid
+                            pickingrouteid
+                            printmgmtsiteid
+                            priority
+                            shipmentid
+                            startdatetime
+                            transrefid
+                            volume
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
+            } else if (queryName === 'reasontable_Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            ledger
+                            asset
+                            bank
+                            banklgcancellationreason
+                            banklgpurposecode
+                            cust
+                            rasset
+                            rcash
+                            vend
+                            taxjournal_in
+                            showonreport_in
+                            onlineinvoicingoperation_hu
+                            taxinvoiceoperation_id
+                            subbillhold
+                            subbilltermination
+                            subbillmilestoneaudit
+                            subbillcustomersplit
+                            sysdatastatecode
+                            description
+                            reason
+                            siicode_es
+                            siidescription_es
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
+            } else if (queryName === 'logisticspostaladdress_Import_DataBase_238s') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            isprivate
+                            timezone
+                            issimplifiedaddress_ru
+                            bpc_checkservicecenter
+                            bpc_headoffice
+                            sysdatastatecode
+                            address
+                            apartment_ru
+                            building_ru
+                            buildingcompliment
+                            city
+                            cityrecid
+                            countryregionid
+                            county
+                            district
+                            districtname
+                            flatid_ru
+                            houseid_ru
+                            latitude
+                            location
+                            longitude
+                            postbox
+                            privateforparty
+                            state
+                            street
+                            streetid_ru
+                            streetnumber
+                            validfrom
+                            validto
+                            zipcode
+                            zipcoderecid
+                            citykana_jp
+                            streetkana_jp
+                            steadid_ru
+                            channelreferenceid
+                            settlementrecid
+                            localityrecid
+                            bpc_zonecode
+                            bpc_servicezonecode
+                            bpc_subareacode
+                            bpc_km
+                            bpc_servicecenter
+                            bpc_latitude
+                            bpc_longitude
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
             } else if (queryName === 'service_BN04_News' || queryName === 'service_BN09_News' || queryName === 'service_BN15_News' || queryName === 'service_BN04_NB2CLOAN_News' || queryName === 'service_BN09_NB2CLOAN_News' || queryName === 'service_BN15_NB2CLOAN_News' || queryName === 'service_BN02_News') {
                 // FSR Protal views - all 199 fields
                 fields = `Id
@@ -1256,7 +1468,7 @@ class GraphQLService {
 
             // Use pagination for all queries
             // For Dispatch_Pending_Fountain, Dispatch_Pending_New_Customer, and Dispatch_Pending_Cooler, use smaller page size (5000) to avoid 64MB limit
-            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s' || queryName === 'serviceOrderLine_Import_DataBase_238s') ? 5000 : 100000;
+            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s' || queryName === 'serviceOrderLine_Import_DataBase_238s' || queryName === 'smaserviceobjecttables' || queryName === 'pickingroute_Import_DataBase_238s' || queryName === 'reasontable_Import_DataBase_238s' || queryName === 'logisticspostaladdress_Import_DataBase_238s') ? 5000 : 100000;
 
             // Using fetchAllWithPagination to handle large datasets safely
             return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize, filterArgString, onPageCallback);
