@@ -2591,9 +2591,15 @@ class GraphQLService {
             const useFsrProtalEndpoint = fsrProtalViews.includes(viewName);
             const endpoint = useFsrProtalEndpoint ? this.fsrProtalEndpoint : this.endpoint;
 
-            // Use pagination for all queries
-            // For Dispatch_Pending_Fountain, Dispatch_Pending_New_Customer, and Dispatch_Pending_Cooler, use smaller page size (5000) to avoid 64MB limit
-            const pageSize = (queryName === 'dispatch_Pending_Fountains' || queryName === 'dispatch_Pending_New_Customers' || queryName === 'dispatch_Pending_Coolers' || queryName === 'dispatch_Pendings' || queryName === 'smaserviceobjecttable_Internal_Works' || queryName === 'serviceOrderTable_Import_DataBase_238s' || queryName === 'serviceOrderLine_Import_DataBase_238s' || queryName === 'smaserviceobjecttables' || queryName === 'pickingroute_Import_DataBase_238s' || queryName === 'reasontable_Import_DataBase_238s' || queryName === 'logisticspostaladdress_Import_DataBase_238s' || queryName === 'logisticslocation_Import_DataBase_238s' || queryName === 'inventtransorigin_Import_DataBase_238s' || queryName === 'inventtransfertable_Import_DataBase_238s' || queryName === 'inventtransferline__Import_DataBase_238s' || queryName === 'inventtrans_Import_DataBase_238s' || queryName === 'inventtable_Import_DataBase_238s' || queryName === 'inventsum_Import_DataBase_238s' || queryName === 'hcmworker_Import_DataBase_238s' || queryName === 'dirpersonname_Import_DataBase_238s' || queryName === 'dirperson_Import_DataBase_238s' || queryName === 'custtable_Import_DataBase_238s' || queryName === 'maintenanceactivitytype__Import_DataBase_238s') ? 5000 : 100000;
+            // Determine page size
+            let pageSize = 100000;
+            if (viewName.includes('238')) {
+                // Use small page size (1000) for the 18 F&O sync tables to prevent Azure memory timeouts
+                pageSize = 1000;
+            } else if (['dispatch_Pending_Fountains', 'dispatch_Pending_New_Customers', 'dispatch_Pending_Coolers', 'dispatch_Pendings', 'smaserviceobjecttable_Internal_Works'].includes(queryName)) {
+                // Keep safe 5000 limit for certain heavy dispatch/internal work tables
+                pageSize = 5000;
+            }
 
             // Using fetchAllWithPagination to handle large datasets safely
             return await this.fetchAllWithPagination(token, queryName, fields, endpoint, pageSize, filterArgString, onPageCallback);
