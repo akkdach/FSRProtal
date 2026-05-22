@@ -28,15 +28,38 @@ function initCronJobs() {
             { view: 'Maintenanceactivitytype_Import_DataBase_238', table: 'Maintenanceactivitytype_Sync', label: 'Maintenanceactivitytype' },
         ];
 
+        logToFile(`\n======================================================`);
+        logToFile(`[Cron] STARTING DAILY SYNC PROCESS FOR 18 TABLES`);
+        logToFile(`======================================================\n`);
+
+        let successCount = 0;
+        let failCount = 0;
+
         for (const task of syncTasks) {
-            logToFile(`[Cron] Triggering Automated ${task.label} Sync...`);
+            logToFile(`\n------------------------------------------------------`);
+            logToFile(`🚀 [Cron][START] Syncing table: ${task.label}`);
+            logToFile(`------------------------------------------------------`);
+            
             try {
+                const startTime = Date.now();
                 const result = await syncService.syncFromGraphQL(task.view, task.table, 'Id', 'modifiedon');
-                logToFile(`[Cron] ${task.label} Sync completed. Result: ${JSON.stringify(result)}`);
+                const durationStr = ((Date.now() - startTime) / 1000).toFixed(2);
+                
+                logToFile(`✅ [Cron][SUCCESS] ${task.label} Sync completed in ${durationStr} seconds.`);
+                logToFile(`   -> Mode: ${result.mode}, Inserted: ${result.inserted || 0}, Modified: ${result.modified || 0}`);
+                successCount++;
             } catch (error) {
-                logToFile(`[Cron] ${task.label} Sync failed: ${error.message}`);
+                logToFile(`❌ [Cron][FAILED] ${task.label} Sync failed!`);
+                logToFile(`   -> Reason: ${error.message}`);
+                failCount++;
             }
         }
+
+        logToFile(`\n======================================================`);
+        logToFile(`[Cron] DAILY SYNC PROCESS FINISHED`);
+        logToFile(`-> Successful: ${successCount} tables`);
+        logToFile(`-> Failed: ${failCount} tables`);
+        logToFile(`======================================================\n`);
     }, {
         scheduled: true,
         timezone: "Asia/Bangkok"
