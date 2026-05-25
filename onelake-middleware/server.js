@@ -115,7 +115,7 @@ app.listen(config.port, () => {
     logToFile(`[ProIoT] Config Loaded. Path: ${config.oneLake.proIoT.tableUrl}`);
     logToFile(`[FSRProtal] Config Loaded. DB: ${config.sql.database}`);
     
-    // Initialize Cron Jobs
-    const { initCronJobs } = require('./src/jobs/cronJobs');
-    initCronJobs();
+    // Initialize Cron Jobs — DISABLED: รอกำหนดเวลา Sync ใหม่
+    // const { initCronJobs } = require('./src/jobs/cronJobs');
+    // initCronJobs();
 });
