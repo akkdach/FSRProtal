@@ -5,21 +5,32 @@ const { logToFile } = require('../utils/logger');
 class QasSqlService {
     constructor() {
         this.pool = null;
+        this._connecting = null;
     }
 
     async connect() {
-        if (!this.pool) {
+        if (this.pool) {
+            return this.pool;
+        }
+        if (this._connecting) {
+            return this._connecting;
+        }
+        this._connecting = (async () => {
             try {
                 logToFile("Connecting to BevproFsQas SQL Endpoint...");
-                this.pool = await sql.connect(config.qasSql);
+                this.pool = await new sql.ConnectionPool(config.qasSql).connect();
                 logToFile("Connected to BevproFsQas SQL Endpoint successfully.");
+                return this.pool;
             } catch (err) {
                 logToFile(`BevproFsQas SQL Connection Error: ${err.message}`);
                 logToFile(`BevproFsQas SQL Connection Config: Server=${config.qasSql.server}, DB=${config.qasSql.database}, User=${config.qasSql.user}`);
+                this.pool = null;
                 throw err;
+            } finally {
+                this._connecting = null;
             }
-        }
-        return this.pool;
+        })();
+        return this._connecting;
     }
 
     async getBomReferbush() {
