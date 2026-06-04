@@ -105,6 +105,37 @@ app.get('/api/auth/me', validateJwt, (req, res) => {
 // Routes (JWT protected)
 app.use('/api', validateJwt, apiRoutes);
 
+// Image Proxy — ดึงรูปจาก IIS VM (20.33.118.76) แล้วส่งต่อให้ client
+const http = require('http');
+const IIS_VM_IP = process.env.IIS_VM_IP || '20.33.118.76';
+const IIS_VM_HOST = process.env.IIS_VM_HOST || 'matireal.bevproasia.com';
+
+app.get('/images/matireal/:folder?/:filename', (req, res) => {
+    const folder = req.params.folder || '';
+    const filename = req.params.filename || req.params.folder;
+    const imagePath = folder && req.params.filename ? `/${folder}/${filename}` : `/${folder || filename}`;
+
+    const options = {
+        hostname: IIS_VM_IP,
+        port: 80,
+        path: imagePath,
+        method: 'GET',
+        headers: { 'Host': IIS_VM_HOST }
+    };
+
+    const proxyReq = http.request(options, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        proxyRes.pipe(res);
+    });
+
+    proxyReq.on('error', (err) => {
+        logToFile(`[Matireal] Proxy error: ${err.message}`);
+        res.status(502).json({ error: 'Cannot fetch image from IIS VM', details: err.message });
+    });
+
+    proxyReq.end();
+});
+
 // Health Check
 app.get('/', (req, res) => res.send('OneLake ADLS Middleware Running (MVC)'));
 
