@@ -120,6 +120,127 @@ class ProdSqlService {
             throw err;
         }
     }
+    async getWorker() {
+        try {
+            const pool = await this.connect();
+            logToFile(`Querying Table: worker from BevproFsProd`);
+
+            const query = `
+                SELECT [No],[EmployeeCode],[FullName],[Position],[Department],
+                       [WorkLocation],[VanNo],[LicensePlate],[TelephoneNo],
+                       [Supervisor],[SD2],[CostCenter],[NewCostCenter],
+                       [ActivityInsRm],[DirectReport],[No_Leader],[Status]
+                FROM [dbo].[worker]
+                ORDER BY [No] ASC
+            `;
+
+            const result = await pool.request().query(query);
+            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from worker`);
+
+            return result.recordset;
+        } catch (err) {
+            logToFile(`SQL Query Error (worker): ${err.message}`);
+            throw err;
+        }
+    }
+    async createWorker(data) {
+        try {
+            const pool = await this.connect();
+            logToFile(`Inserting into Table: worker in BevproFsProd`);
+
+            const result = await pool.request()
+                .input('EmployeeCode', sql.NVarChar(50), data.EmployeeCode || null)
+                .input('FullName', sql.NVarChar(150), data.FullName || null)
+                .input('Position', sql.NVarChar(150), data.Position || null)
+                .input('Department', sql.NVarChar(100), data.Department || null)
+                .input('WorkLocation', sql.NVarChar(100), data.WorkLocation || null)
+                .input('VanNo', sql.NVarChar(50), data.VanNo || null)
+                .input('LicensePlate', sql.NVarChar(50), data.LicensePlate || null)
+                .input('TelephoneNo', sql.NVarChar(50), data.TelephoneNo || null)
+                .input('Supervisor', sql.NVarChar(150), data.Supervisor || null)
+                .input('SD2', sql.NVarChar(50), data.SD2 || null)
+                .input('CostCenter', sql.NVarChar(50), data.CostCenter || null)
+                .input('NewCostCenter', sql.NVarChar(50), data.NewCostCenter || null)
+                .input('ActivityInsRm', sql.NVarChar(100), data.ActivityInsRm || null)
+                .input('DirectReport', sql.NVarChar(150), data.DirectReport || null)
+                .input('No_Leader', sql.NVarChar(50), data.No_Leader || null)
+                .input('Status', sql.NVarChar(20), data.Status || null)
+                .query(`
+                    INSERT INTO [dbo].[worker]
+                        (EmployeeCode, FullName, Position, Department, WorkLocation,
+                         VanNo, LicensePlate, TelephoneNo, Supervisor, SD2,
+                         CostCenter, NewCostCenter, ActivityInsRm, DirectReport, No_Leader, Status)
+                    OUTPUT INSERTED.*
+                    VALUES (@EmployeeCode, @FullName, @Position, @Department, @WorkLocation,
+                            @VanNo, @LicensePlate, @TelephoneNo, @Supervisor, @SD2,
+                            @CostCenter, @NewCostCenter, @ActivityInsRm, @DirectReport, @No_Leader, @Status)
+                `);
+
+            logToFile(`Insert Success: Created worker ${data.EmployeeCode}`);
+            return result.recordset[0];
+        } catch (err) {
+            logToFile(`SQL Insert Error (worker): ${err.message}`);
+            throw err;
+        }
+    }
+    async updateWorker(no, data) {
+        try {
+            const pool = await this.connect();
+            logToFile(`Updating Table: worker No=${no} in BevproFsProd`);
+
+            const request = pool.request().input('No', sql.Int, no);
+            const setClauses = [];
+
+            const fields = {
+                EmployeeCode: sql.NVarChar(50), FullName: sql.NVarChar(150),
+                Position: sql.NVarChar(150), Department: sql.NVarChar(100),
+                WorkLocation: sql.NVarChar(100), VanNo: sql.NVarChar(50),
+                LicensePlate: sql.NVarChar(50), TelephoneNo: sql.NVarChar(50),
+                Supervisor: sql.NVarChar(150), SD2: sql.NVarChar(50),
+                CostCenter: sql.NVarChar(50), NewCostCenter: sql.NVarChar(50),
+                ActivityInsRm: sql.NVarChar(100), DirectReport: sql.NVarChar(150),
+                No_Leader: sql.NVarChar(50), Status: sql.NVarChar(20),
+            };
+
+            for (const [field, type] of Object.entries(fields)) {
+                if (data[field] !== undefined) {
+                    request.input(field, type, data[field]);
+                    setClauses.push(`[${field}] = @${field}`);
+                }
+            }
+
+            if (setClauses.length === 0) throw new Error('No fields to update');
+
+            const result = await request.query(`
+                UPDATE [dbo].[worker] SET ${setClauses.join(', ')}
+                OUTPUT INSERTED.*
+                WHERE [No] = @No
+            `);
+
+            if (!result.recordset.length) throw new Error(`Worker No ${no} not found`);
+            logToFile(`Update Success: Worker No=${no}`);
+            return result.recordset[0];
+        } catch (err) {
+            logToFile(`SQL Update Error (worker): ${err.message}`);
+            throw err;
+        }
+    }
+    async deleteWorker(no) {
+        try {
+            const pool = await this.connect();
+            logToFile(`Deleting from Table: worker No=${no} in BevproFsProd`);
+
+            const result = await pool.request()
+                .input('No', sql.Int, no)
+                .query(`DELETE FROM [dbo].[worker] WHERE [No] = @No`);
+
+            if (result.rowsAffected[0] === 0) throw new Error(`Worker No ${no} not found`);
+            logToFile(`Delete Success: Worker No=${no}`);
+        } catch (err) {
+            logToFile(`SQL Delete Error (worker): ${err.message}`);
+            throw err;
+        }
+    }
 }
 
 module.exports = new ProdSqlService();

@@ -77,35 +77,75 @@ class FSRProtalController {
     async getWorker(req, res) {
         try {
             const page = parseInt(req.query.page) || 0;
-            const limit = parseInt(req.query.limit) || 100;
+            const limit = parseInt(req.query.limit) || 0;
 
             logToFile(`[FSRProtal-SQL] API Request: /api/worker?page=${page}&limit=${limit}`);
 
-            const qasSqlService = require('../services/qasSqlService');
-            const allData = await qasSqlService.getWorker();
+            const prodSqlService = require('../services/prodSqlService');
+            const allData = await prodSqlService.getWorker();
 
-            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from worker`);
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from worker (BevproFsProd)`);
 
             const total = allData.length;
-            const startIndex = page * limit;
-            const endIndex = startIndex + limit;
-            const slicedData = allData.slice(startIndex, endIndex);
+            let responseData = allData;
+            if (limit > 0) {
+                const startIndex = page * limit;
+                const endIndex = startIndex + limit;
+                responseData = allData.slice(startIndex, endIndex);
+            }
 
             res.json({
                 success: true,
-                data: slicedData,
+                data: responseData,
                 total,
                 page,
-                limit
+                limit: limit || total
             });
 
         } catch (error) {
             logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
             res.status(500).json({
                 success: false,
-                message: 'Failed to fetch worker from BevproFsQas SQL',
+                message: 'Failed to fetch worker from BevproFsProd SQL',
                 details: error.message
             });
+        }
+    }
+    async createWorker(req, res) {
+        try {
+            logToFile(`[FSRProtal-SQL] API Request: POST /api/worker`);
+            const prodSqlService = require('../services/prodSqlService');
+            const result = await prodSqlService.createWorker(req.body);
+            res.status(201).json({ success: true, data: result, message: 'Worker created' });
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Create Error: ${error.message}`);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+    async updateWorker(req, res) {
+        try {
+            const no = parseInt(req.params.no);
+            if (isNaN(no)) return res.status(400).json({ success: false, message: 'Invalid worker No' });
+            logToFile(`[FSRProtal-SQL] API Request: PUT /api/worker/${no}`);
+            const prodSqlService = require('../services/prodSqlService');
+            const result = await prodSqlService.updateWorker(no, req.body);
+            res.json({ success: true, data: result, message: 'Worker updated' });
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Update Error: ${error.message}`);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+    async deleteWorker(req, res) {
+        try {
+            const no = parseInt(req.params.no);
+            if (isNaN(no)) return res.status(400).json({ success: false, message: 'Invalid worker No' });
+            logToFile(`[FSRProtal-SQL] API Request: DELETE /api/worker/${no}`);
+            const prodSqlService = require('../services/prodSqlService');
+            await prodSqlService.deleteWorker(no);
+            res.json({ success: true, message: 'Worker deleted' });
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Delete Error: ${error.message}`);
+            res.status(500).json({ success: false, message: error.message });
         }
     }
     async getWorkLog(req, res) {
