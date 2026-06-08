@@ -261,13 +261,22 @@ class FSRProtalController {
             // Return first row as flat object with STATUS and MESSAGE
             const row = allData.length > 0 ? allData[0] : {};
 
+            // Helper: strip time portion, keep only date (YYYY-MM-DD)
+            const dateOnly = (v) => {
+                if (!v) return '';
+                const s = String(v);
+                if (s.includes('T')) return s.split('T')[0];
+                if (s.includes(' ')) return s.split(' ')[0];
+                return s;
+            };
+
             res.json({
                 Serviceorderid: row.Serviceorderid || '',
                 ServiceStage: row.ServiceStage || '',
-                PostponeDate: row.PostponeDate || '',
+                PostponeDate: dateOnly(row.PostponeDate),
                 UnkhowpostponeDate: row.UnkhowpostponeDate || '',
                 PostponereasonDesc: row.PostponereasonDesc || '',
-                Scheduledstart: row.Scheduledstart || '',
+                Scheduledstart: dateOnly(row.Scheduledstart),
                 Modelnodescription: row.Modelnodescription || '',
                 STATUS: allData.length > 0 ? 'SUCCESS' : 'NOT_FOUND',
                 MESSAGE: allData.length > 0 ? 'Data retrieved successfully' : 'No data found for the given reference PO number'
