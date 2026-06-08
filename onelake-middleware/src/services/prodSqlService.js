@@ -131,6 +131,7 @@ class ProdSqlService {
                        [Supervisor],[SD2],[CostCenter],[NewCostCenter],
                        [ActivityInsRm],[DirectReport],[No_Leader],[Status]
                 FROM [dbo].[worker]
+                WHERE [EmployeeCode] IS NOT NULL AND [EmployeeCode] <> 'EmployeeCode'
                 ORDER BY [No] ASC
             `;
 
