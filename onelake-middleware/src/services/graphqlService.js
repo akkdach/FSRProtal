@@ -527,8 +527,13 @@ class GraphQLService {
                             bpc_actualstarttime
                             bpc_actualfinisheddate
                             bpc_actualfinishedtime`;
-            } else if (queryName === 'service_BN04_New_B2Bs' || queryName === 'service_BN09_New_B2Bs' || queryName === 'service_BN15_New_B2Bs' || queryName === 'service_BN02_New_B2Bs' || queryName === 'service_BN01_New_B2Bs' || queryName === 'service_New_B2Bs' || queryName === 'service_New_NB2Cs') {
-                // B2B views - all 199 fields
+            } else if (
+                // B2B views
+                queryName === 'service_BN04_New_B2Bs' || queryName === 'service_BN09_New_B2Bs' || queryName === 'service_BN15_New_B2Bs' || queryName === 'service_BN02_New_B2Bs' || queryName === 'service_BN01_New_B2Bs' || queryName === 'service_New_B2Bs' || queryName === 'service_New_NB2Cs' ||
+                // B2C views (same F&O schema, need full field list for sync)
+                queryName === 'service_BN04_News' || queryName === 'service_BN09_News' || queryName === 'service_BN15_News' || queryName === 'service_BN09_NB2CLOAN_News' || queryName === 'service_BN04_NB2CLOAN_News' || queryName === 'service_BN15_NB2CLOAN_News' || queryName === 'service_BN02_News'
+            ) {
+                // B2B + B2C views - all 199 fields
                 fields = `Id
                             SinkCreatedOn
                             SinkModifiedOn
