@@ -296,6 +296,74 @@ class FSRProtalController {
             });
         }
     }
+
+    /**
+     * Request Status via POST — accepts referencedPoNumber in request body.
+     * POST /api/request-status (Basic Auth)
+     * Body: { "referencedPoNumber": "IN2..." }
+     */
+    async postRequestStatus(req, res) {
+        try {
+            const referencedPoNumber = req.body.referencedPoNumber || '';
+
+            if (!referencedPoNumber) {
+                return res.status(400).json({
+                    Serviceorderid: '',
+                    ServiceStage: '',
+                    PostponeDate: '',
+                    UnkhowpostponeDate: '',
+                    PostponereasonDesc: '',
+                    Scheduledstart: '',
+                    Modelnodescription: '',
+                    STATUS: 'ERROR',
+                    MESSAGE: 'referencedPoNumber is required in request body'
+                });
+            }
+
+            logToFile(`[FSRProtal-GraphQL] POST API Request: /api/request-status body=${referencedPoNumber}`);
+
+            const allData = await graphqlService.executeReferencedPoNumber(referencedPoNumber);
+
+            logToFile(`[FSRProtal-GraphQL] POST Request Status Response: Returning ${allData.length} records`);
+
+            // Return first row as flat object with STATUS and MESSAGE
+            const row = allData.length > 0 ? allData[0] : {};
+
+            // Helper: strip time portion, keep only date (YYYY-MM-DD)
+            const dateOnly = (v) => {
+                if (!v) return '';
+                const s = String(v);
+                if (s.includes('T')) return s.split('T')[0];
+                if (s.includes(' ')) return s.split(' ')[0];
+                return s;
+            };
+
+            res.json({
+                Serviceorderid: row.Serviceorderid || '',
+                ServiceStage: row.ServiceStage || '',
+                PostponeDate: dateOnly(row.PostponeDate),
+                UnkhowpostponeDate: row.UnkhowpostponeDate || '',
+                PostponereasonDesc: row.PostponereasonDesc || '',
+                Scheduledstart: dateOnly(row.Scheduledstart),
+                Modelnodescription: row.Modelnodescription || '',
+                STATUS: allData.length > 0 ? 'SUCCESS' : 'NOT_FOUND',
+                MESSAGE: allData.length > 0 ? 'Data retrieved successfully' : 'No data found for the given reference PO number'
+            });
+        } catch (error) {
+            logToFile(`[FSRProtal-GraphQL] POST Request Status Error: ${error.message}`);
+            res.status(500).json({
+                Serviceorderid: '',
+                ServiceStage: '',
+                PostponeDate: '',
+                UnkhowpostponeDate: '',
+                PostponereasonDesc: '',
+                Scheduledstart: '',
+                Modelnodescription: '',
+                STATUS: 'ERROR',
+                MESSAGE: error.message
+            });
+        }
+    }
 }
 
 module.exports = new FSRProtalController();

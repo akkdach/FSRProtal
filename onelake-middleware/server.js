@@ -30,6 +30,7 @@ app.get('/test-login', (req, res) => res.sendFile(path.join(__dirname, 'test_log
 
 // Routes with Basic Auth (registered before JWT middleware)
 app.get('/api/request-status/:referencedPoNumber', validateBasicAuth, (req, res) => fsrProtalController.getRequestStatus(req, res));
+app.post('/api/request-status', validateBasicAuth, (req, res) => fsrProtalController.postRequestStatus(req, res));
 
 // Sync Data Route (Protected by Basic Auth for easy automated triggering)
 const syncController = require('./src/controllers/syncController');
