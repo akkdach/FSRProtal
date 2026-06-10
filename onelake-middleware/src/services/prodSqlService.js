@@ -148,6 +148,7 @@ class ProdSqlService {
                     ,[No_Leader]
                     ,[Status]
                     ,[No]
+                    ,[Technician]
                 FROM [dbo].[Manpower_Operations]
                 WHERE [EmployeeCode] IS NOT NULL AND [EmployeeCode] <> ''
                 ORDER BY [No] ASC
