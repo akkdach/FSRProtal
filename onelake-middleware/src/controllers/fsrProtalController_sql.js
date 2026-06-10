@@ -84,7 +84,7 @@ class FSRProtalController {
             const prodSqlService = require('../services/prodSqlService');
             const allData = await prodSqlService.getWorker();
 
-            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from worker (BevproFsProd)`);
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from Manpower_Operations (BevproFsProd)`);
 
             const total = allData.length;
             let responseData = allData;
@@ -106,7 +106,7 @@ class FSRProtalController {
             logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
             res.status(500).json({
                 success: false,
-                message: 'Failed to fetch worker from BevproFsProd SQL',
+                message: 'Failed to fetch worker from BevproFsQas Manpower_Operations',
                 details: error.message
             });
         }

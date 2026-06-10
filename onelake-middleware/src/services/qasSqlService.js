@@ -68,35 +68,42 @@ class QasSqlService {
     async getWorker() {
         try {
             const pool = await this.connect();
-            logToFile(`Querying Table: worker from BevproFsQas`);
+            logToFile(`Querying Table: Manpower_Operations from BevproFsQas`);
 
             const query = `
-                SELECT [No]
+                SELECT [Seat_ID]
+                    ,[Parent_Seat_ID]
                     ,[EmployeeCode]
                     ,[FullName]
                     ,[Position]
                     ,[Department]
                     ,[WorkLocation]
+                    ,[Region_Code]
                     ,[VanNo]
                     ,[LicensePlate]
                     ,[TelephoneNo]
-                    ,[Supervisor]
-                    ,[SD2]
                     ,[CostCenter]
                     ,[NewCostCenter]
                     ,[ActivityInsRm]
                     ,[DirectReport]
+                    ,[Remarks]
+                    ,[Target_Per_Head]
+                    ,[SD2]
+                    ,[Supervisor]
                     ,[No_Leader]
                     ,[Status]
-                FROM [BevproFsQas].[dbo].[worker]
+                    ,[No]
+                FROM [BevproFsQas].[dbo].[Manpower_Operations]
+                WHERE [EmployeeCode] IS NOT NULL AND [EmployeeCode] <> ''
+                ORDER BY [No] ASC
             `;
 
             const result = await pool.request().query(query);
-            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from worker`);
+            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from Manpower_Operations`);
 
             return result.recordset;
         } catch (err) {
-            logToFile(`SQL Query Error (worker): ${err.message}`);
+            logToFile(`SQL Query Error (Manpower_Operations): ${err.message}`);
             throw err;
         }
     }
