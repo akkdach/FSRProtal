@@ -68,6 +68,41 @@ class QasSqlService {
     async getWorker() {
         try {
             const pool = await this.connect();
+            logToFile(`Querying Table: worker from BevproFsQas`);
+
+            const query = `
+                SELECT [No]
+                    ,[EmployeeCode]
+                    ,[FullName]
+                    ,[Position]
+                    ,[Department]
+                    ,[WorkLocation]
+                    ,[VanNo]
+                    ,[LicensePlate]
+                    ,[TelephoneNo]
+                    ,[Supervisor]
+                    ,[SD2]
+                    ,[CostCenter]
+                    ,[NewCostCenter]
+                    ,[ActivityInsRm]
+                    ,[DirectReport]
+                    ,[No_Leader]
+                    ,[Status]
+                FROM [BevproFsQas].[dbo].[worker]
+            `;
+
+            const result = await pool.request().query(query);
+            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from worker`);
+
+            return result.recordset;
+        } catch (err) {
+            logToFile(`SQL Query Error (worker): ${err.message}`);
+            throw err;
+        }
+    }
+    async getManpower() {
+        try {
+            const pool = await this.connect();
             logToFile(`Querying Table: Manpower_Operations from BevproFsQas`);
 
             const query = `

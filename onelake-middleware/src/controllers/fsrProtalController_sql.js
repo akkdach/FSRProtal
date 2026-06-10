@@ -84,6 +84,43 @@ class FSRProtalController {
             const prodSqlService = require('../services/prodSqlService');
             const allData = await prodSqlService.getWorker();
 
+            logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from worker (BevproFsProd)`);
+
+            const total = allData.length;
+            let responseData = allData;
+            if (limit > 0) {
+                const startIndex = page * limit;
+                const endIndex = startIndex + limit;
+                responseData = allData.slice(startIndex, endIndex);
+            }
+
+            res.json({
+                success: true,
+                data: responseData,
+                total,
+                page,
+                limit: limit || total
+            });
+
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch worker from BevproFsProd worker',
+                details: error.message
+            });
+        }
+    }
+    async getManpower(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 0;
+
+            logToFile(`[FSRProtal-SQL] API Request: /api/manpower?page=${page}&limit=${limit}`);
+
+            const prodSqlService = require('../services/prodSqlService');
+            const allData = await prodSqlService.getManpower();
+
             logToFile(`[FSRProtal-SQL] Retrieved ${allData.length} records from Manpower_Operations (BevproFsProd)`);
 
             const total = allData.length;
@@ -106,7 +143,7 @@ class FSRProtalController {
             logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
             res.status(500).json({
                 success: false,
-                message: 'Failed to fetch worker from BevproFsQas Manpower_Operations',
+                message: 'Failed to fetch manpower from BevproFsProd Manpower_Operations',
                 details: error.message
             });
         }

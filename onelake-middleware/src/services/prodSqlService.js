@@ -123,6 +123,30 @@ class ProdSqlService {
     async getWorker() {
         try {
             const pool = await this.connect();
+            logToFile(`Querying Table: worker from BevproFsProd`);
+
+            const query = `
+                SELECT [No],[EmployeeCode],[FullName],[Position],[Department],
+                       [WorkLocation],[VanNo],[LicensePlate],[TelephoneNo],
+                       [Supervisor],[SD2],[CostCenter],[NewCostCenter],
+                       [ActivityInsRm],[DirectReport],[No_Leader],[Status]
+                FROM [dbo].[worker]
+                WHERE [EmployeeCode] IS NOT NULL AND [EmployeeCode] <> 'EmployeeCode'
+                ORDER BY [No] ASC
+            `;
+
+            const result = await pool.request().query(query);
+            logToFile(`Query Success: Retrieved ${result.recordset.length} rows from worker`);
+
+            return result.recordset;
+        } catch (err) {
+            logToFile(`SQL Query Error (worker): ${err.message}`);
+            throw err;
+        }
+    }
+    async getManpower() {
+        try {
+            const pool = await this.connect();
             logToFile(`Querying Table: Manpower_Operations from BevproFsProd`);
 
             const query = `

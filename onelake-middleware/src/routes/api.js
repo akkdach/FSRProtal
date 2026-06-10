@@ -34,6 +34,7 @@ router.get('/service_Line', (req, res) => proIoTController.getServiceLine(req, r
 const fsrProtalControllerSql = require('../controllers/fsrProtalController_sql');
 router.get('/bom-referbush', (req, res) => fsrProtalControllerSql.getBomReferbush(req, res));
 router.get('/worker', (req, res) => fsrProtalControllerSql.getWorker(req, res));
+router.get('/manpower', (req, res) => fsrProtalControllerSql.getManpower(req, res));
 router.post('/worker', (req, res) => fsrProtalControllerSql.createWorker(req, res));
 router.put('/worker/:no', (req, res) => fsrProtalControllerSql.updateWorker(req, res));
 router.delete('/worker/:no', (req, res) => fsrProtalControllerSql.deleteWorker(req, res));
