@@ -148,6 +148,43 @@ class FSRProtalController {
             });
         }
     }
+    async createManpower(req, res) {
+        try {
+            logToFile(`[FSRProtal-SQL] API Request: POST /api/manpower`);
+            const prodSqlService = require('../services/prodSqlService');
+            const result = await prodSqlService.createManpower(req.body);
+            res.status(201).json({ success: true, data: result, message: 'Manpower created' });
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Create Manpower Error: ${error.message}`);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+    async updateManpower(req, res) {
+        try {
+            const no = parseInt(req.params.no);
+            if (isNaN(no)) return res.status(400).json({ success: false, message: 'Invalid manpower No' });
+            logToFile(`[FSRProtal-SQL] API Request: PUT /api/manpower/${no}`);
+            const prodSqlService = require('../services/prodSqlService');
+            const result = await prodSqlService.updateManpower(no, req.body);
+            res.json({ success: true, data: result, message: 'Manpower updated' });
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Update Manpower Error: ${error.message}`);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+    async deleteManpower(req, res) {
+        try {
+            const no = parseInt(req.params.no);
+            if (isNaN(no)) return res.status(400).json({ success: false, message: 'Invalid manpower No' });
+            logToFile(`[FSRProtal-SQL] API Request: DELETE /api/manpower/${no}`);
+            const prodSqlService = require('../services/prodSqlService');
+            await prodSqlService.deleteManpower(no);
+            res.json({ success: true, message: 'Manpower deleted' });
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Delete Manpower Error: ${error.message}`);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
     async createWorker(req, res) {
         try {
             logToFile(`[FSRProtal-SQL] API Request: POST /api/worker`);
