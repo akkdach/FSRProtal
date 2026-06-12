@@ -129,6 +129,8 @@ class QasSqlService {
                     ,[Status]
                     ,[No]
                     ,[Technician]
+                    ,[Team]
+                    ,[ModifyDate]
                 FROM [BevproFsQas].[dbo].[Manpower_Operations]
                 WHERE [EmployeeCode] IS NOT NULL AND [EmployeeCode] <> ''
                 ORDER BY [No] ASC
