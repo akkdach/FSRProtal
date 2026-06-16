@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const syncService = require('../services/syncService');
+const teamsNotificationService = require('../services/teamsNotificationService');
 const { logToFile } = require('../utils/logger');
 
 function initCronJobs() {
@@ -68,4 +69,22 @@ function initCronJobs() {
     logToFile('[Cron] Scheduled job set for 23:00 (Asia/Bangkok) every day — 18 table sync.');
 }
 
-module.exports = { initCronJobs };
+function initTeamsAlertJob() {
+    logToFile('[Cron] Initializing Teams Alert Job...');
+
+    // Runs every day at 09:00 AM by default, unless you change the expression
+    // Format: minute hour dayOfMonth month dayOfWeek
+    const scheduleTime = process.env.TEAMS_ALERT_CRON || '0 9 * * *';
+    
+    cron.schedule(scheduleTime, async () => {
+        logToFile(`[Cron] Triggering Teams Notification check for DRAFT manpower...`);
+        await teamsNotificationService.checkAndNotifyDraftManpower();
+    }, {
+        scheduled: true,
+        timezone: "Asia/Bangkok"
+    });
+
+    logToFile(`[Cron] Teams Alert scheduled for ${scheduleTime} (Asia/Bangkok).`);
+}
+
+module.exports = { initCronJobs, initTeamsAlertJob };

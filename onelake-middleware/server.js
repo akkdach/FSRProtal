@@ -150,4 +150,8 @@ app.listen(config.port, () => {
     // Initialize Cron Jobs — DISABLED: รอกำหนดเวลา Sync ใหม่
     // const { initCronJobs } = require('./src/jobs/cronJobs');
     // initCronJobs();
+
+    // Initialize Teams Notification Job (Runs daily at specified time)
+    const { initTeamsAlertJob } = require('./src/jobs/cronJobs');
+    initTeamsAlertJob();
 });

@@ -111,6 +111,9 @@ module.exports = {
         tenantId: process.env.ENTRA_TENANT_ID || process.env.AZURE_TENANT_ID,
         clientId: process.env.ENTRA_CLIENT_ID
     },
+    teams: {
+        webhookUrl: process.env.TEAMS_WEBHOOK_URL
+    },
     freezeDataPath: '/app/freeze-data',
     cache: {
         memoryDuration: 10 * 60 * 1000, // 10 minutes
