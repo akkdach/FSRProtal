@@ -176,6 +176,7 @@ class ProdSqlService {
                     ,[Team]
                     ,[ModifyDate]
                     ,[HR_Status]
+                    ,[Type]
                 FROM [dbo].[Manpower_Operations]
                 WHERE [EmployeeCode] IS NOT NULL AND [EmployeeCode] <> ''
                 ORDER BY [No] ASC
@@ -221,17 +222,18 @@ class ProdSqlService {
                 .input('Team', sql.NVarChar(20), data.Team || null)
                 .input('ModifyDate', sql.DateTime, data.ModifyDate ? new Date(data.ModifyDate) : null)
                 .input('HR_Status', sql.NVarChar(50), data.HR_Status || 'DRAFT')
+                .input('Type', sql.NVarChar(50), data.Type || null)
                 .query(`
                     INSERT INTO [dbo].[Manpower_Operations]
                         (Seat_ID, Parent_Seat_ID, EmployeeCode, FullName, Position, Department,
                          WorkLocation, Region_Code, VanNo, LicensePlate, TelephoneNo,
                          CostCenter, NewCostCenter, ActivityInsRm, DirectReport, Remarks,
-                         Target_Per_Head, SD2, Supervisor, No_Leader, Status, Technician, Team, ModifyDate, HR_Status)
+                         Target_Per_Head, SD2, Supervisor, No_Leader, Status, Technician, Team, ModifyDate, HR_Status, Type)
                     OUTPUT INSERTED.*
                     VALUES (@Seat_ID, @Parent_Seat_ID, @EmployeeCode, @FullName, @Position, @Department,
                             @WorkLocation, @Region_Code, @VanNo, @LicensePlate, @TelephoneNo,
                             @CostCenter, @NewCostCenter, @ActivityInsRm, @DirectReport, @Remarks,
-                            @Target_Per_Head, @SD2, @Supervisor, @No_Leader, @Status, @Technician, @Team, @ModifyDate, @HR_Status)
+                            @Target_Per_Head, @SD2, @Supervisor, @No_Leader, @Status, @Technician, @Team, @ModifyDate, @HR_Status, @Type)
                 `);
 
             logToFile(`Insert Success: Created manpower ${data.EmployeeCode}`);
@@ -262,7 +264,7 @@ class ProdSqlService {
                 Supervisor: sql.NVarChar(150), No_Leader: sql.NVarChar(50),
                 Status: sql.NVarChar(20), Technician: sql.NVarChar(20),
                 Team: sql.NVarChar(20), ModifyDate: sql.DateTime,
-                HR_Status: sql.NVarChar(50),
+                HR_Status: sql.NVarChar(50), Type: sql.NVarChar(50),
             };
 
             for (const [field, type] of Object.entries(fields)) {
