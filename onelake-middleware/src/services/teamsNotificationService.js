@@ -31,31 +31,49 @@ class TeamsNotificationService {
             if (draftCount > 0) {
                 logToFile(`[TeamsAlert] Found ${draftCount} DRAFT cases. Sending notification...`);
                 
-                const facts = result.recordset.slice(0, 5).map(r => ({
-                    name: r.EmployeeCode || 'N/A',
+                const factList = result.recordset.slice(0, 5).map(r => ({
+                    title: r.EmployeeCode || 'N/A',
                     value: `${r.FullName} (${r.Position})`
                 }));
 
                 const payload = {
-                    "@type": "MessageCard",
-                    "@context": "http://schema.org/extensions",
-                    "themeColor": "f59e0b",
-                    "summary": `แจ้งเตือน: มีพนักงานติดสถานะ DRAFT ${draftCount} รายการ`,
-                    "sections": [{
-                        "activityTitle": "⚠️ แจ้งเตือน: มีข้อมูล Manpower ที่รอการ SUBMIT",
-                        "activitySubtitle": `พบข้อมูลที่ยังคงสถานะ DRAFT จำนวน **${draftCount}** รายการ กรุณาตรวจสอบและดำเนินการ SUBMIT ในระบบ`,
-                        "activityImage": "https://img.icons8.com/color/48/000000/high-priority.png",
-                        "facts": facts,
-                        "markdown": true
-                    }],
-                    "potentialAction": [{
-                        "@type": "OpenUri",
-                        "name": "เปิดระบบ Smart Field Service",
-                        "targets": [{
-                            "os": "default",
-                            "uri": "http://localhost:3000/Admin/ManpowerManagement"
-                        }]
-                    }]
+                    "type": "message",
+                    "attachments": [
+                        {
+                            "contentType": "application/vnd.microsoft.card.adaptive",
+                            "contentUrl": null,
+                            "content": {
+                                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                "type": "AdaptiveCard",
+                                "version": "1.4",
+                                "body": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "⚠️ แจ้งเตือน: มีข้อมูล Manpower รอการ SUBMIT",
+                                        "weight": "Bolder",
+                                        "size": "Large",
+                                        "color": "Warning"
+                                    },
+                                    {
+                                        "type": "TextBlock",
+                                        "text": `พบข้อมูลที่ยังคงสถานะ DRAFT จำนวน **${draftCount}** รายการ`,
+                                        "wrap": true
+                                    },
+                                    {
+                                        "type": "FactSet",
+                                        "facts": factList
+                                    }
+                                ],
+                                "actions": [
+                                    {
+                                        "type": "Action.OpenUrl",
+                                        "title": "เปิดระบบ Smart Field Service",
+                                        "url": "http://localhost:3000/Admin/ManpowerManagement"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
                 };
 
                 const response = await fetch(webhookUrl, {
