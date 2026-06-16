@@ -140,6 +140,16 @@ app.get('/images/matireal/:folder?/:filename', (req, res) => {
 // Health Check
 app.get('/', (req, res) => res.send('OneLake ADLS Middleware Running (MVC)'));
 
+app.get('/api/test-webhook', async (req, res) => {
+    const teamsNotificationService = require('./src/services/teamsNotificationService');
+    try {
+        await teamsNotificationService.checkAndNotifyDraftManpower();
+        res.send('✅ ยิงแจ้งเตือนทดสอบเรียบร้อยแล้ว ลองเช็คใน MS Teams ดูครับ!');
+    } catch (err) {
+        res.status(500).send('❌ Error: ' + err.message);
+    }
+});
+
 
 // Start Server
 app.listen(config.port, () => {
