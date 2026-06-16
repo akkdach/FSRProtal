@@ -178,7 +178,7 @@ class ProdSqlService {
                     ,[HR_Status]
                     ,[Type]
                 FROM [dbo].[Manpower_Operations]
-                WHERE [EmployeeCode] IS NOT NULL AND [EmployeeCode] <> ''
+                WHERE [Status] <> 'Deleted' OR [Status] IS NULL
                 ORDER BY [No] ASC
             `;
 
