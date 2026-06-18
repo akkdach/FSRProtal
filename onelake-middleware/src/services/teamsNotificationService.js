@@ -31,7 +31,7 @@ class TeamsNotificationService {
             if (draftCount > 0) {
                 logToFile(`[TeamsAlert] Found ${draftCount} DRAFT cases. Sending notification...`);
                 
-                const factList = result.recordset.slice(0, 5).map(r => ({
+                const factList = result.recordset.map(r => ({
                     title: r.EmployeeCode || 'N/A',
                     value: `${r.FullName} (${r.Position})`
                 }));
@@ -68,7 +68,7 @@ class TeamsNotificationService {
                                     {
                                         "type": "Action.OpenUrl",
                                         "title": "เปิดระบบ Smart Field Service",
-                                        "url": "http://localhost:3000/Admin/ManpowerManagement"
+                                        "url": "https://proservice.bevproasia.com/Admin/ManpowerManagement"
                                     }
                                 ]
                             }
