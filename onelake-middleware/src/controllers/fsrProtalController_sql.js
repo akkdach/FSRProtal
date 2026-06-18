@@ -153,6 +153,12 @@ class FSRProtalController {
             logToFile(`[FSRProtal-SQL] API Request: POST /api/manpower`);
             const prodSqlService = require('../services/prodSqlService');
             const result = await prodSqlService.createManpower(req.body);
+            
+            if (String(req.body.HR_Status || '').trim().toUpperCase() === 'DRAFT') {
+                const teamsNotificationService = require('../services/teamsNotificationService');
+                teamsNotificationService.checkAndNotifyDraftManpower().catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+            }
+
             res.status(201).json({ success: true, data: result, message: 'Manpower created' });
         } catch (error) {
             logToFile(`[FSRProtal-SQL] Create Manpower Error: ${error.message}`);
@@ -166,6 +172,12 @@ class FSRProtalController {
             logToFile(`[FSRProtal-SQL] API Request: PUT /api/manpower/${no}`);
             const prodSqlService = require('../services/prodSqlService');
             const result = await prodSqlService.updateManpower(no, req.body);
+            
+            if (String(req.body.HR_Status || '').trim().toUpperCase() === 'DRAFT') {
+                const teamsNotificationService = require('../services/teamsNotificationService');
+                teamsNotificationService.checkAndNotifyDraftManpower().catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+            }
+
             res.json({ success: true, data: result, message: 'Manpower updated' });
         } catch (error) {
             logToFile(`[FSRProtal-SQL] Update Manpower Error: ${error.message}`);
