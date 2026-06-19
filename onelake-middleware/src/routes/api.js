@@ -64,6 +64,12 @@ router.get('/freeze-income/summary/:filename', (req, res) => freezeController.ge
 router.get('/freeze-income/:filename', (req, res) => freezeController.getFrozenData(req, res));
 router.delete('/freeze-income/:filename', (req, res) => freezeController.deleteFrozenData(req, res));
 
+// Project: Holidays (Company Holidays Master)
+const holidayController = require('../controllers/holidayController');
+router.get('/holidays', (req, res) => holidayController.getHolidays(req, res));
+router.post('/holidays', (req, res) => holidayController.createHoliday(req, res));
+router.delete('/holidays/:date', (req, res) => holidayController.deleteHoliday(req, res));
+
 // Cache Income (In-Memory Summary)
 const cacheController = require('../controllers/cacheController');
 router.post('/cache-income', (req, res) => cacheController.cacheData(req, res));
