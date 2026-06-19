@@ -11,7 +11,6 @@ const holidayController = {
                     CONVERT(VARCHAR(10), HolidayDate, 120) AS date,
                     HolidayName AS name
                 FROM [dbo].[Mas_CompanyHoliday]
-                WHERE IsActive = 1
                 ORDER BY HolidayDate ASC
             `;
             const pool = await prodSqlService.connect();
@@ -41,12 +40,11 @@ const holidayController = {
                 WHEN MATCHED THEN
                     UPDATE SET 
                         Target.HolidayName = Source.HolidayName,
-                        Target.IsActive = 1,
                         Target.UpdateDate = GETDATE(),
                         Target.UpdateBy = Source.UserName
                 WHEN NOT MATCHED THEN
-                    INSERT (HolidayDate, HolidayName, IsActive, CreateBy, CreateDate)
-                    VALUES (Source.HolidayDate, Source.HolidayName, 1, Source.UserName, GETDATE());
+                    INSERT (HolidayDate, HolidayName, CreateBy, CreateDate)
+                    VALUES (Source.HolidayDate, Source.HolidayName, Source.UserName, GETDATE());
             `;
 
             const pool = await prodSqlService.connect();
@@ -72,13 +70,9 @@ const holidayController = {
 
             const userName = req.user?.name || req.user?.user || 'System';
 
-            // Soft delete by setting IsActive = 0
+            // Hard delete
             const query = `
-                UPDATE [dbo].[Mas_CompanyHoliday]
-                SET 
-                    IsActive = 0,
-                    UpdateDate = GETDATE(),
-                    UpdateBy = @UserName
+                DELETE FROM [dbo].[Mas_CompanyHoliday]
                 WHERE HolidayDate = @Date
             `;
 
