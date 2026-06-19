@@ -14,8 +14,9 @@ const holidayController = {
                 WHERE IsActive = 1
                 ORDER BY HolidayDate ASC
             `;
-            const result = await prodSqlService.executeQuery(query);
-            res.json(result);
+            const pool = await prodSqlService.connect();
+            const result = await pool.request().query(query);
+            res.json(result.recordset);
         } catch (error) {
             logToFile(`Error getting holidays: ${error.message}`);
             res.status(500).json({ error: 'Failed to fetch holidays' });
@@ -45,12 +46,11 @@ const holidayController = {
                     VALUES (Source.HolidayDate, Source.HolidayName, 1, 'System', GETDATE());
             `;
 
-            const params = {
-                Date: { type: sql.Date, value: date },
-                Name: { type: sql.NVarChar, value: name }
-            };
-
-            await prodSqlService.executeQuery(query, params);
+            const pool = await prodSqlService.connect();
+            const request = pool.request();
+            request.input('Date', sql.Date, date);
+            request.input('Name', sql.NVarChar, name);
+            await request.query(query);
             res.json({ message: 'Holiday saved successfully' });
         } catch (error) {
             logToFile(`Error creating holiday: ${error.message}`);
@@ -76,11 +76,10 @@ const holidayController = {
                 WHERE HolidayDate = @Date
             `;
 
-            const params = {
-                Date: { type: sql.Date, value: date }
-            };
-
-            await prodSqlService.executeQuery(query, params);
+            const pool = await prodSqlService.connect();
+            const request = pool.request();
+            request.input('Date', sql.Date, date);
+            await request.query(query);
             res.json({ message: 'Holiday deleted successfully' });
         } catch (error) {
             logToFile(`Error deleting holiday: ${error.message}`);
