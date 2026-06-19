@@ -31,25 +31,29 @@ const holidayController = {
                 return res.status(400).json({ error: 'date and name are required' });
             }
 
+            // ดึงชื่อผู้ใช้จาก JWT token
+            const userName = req.user?.name || req.user?.user || 'System';
+
             const query = `
                 MERGE INTO [dbo].[Mas_CompanyHoliday] AS Target
-                USING (VALUES (@Date, @Name)) AS Source (HolidayDate, HolidayName)
+                USING (VALUES (@Date, @Name, @UserName)) AS Source (HolidayDate, HolidayName, UserName)
                 ON Target.HolidayDate = Source.HolidayDate
                 WHEN MATCHED THEN
                     UPDATE SET 
                         Target.HolidayName = Source.HolidayName,
                         Target.IsActive = 1,
                         Target.UpdateDate = GETDATE(),
-                        Target.UpdateBy = 'System'
+                        Target.UpdateBy = Source.UserName
                 WHEN NOT MATCHED THEN
                     INSERT (HolidayDate, HolidayName, IsActive, CreateBy, CreateDate)
-                    VALUES (Source.HolidayDate, Source.HolidayName, 1, 'System', GETDATE());
+                    VALUES (Source.HolidayDate, Source.HolidayName, 1, Source.UserName, GETDATE());
             `;
 
             const pool = await prodSqlService.connect();
             const request = pool.request();
             request.input('Date', sql.Date, date);
             request.input('Name', sql.NVarChar, name);
+            request.input('UserName', sql.NVarChar, userName);
             await request.query(query);
             res.json({ message: 'Holiday saved successfully' });
         } catch (error) {
@@ -66,19 +70,22 @@ const holidayController = {
                 return res.status(400).json({ error: 'date is required' });
             }
 
+            const userName = req.user?.name || req.user?.user || 'System';
+
             // Soft delete by setting IsActive = 0
             const query = `
                 UPDATE [dbo].[Mas_CompanyHoliday]
                 SET 
                     IsActive = 0,
                     UpdateDate = GETDATE(),
-                    UpdateBy = 'System'
+                    UpdateBy = @UserName
                 WHERE HolidayDate = @Date
             `;
 
             const pool = await prodSqlService.connect();
             const request = pool.request();
             request.input('Date', sql.Date, date);
+            request.input('UserName', sql.NVarChar, userName);
             await request.query(query);
             res.json({ message: 'Holiday deleted successfully' });
         } catch (error) {
