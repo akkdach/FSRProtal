@@ -196,7 +196,7 @@ class SyncController {
     async syncMaterialMaster(req, res) {
         try {
             logToFile(`[SyncController] API Request: /api/sync/material-master-sync`);
-            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.qasSql);
+            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.prodSql);
             res.json({ success: true, message: "MaterialMaster Sync completed successfully", data: result });
         } catch (error) {
             logToFile(`[SyncController] API Error (MaterialMaster): ${error.message}`);

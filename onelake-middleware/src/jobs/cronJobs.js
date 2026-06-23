@@ -85,7 +85,7 @@ function initMaterialMasterSyncJob() {
 
         try {
             const startTime = Date.now();
-            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.qasSql);
+            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.prodSql);
             const durationStr = ((Date.now() - startTime) / 1000).toFixed(2);
 
             logToFile(`✅ [Cron][SUCCESS] MaterialMaster Sync completed in ${durationStr} seconds.`);
