@@ -99,7 +99,9 @@ class GraphQLService {
                 'Dirpersonname_Import_DataBase_238': 'dirpersonname_Import_DataBase_238s',
                 'Dirperson_Import_DataBase_238': 'dirperson_Import_DataBase_238s',
                 'Custtable_Import_DataBase_238': 'custtable_Import_DataBase_238s',
-                'Maintenanceactivitytype_Import_DataBase_238': 'maintenanceactivitytype__Import_DataBase_238s'
+                'Maintenanceactivitytype_Import_DataBase_238': 'maintenanceactivitytype__Import_DataBase_238s',
+                // Material Master (F&O Sync)
+                'Sync_Material_master': 'sync_Material_masters'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -117,7 +119,8 @@ class GraphQLService {
                 'Service_BN02_New_B2B',
                 'Service_BN01_New_B2B',
                 'Service_New_B2B',
-                'Service_New_NB2C'
+                'Service_New_NB2C',
+                'Sync_Material_master'
             ];
 
             const queryName = queryMap[viewName] || viewName;
@@ -2564,6 +2567,13 @@ class GraphQLService {
                             IsDelete
                             PartitionId
                             Province`;
+            } else if (queryName === 'sync_Material_masters') {
+                // Material Master (F&O Sync) — Map to material_master table columns
+                fields = `MATERIAL: itemid
+                            DESCRIPTION: searchname
+                            UNIT: bomunitid
+                            DAMAGE_MATERIAL: bpc_damageitem
+                            DAMAGE_MAT_DESC: bpc_damageitem_desc`;
             } else {
                 // Default fields for Service_BN* views
                 fields = `Id

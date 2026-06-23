@@ -1,4 +1,5 @@
 const syncService = require('../services/syncService');
+const config = require('../config');
 const { logToFile } = require('../utils/logger');
 
 class SyncController {
@@ -190,6 +191,16 @@ class SyncController {
         } catch (error) {
             logToFile(`[SyncController] API Error (Maintenanceactivitytype): ${error.message}`);
             res.status(500).json({ success: false, message: `Maintenanceactivitytype Sync failed: ${error.message}` });
+        }
+    }
+    async syncMaterialMaster(req, res) {
+        try {
+            logToFile(`[SyncController] API Request: /api/sync/material-master-sync`);
+            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.qasSql);
+            res.json({ success: true, message: "MaterialMaster Sync completed successfully", data: result });
+        } catch (error) {
+            logToFile(`[SyncController] API Error (MaterialMaster): ${error.message}`);
+            res.status(500).json({ success: false, message: `MaterialMaster Sync failed: ${error.message}` });
         }
     }
 }

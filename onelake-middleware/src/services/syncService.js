@@ -77,9 +77,10 @@ class SyncService {
     async prepareBulkData(pool, tableName, data) {
         // Get column definitions
         const colQuery = `
-            SELECT COLUMN_NAME, DATA_TYPE 
+            SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE 
             FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_NAME = '${tableName}'
+            ORDER BY ORDINAL_POSITION
         `;
         const colResult = await pool.request().query(colQuery);
         const columns = colResult.recordset.map(r => r.COLUMN_NAME);
@@ -91,16 +92,20 @@ class SyncService {
         // Add columns to table definition
         colResult.recordset.forEach(col => {
             const type = col.DATA_TYPE.toLowerCase();
+            const len = col.CHARACTER_MAXIMUM_LENGTH === -1 || col.CHARACTER_MAXIMUM_LENGTH === null ? sql.MAX : col.CHARACTER_MAXIMUM_LENGTH;
+            const options = { nullable: col.IS_NULLABLE === 'YES' };
             colTypes[col.COLUMN_NAME] = type;
             
-            if (type.includes('char')) table.columns.add(col.COLUMN_NAME, sql.NVarChar(sql.MAX));
-            else if (type.includes('bigint')) table.columns.add(col.COLUMN_NAME, sql.BigInt);
-            else if (type.includes('int')) table.columns.add(col.COLUMN_NAME, sql.BigInt); // Fallback INT to BigInt just in case
-            else if (type.includes('float') || type.includes('real') || type.includes('numeric') || type.includes('decimal')) table.columns.add(col.COLUMN_NAME, sql.Float);
-            else if (type.includes('bit')) table.columns.add(col.COLUMN_NAME, sql.Bit);
-            else if (type.includes('date') || type.includes('time')) table.columns.add(col.COLUMN_NAME, sql.DateTime2);
+            if (type === 'nvarchar' || type === 'nchar') table.columns.add(col.COLUMN_NAME, sql.NVarChar(len), options);
+            else if (type === 'varchar' || type === 'char') table.columns.add(col.COLUMN_NAME, sql.VarChar(len), options);
+            else if (type.includes('char')) table.columns.add(col.COLUMN_NAME, sql.NVarChar(sql.MAX), options); // fallback
+            else if (type.includes('bigint')) table.columns.add(col.COLUMN_NAME, sql.BigInt, options);
+            else if (type.includes('int')) table.columns.add(col.COLUMN_NAME, sql.Int, options); 
+            else if (type.includes('float') || type.includes('real') || type.includes('numeric') || type.includes('decimal')) table.columns.add(col.COLUMN_NAME, sql.Float, options);
+            else if (type.includes('bit')) table.columns.add(col.COLUMN_NAME, sql.Bit, options);
+            else if (type.includes('date') || type.includes('time')) table.columns.add(col.COLUMN_NAME, sql.DateTime2, options);
             else {
-                table.columns.add(col.COLUMN_NAME, sql.NVarChar(sql.MAX));
+                table.columns.add(col.COLUMN_NAME, sql.NVarChar(sql.MAX), options);
                 colTypes[col.COLUMN_NAME] = 'nvarchar';
             }
         });
@@ -324,11 +329,12 @@ class SyncService {
     /**
      * Main Sync Function
      */
-    async syncFromGraphQL(viewName, targetTableName, primaryKey, modifyField) {
+    async syncFromGraphQL(viewName, targetTableName, primaryKey, modifyField, targetSqlConfig = null) {
         let pool;
+        const sqlConfig = targetSqlConfig || config.syncSql;
         try {
-            logToFile(`Connecting to specific Sync SQL Endpoint (${config.syncSql.server})...`);
-            pool = await sql.connect(config.syncSql);
+            logToFile(`Connecting to specific Sync SQL Endpoint (${sqlConfig.server}/${sqlConfig.database})...`);
+            pool = await sql.connect(sqlConfig);
             this._pool = pool; // Store reference for reconnection
             logToFile(`Connected to Sync SQL Endpoint successfully.`);
             
@@ -367,6 +373,130 @@ class SyncService {
             return { success: true, mode: 'Full Daily Sync', inserted: totalInserted };
         } catch (err) {
             logToFile(`[SyncService] Sync Error: ${err.message}`);
+            throw err;
+        }
+    }
+
+    /**
+     * Upsert Sync Function (INSERT + UPDATE via MERGE, NO TRUNCATE)
+     * Uses a staging table approach: bulk insert into staging, then MERGE into target.
+     */
+    async syncFromGraphQLUpsert(viewName, targetTableName, primaryKey, targetSqlConfig = null) {
+        let pool;
+        const sqlConfig = targetSqlConfig || config.syncSql;
+        try {
+            logToFile(`[SyncService][Upsert] Connecting to SQL Endpoint (${sqlConfig.server}/${sqlConfig.database})...`);
+            pool = await sql.connect(sqlConfig);
+            this._pool = pool;
+            logToFile(`[SyncService][Upsert] Connected successfully.`);
+
+            logToFile(`[SyncService][Upsert] Starting UPSERT sync for ${viewName} -> ${targetTableName} (PK: ${primaryKey})`);
+
+            // 1. Check if target table exists
+            let targetExists = await this.tableExists(pool, targetTableName);
+
+            // 2. Collect all data from GraphQL into memory (Material Master is small)
+            let allData = [];
+            await graphqlService.queryView(viewName, '', async (chunkData, pageNum) => {
+                if (!chunkData || chunkData.length === 0) return;
+                logToFile(`[SyncService][Upsert] Received chunk page ${pageNum} (${chunkData.length} records)`);
+                allData = allData.concat(chunkData);
+            });
+
+            if (allData.length === 0) {
+                logToFile(`[SyncService][Upsert] No data received from GraphQL. Skipping.`);
+                return { success: true, mode: 'Upsert', inserted: 0, updated: 0, total: 0 };
+            }
+
+            logToFile(`[SyncService][Upsert] Total records fetched: ${allData.length}`);
+
+            // 3. If target doesn't exist, create it and do a full insert
+            if (!targetExists) {
+                logToFile(`[SyncService][Upsert] Target table ${targetTableName} does not exist. Creating and inserting all data.`);
+                await this.createTable(pool, targetTableName, allData[0]);
+                await this.appendChunk(pool, targetTableName, allData);
+                return { success: true, mode: 'Upsert (Initial Full Load)', inserted: allData.length, updated: 0, total: allData.length };
+            }
+
+            // 4. Create staging table
+            const stagingTableName = `${targetTableName}_Staging`;
+            await pool.request().query(`
+                IF OBJECT_ID('dbo.${stagingTableName}', 'U') IS NOT NULL DROP TABLE dbo.${stagingTableName};
+                SELECT TOP 0 * INTO dbo.${stagingTableName} FROM dbo.${targetTableName};
+            `);
+            logToFile(`[SyncService][Upsert] Staging table ${stagingTableName} created.`);
+
+            // 5. Bulk insert into staging
+            for (let i = 0; i < allData.length; i += this.batchSize) {
+                const batch = allData.slice(i, i + this.batchSize);
+                const table = await this.prepareBulkData(pool, stagingTableName, batch);
+
+                let retries = 3;
+                while (retries > 0) {
+                    try {
+                        await pool.request().bulk(table);
+                        logToFile(`[SyncService][Upsert] Staging batch ${Math.floor(i / this.batchSize) + 1} inserted (${batch.length} records)`);
+                        break;
+                    } catch (err) {
+                        retries--;
+                        logToFile(`[SyncService][Upsert] Staging bulk error: ${err.message}. Retries left: ${retries}`);
+                        if (retries === 0) throw err;
+                        if (err.code === 'ECONNRESET' || err.message.includes('ECONNRESET') || err.message.includes('Connection lost')) {
+                            try { await pool.close(); } catch(e) {}
+                            await new Promise(resolve => setTimeout(resolve, 3000));
+                            pool = await sql.connect(sqlConfig);
+                            this._pool = pool;
+                        } else {
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                        }
+                    }
+                }
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            // 5.5 Deduplicate staging table to avoid MERGE errors (keep first occurrence)
+            logToFile(`[SyncService][Upsert] Deduplicating staging table by ${primaryKey}...`);
+            await pool.request().query(`
+                WITH CTE AS (
+                    SELECT *, ROW_NUMBER() OVER(PARTITION BY [${primaryKey}] ORDER BY (SELECT NULL)) as rn
+                    FROM dbo.[${stagingTableName}]
+                )
+                DELETE FROM CTE WHERE rn > 1;
+            `);
+
+            // 6. Get columns for MERGE
+            const colQuery = `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${targetTableName}'`;
+            const colResult = await pool.request().query(colQuery);
+            const columns = colResult.recordset.map(r => r.COLUMN_NAME);
+
+            const updateSet = columns.filter(c => c !== primaryKey).map(c => `TARGET.[${c}] = SOURCE.[${c}]`).join(', ');
+            const insertCols = columns.map(c => `[${c}]`).join(', ');
+            const insertVals = columns.map(c => `SOURCE.[${c}]`).join(', ');
+
+            // 7. Execute MERGE (INSERT + UPDATE)
+            const mergeQuery = `
+                MERGE dbo.[${targetTableName}] AS TARGET
+                USING dbo.[${stagingTableName}] AS SOURCE
+                ON (TARGET.[${primaryKey}] = SOURCE.[${primaryKey}])
+                WHEN MATCHED THEN
+                    UPDATE SET ${updateSet}
+                WHEN NOT MATCHED BY TARGET THEN
+                    INSERT (${insertCols})
+                    VALUES (${insertVals});
+            `;
+
+            logToFile(`[SyncService][Upsert] Executing MERGE statement...`);
+            const mergeResult = await pool.request().query(mergeQuery);
+
+            // 8. Cleanup staging
+            await pool.request().query(`DROP TABLE dbo.[${stagingTableName}];`);
+
+            const modifiedRows = mergeResult.rowsAffected[0];
+            logToFile(`[SyncService][Upsert] MERGE completed. Modified rows: ${modifiedRows}, Total processed: ${allData.length}`);
+
+            return { success: true, mode: 'Upsert (MERGE)', modified: modifiedRows, total: allData.length };
+        } catch (err) {
+            logToFile(`[SyncService][Upsert] Sync Error: ${err.message}`);
             throw err;
         }
     }

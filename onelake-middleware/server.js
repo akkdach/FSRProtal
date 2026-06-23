@@ -52,6 +52,7 @@ app.post('/api/sync/dirpersonname-sync', validateSyncBasicAuth, (req, res) => sy
 app.post('/api/sync/dirperson-sync', validateSyncBasicAuth, (req, res) => syncController.syncDirperson(req, res));
 app.post('/api/sync/custtable-sync', validateSyncBasicAuth, (req, res) => syncController.syncCusttable(req, res));
 app.post('/api/sync/maintenanceactivitytype-sync', validateSyncBasicAuth, (req, res) => syncController.syncMaintenanceactivitytype(req, res));
+app.post('/api/sync/material-master-sync', validateSyncBasicAuth, (req, res) => syncController.syncMaterialMaster(req, res));
 
 // Entra ID Login (public - no JWT required)
 const jwt = require('jsonwebtoken');
@@ -162,6 +163,9 @@ app.listen(config.port, () => {
     // initCronJobs();
 
     // Initialize Teams Notification Job (Runs daily at specified time)
-    const { initTeamsAlertJob } = require('./src/jobs/cronJobs');
+    const { initTeamsAlertJob, initMaterialMasterSyncJob } = require('./src/jobs/cronJobs');
     initTeamsAlertJob();
+
+    // Initialize Material Master Sync Job (Runs daily at 05:00 Bangkok time)
+    initMaterialMasterSyncJob();
 });

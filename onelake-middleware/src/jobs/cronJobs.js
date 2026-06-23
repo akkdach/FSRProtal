@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const syncService = require('../services/syncService');
 const teamsNotificationService = require('../services/teamsNotificationService');
+const config = require('../config');
 const { logToFile } = require('../utils/logger');
 
 function initCronJobs() {
@@ -87,4 +88,36 @@ function initTeamsAlertJob() {
     logToFile(`[Cron] Teams Alert scheduled for ${scheduleTime} (Asia/Bangkok).`);
 }
 
-module.exports = { initCronJobs, initTeamsAlertJob };
+module.exports = { initCronJobs, initTeamsAlertJob, initMaterialMasterSyncJob };
+
+function initMaterialMasterSyncJob() {
+    logToFile('[Cron] Initializing Material Master Sync Job...');
+
+    // Run every day at 08:45 (8:45 AM) Bangkok time
+    cron.schedule('45 8 * * *', async () => {
+        logToFile(`\n======================================================`);
+        logToFile(`[Cron] STARTING DAILY MATERIAL MASTER SYNC`);
+        logToFile(`======================================================\n`);
+
+        try {
+            const startTime = Date.now();
+            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.qasSql);
+            const durationStr = ((Date.now() - startTime) / 1000).toFixed(2);
+
+            logToFile(`✅ [Cron][SUCCESS] MaterialMaster Sync completed in ${durationStr} seconds.`);
+            logToFile(`   -> Mode: ${result.mode}, Inserted: ${result.inserted || 0}`);
+        } catch (error) {
+            logToFile(`❌ [Cron][FAILED] MaterialMaster Sync failed!`);
+            logToFile(`   -> Reason: ${error.message}`);
+        }
+
+        logToFile(`\n======================================================`);
+        logToFile(`[Cron] MATERIAL MASTER SYNC PROCESS FINISHED`);
+        logToFile(`======================================================\n`);
+    }, {
+        scheduled: true,
+        timezone: "Asia/Bangkok"
+    });
+
+    logToFile('[Cron] Material Master Sync scheduled for 08:45 (Asia/Bangkok) every day.');
+}
