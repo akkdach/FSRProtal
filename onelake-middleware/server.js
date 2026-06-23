@@ -162,10 +162,8 @@ app.listen(config.port, () => {
     // const { initCronJobs } = require('./src/jobs/cronJobs');
     // initCronJobs();
 
-    // Initialize Teams Notification Job (Runs daily at specified time)
-    const { initTeamsAlertJob, initMaterialMasterSyncJob } = require('./src/jobs/cronJobs');
-    initTeamsAlertJob();
+    const { initMaterialMasterSyncJob } = require('./src/jobs/cronJobs');
 
-    // Initialize Material Master Sync Job (Runs daily at 05:00 Bangkok time)
+    // Initialize Material Master Sync Job (Runs daily at 08:45 Bangkok time)
     initMaterialMasterSyncJob();
 });

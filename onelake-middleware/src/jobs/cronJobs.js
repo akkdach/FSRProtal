@@ -70,31 +70,15 @@ function initCronJobs() {
     logToFile('[Cron] Scheduled job set for 23:00 (Asia/Bangkok) every day — 18 table sync.');
 }
 
-function initTeamsAlertJob() {
-    logToFile('[Cron] Initializing Teams Alert Job...');
-
-    // Runs every day at 09:00 AM by default, unless you change the expression
-    // Format: minute hour dayOfMonth month dayOfWeek
-    const scheduleTime = process.env.TEAMS_ALERT_CRON || '0 9 * * *';
-    
-    cron.schedule(scheduleTime, async () => {
-        logToFile(`[Cron] Triggering Teams Notification check for DRAFT manpower...`);
-        await teamsNotificationService.checkAndNotifyDraftManpower();
-    }, {
-        scheduled: true,
-        timezone: "Asia/Bangkok"
-    });
-
-    logToFile(`[Cron] Teams Alert scheduled for ${scheduleTime} (Asia/Bangkok).`);
-}
-
-module.exports = { initCronJobs, initTeamsAlertJob, initMaterialMasterSyncJob };
+module.exports = { initCronJobs, initMaterialMasterSyncJob };
 
 function initMaterialMasterSyncJob() {
     logToFile('[Cron] Initializing Material Master Sync Job...');
 
-    // Run every day at 08:45 (8:45 AM) Bangkok time
-    cron.schedule('45 8 * * *', async () => {
+    // Fetch cron schedule from ENV, default to 08:45 AM Bangkok time
+    const scheduleTime = process.env.MATERIAL_MASTER_CRON || '45 8 * * *';
+
+    cron.schedule(scheduleTime, async () => {
         logToFile(`\n======================================================`);
         logToFile(`[Cron] STARTING DAILY MATERIAL MASTER SYNC`);
         logToFile(`======================================================\n`);
@@ -119,5 +103,5 @@ function initMaterialMasterSyncJob() {
         timezone: "Asia/Bangkok"
     });
 
-    logToFile('[Cron] Material Master Sync scheduled for 08:45 (Asia/Bangkok) every day.');
+    logToFile(`[Cron] Material Master Sync scheduled for ${scheduleTime} (Asia/Bangkok).`);
 }
