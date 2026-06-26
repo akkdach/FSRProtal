@@ -101,7 +101,8 @@ class GraphQLService {
                 'Custtable_Import_DataBase_238': 'custtable_Import_DataBase_238s',
                 'Maintenanceactivitytype_Import_DataBase_238': 'maintenanceactivitytype__Import_DataBase_238s',
                 // Material Master (F&O Sync)
-                'Sync_Material_master': 'sync_Material_masters'
+                'Sync_Material_master': 'sync_Material_masters',
+                'bpc_tradecodetable': 'bpc_tradecodetables'
             };
 
             // Views that use the FSRProtal_API endpoint
@@ -129,7 +130,36 @@ class GraphQLService {
             let fields = '';
 
             // Define fields for each query type
-            if (queryName === 'performance_Matrices') {
+            if (queryName === 'bpc_tradecodetables') {
+                fields = `Id
+                            SinkCreatedOn
+                            SinkModifiedOn
+                            interfacesource
+                            work
+                            calsla
+                            sysdatastatecode
+                            tradecode
+                            tradename
+                            accountnum
+                            tradegroup
+                            modifieddatetime
+                            modifiedby
+                            modifiedtransactionid
+                            createddatetime
+                            createdby
+                            createdtransactionid
+                            dataareaid
+                            recversion
+                            partition
+                            sysrowversion
+                            recid
+                            tableid
+                            versionnumber
+                            createdon
+                            modifiedon
+                            IsDelete
+                            PartitionId`;
+            } else if (queryName === 'performance_Matrices') {
                 fields = `OrderType
                             DescriptionType
                             Value

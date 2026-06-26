@@ -8,6 +8,7 @@ const otherController = require('../controllers/otherController');
 // Project: Pro IoT Board
 
 // Project: Pro IoT Board
+router.get('/tradecodetable', (req, res) => proIoTController.getTradeCodeTable(req, res));
 router.get('/orders', (req, res) => proIoTController.getOrders(req, res));
 router.get('/service-lines', (req, res) => proIoTController.getServiceLines(req, res));
 router.get('/income', (req, res) => proIoTController.getIncome(req, res));

@@ -5,6 +5,39 @@ const sqlService = require('../services/sqlService');
 const graphqlService = require('../services/graphqlService');
 
 class ProIoTController {
+    async getTradeCodeTable(req, res) {
+        try {
+            const page = parseInt(req.query.page) || 0;
+            const limit = parseInt(req.query.limit) || 100;
+
+            logToFile(`[ProIoT] API Request: /api/tradecodetable?page=${page}&limit=${limit}`);
+
+            // Call GraphQL service
+            const allData = await graphqlService.queryView('bpc_tradecodetable');
+
+            const total = allData.length;
+            const startIndex = page * limit;
+            const endIndex = startIndex + limit;
+            const slicedData = allData.slice(startIndex, endIndex);
+
+            logToFile(`[ProIoT] TradeCodeTable Response: Returning ${slicedData.length} records (from total ${total})`);
+
+            res.json({
+                success: true,
+                data: slicedData,
+                total,
+                page,
+                limit
+            });
+        } catch (err) {
+            logToFile(`[ProIoT] TradeCodeTable API Error: ${err.message}`);
+            res.status(500).json({
+                success: false,
+                message: err.message
+            });
+        }
+    }
+
     async getOrders(req, res) {
         try {
             const page = parseInt(req.query.page) || 0;
