@@ -414,6 +414,118 @@ class ProdSqlService {
             throw err;
         }
     }
+
+    // ==========================================
+    // Master Dropdown Options CRUD
+    // ==========================================
+
+    async getMasterDropdowns(category) {
+        try {
+            const pool = await this.connect();
+            let query = `
+                SELECT [OptionID], [Category], [OptionName], [Description], [IsActive], 
+                       [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate]
+                FROM [dbo].[Manpower_Dropdown_Options]
+                WHERE [IsActive] = 1
+            `;
+            const req = pool.request();
+            
+            if (category) {
+                query += ` AND [Category] = @Category`;
+                req.input('Category', sql.VarChar, category);
+            }
+            
+            query += ` ORDER BY [OptionName] ASC`;
+
+            const result = await req.query(query);
+            return result.recordset;
+        } catch (err) {
+            logToFile(`SQL Query Error (Manpower_Dropdown_Options): ${err.message}`);
+            throw err;
+        }
+    }
+
+    async createMasterDropdown(data) {
+        try {
+            const pool = await this.connect();
+            const { category, optionName, description, createdBy } = data;
+
+            const query = `
+                INSERT INTO [dbo].[Manpower_Dropdown_Options] 
+                ([Category], [OptionName], [Description], [CreatedBy], [CreatedDate])
+                VALUES (@Category, @OptionName, @Description, @CreatedBy, GETDATE());
+                SELECT SCOPE_IDENTITY() AS InsertedID;
+            `;
+
+            const result = await pool.request()
+                .input('Category', sql.VarChar, category)
+                .input('OptionName', sql.NVarChar, optionName)
+                .input('Description', sql.NVarChar, description || null)
+                .input('CreatedBy', sql.VarChar, createdBy || 'SYSTEM')
+                .query(query);
+
+            return result.recordset[0];
+        } catch (err) {
+            logToFile(`SQL Insert Error (Manpower_Dropdown_Options): ${err.message}`);
+            throw err;
+        }
+    }
+
+    async updateMasterDropdown(id, data) {
+        try {
+            const pool = await this.connect();
+            const { optionName, description, isActive, updatedBy } = data;
+
+            const query = `
+                UPDATE [dbo].[Manpower_Dropdown_Options]
+                SET [OptionName] = @OptionName,
+                    [Description] = @Description,
+                    [IsActive] = @IsActive,
+                    [UpdatedBy] = @UpdatedBy,
+                    [UpdatedDate] = GETDATE()
+                WHERE [OptionID] = @OptionID
+            `;
+
+            const result = await pool.request()
+                .input('OptionID', sql.Int, id)
+                .input('OptionName', sql.NVarChar, optionName)
+                .input('Description', sql.NVarChar, description || null)
+                .input('IsActive', sql.Bit, isActive !== undefined ? isActive : 1)
+                .input('UpdatedBy', sql.VarChar, updatedBy || 'SYSTEM')
+                .query(query);
+
+            if (result.rowsAffected[0] === 0) throw new Error(`OptionID ${id} not found`);
+            return true;
+        } catch (err) {
+            logToFile(`SQL Update Error (Manpower_Dropdown_Options): ${err.message}`);
+            throw err;
+        }
+    }
+
+    async deleteMasterDropdown(id, updatedBy) {
+        try {
+            // Soft delete by setting IsActive = 0
+            const pool = await this.connect();
+            const query = `
+                UPDATE [dbo].[Manpower_Dropdown_Options]
+                SET [IsActive] = 0,
+                    [UpdatedBy] = @UpdatedBy,
+                    [UpdatedDate] = GETDATE()
+                WHERE [OptionID] = @OptionID
+            `;
+
+            const result = await pool.request()
+                .input('OptionID', sql.Int, id)
+                .input('UpdatedBy', sql.VarChar, updatedBy || 'SYSTEM')
+                .query(query);
+
+            if (result.rowsAffected[0] === 0) throw new Error(`OptionID ${id} not found`);
+            return true;
+        } catch (err) {
+            logToFile(`SQL Delete/Deactivate Error (Manpower_Dropdown_Options): ${err.message}`);
+            throw err;
+        }
+    }
 }
 
 module.exports = new ProdSqlService();

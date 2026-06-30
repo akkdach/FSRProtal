@@ -78,4 +78,11 @@ router.get('/cache-income/list', (req, res) => cacheController.listCached(req, r
 router.get('/cache-income/summary/:key', (req, res) => cacheController.getCachedSummary(req, res));
 router.delete('/cache-income/:key', (req, res) => cacheController.deleteCache(req, res));
 
+// Project: Master Data Management
+const masterDataController = require('../controllers/masterDataController');
+router.get('/master/dropdowns', (req, res) => masterDataController.getDropdowns(req, res));
+router.post('/master/dropdowns', (req, res) => masterDataController.createDropdown(req, res));
+router.put('/master/dropdowns/:id', (req, res) => masterDataController.updateDropdown(req, res));
+router.delete('/master/dropdowns/:id', (req, res) => masterDataController.deleteDropdown(req, res));
+
 module.exports = router;
