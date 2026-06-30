@@ -95,6 +95,34 @@ class TeamsNotificationService {
             logToFile(`[TeamsAlert] Error: ${err.message}`);
         }
     }
+    async notifyDeleteManpower(deletedName, deletedCode, deletedBy) {
+        const webhookUrl = config.teams?.webhookUrl;
+        if (!webhookUrl) return;
+        try {
+            const payload = {
+                "type": "message",
+                "attachments": [{
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": {
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "type": "AdaptiveCard",
+                        "version": "1.4",
+                        "body": [
+                            { "type": "TextBlock", "text": "🗑️ แจ้งเตือน: มีการลบข้อมูล Manpower ออกจากระบบ", "weight": "Bolder", "size": "Large", "color": "Attention" },
+                            { "type": "FactSet", "facts": [
+                                { "title": "ชื่อ-นามสกุล (ผู้ถูกลบ):", "value": deletedName || 'N/A' },
+                                { "title": "รหัสพนักงาน:", "value": deletedCode || 'N/A' },
+                                { "title": "ลบโดย:", "value": deletedBy || 'Unknown' },
+                                { "title": "วันเวลาที่ลบ:", "value": new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) }
+                            ] }
+                        ]
+                    }
+                }]
+            };
+            const response = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (response.ok) logToFile('[TeamsAlert] Delete notification sent successfully.');
+        } catch (err) { logToFile('[TeamsAlert] Error: ' + err.message); }
+    }
 }
 
 module.exports = new TeamsNotificationService();

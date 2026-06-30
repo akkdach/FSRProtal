@@ -188,9 +188,19 @@ class FSRProtalController {
         try {
             const no = parseInt(req.params.no);
             if (isNaN(no)) return res.status(400).json({ success: false, message: 'Invalid manpower No' });
+            
+            const deletedBy = req.query.deletedBy || req.body?.deletedBy || 'Unknown';
+            const deletedName = req.query.deletedName || req.body?.deletedName || 'Unknown';
+            const deletedCode = req.query.deletedCode || req.body?.deletedCode || 'Unknown';
+
             logToFile(`[FSRProtal-SQL] API Request: DELETE /api/manpower/${no}`);
             const prodSqlService = require('../services/prodSqlService');
             await prodSqlService.deleteManpower(no);
+            
+            // Notify MS Teams
+            const teamsNotificationService = require('../services/teamsNotificationService');
+            teamsNotificationService.notifyDeleteManpower(deletedName, deletedCode, deletedBy).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+
             res.json({ success: true, message: 'Manpower deleted' });
         } catch (error) {
             logToFile(`[FSRProtal-SQL] Delete Manpower Error: ${error.message}`);
