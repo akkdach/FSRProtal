@@ -181,6 +181,7 @@ class ProdSqlService {
                     ,[StartDate]
                     ,[Edit_By]
                     ,[VehicleType]
+                    ,[F&O User]
                 FROM [dbo].[Manpower_Operations]
                 WHERE [Status] <> 'Deleted' OR [Status] IS NULL
                 ORDER BY [No] ASC
@@ -231,17 +232,18 @@ class ProdSqlService {
                 .input('StartDate', sql.Date, data.StartDate ? new Date(data.StartDate) : null)
                 .input('Edit_By', sql.NVarChar(100), data.Edit_By || null)
                 .input('VehicleType', sql.NVarChar(20), data.VehicleType || null)
+                .input('FO_User', sql.NVarChar(20), data['F&O User'] || null)
                 .query(`
                     INSERT INTO [dbo].[Manpower_Operations]
                         (Seat_ID, Parent_Seat_ID, EmployeeCode, FullName, Position, Department,
                          WorkLocation, Region_Code, VanNo, LicensePlate, TelephoneNo,
                          CostCenter, NewCostCenter, ActivityInsRm, DirectReport, Remarks,
-                         Target_Per_Head, SD2, Supervisor, No_Leader, Status, Technician, Team, ModifyDate, HR_Status, Type, ResignDate, StartDate, Edit_By, VehicleType)
+                         Target_Per_Head, SD2, Supervisor, No_Leader, Status, Technician, Team, ModifyDate, HR_Status, Type, ResignDate, StartDate, Edit_By, VehicleType, [F&O User])
                     OUTPUT INSERTED.*
                     VALUES (@Seat_ID, @Parent_Seat_ID, @EmployeeCode, @FullName, @Position, @Department,
                             @WorkLocation, @Region_Code, @VanNo, @LicensePlate, @TelephoneNo,
                             @CostCenter, @NewCostCenter, @ActivityInsRm, @DirectReport, @Remarks,
-                            @Target_Per_Head, @SD2, @Supervisor, @No_Leader, @Status, @Technician, @Team, @ModifyDate, @HR_Status, @Type, @ResignDate, @StartDate, @Edit_By, @VehicleType)
+                            @Target_Per_Head, @SD2, @Supervisor, @No_Leader, @Status, @Technician, @Team, @ModifyDate, @HR_Status, @Type, @ResignDate, @StartDate, @Edit_By, @VehicleType, @FO_User)
                 `);
 
             logToFile(`Insert Success: Created manpower ${data.EmployeeCode}`);
@@ -274,13 +276,14 @@ class ProdSqlService {
                 Team: sql.NVarChar(20), ModifyDate: sql.DateTime,
                 HR_Status: sql.NVarChar(50), Type: sql.NVarChar(50),
                 ResignDate: sql.Date, StartDate: sql.Date, Edit_By: sql.NVarChar(100),
-                VehicleType: sql.NVarChar(20),
+                VehicleType: sql.NVarChar(20), 'F&O User': sql.NVarChar(20),
             };
 
             for (const [field, type] of Object.entries(fields)) {
                 if (data[field] !== undefined) {
-                    request.input(field, type, data[field]);
-                    setClauses.push(`[${field}] = @${field}`);
+                    const paramName = field === 'F&O User' ? 'FO_User' : field;
+                    request.input(paramName, type, data[field]);
+                    setClauses.push(`[${field}] = @${paramName}`);
                 }
             }
 
