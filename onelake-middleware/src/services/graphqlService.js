@@ -3507,6 +3507,7 @@ class GraphQLService {
                         bpc_actualstarttime
                         bpc_actualfinisheddate
                         bpc_actualfinishedtime
+                        dateexecution
                         bpc_slafinishdate
                         transactiontype
                         bpc_subarea
@@ -3613,6 +3614,7 @@ class GraphQLService {
                         bpc_actualstarttime
                         bpc_actualfinisheddate
                         bpc_actualfinishedtime
+                        dateexecution
                         bpc_slafinishdate
                         transactiontype
                         bpc_subarea
