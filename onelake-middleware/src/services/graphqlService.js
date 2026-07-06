@@ -3493,6 +3493,8 @@ class GraphQLService {
                         qty
                         serviceFeeTotal
                         travelFeeTotal
+                        serviceFeeZZZTotal
+                        travelFeeZZZTotal
                         projsalespriceTotal
                         bpc_inventlocationid
                         bpc_tradecode
