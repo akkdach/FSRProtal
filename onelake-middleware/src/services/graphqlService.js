@@ -2601,7 +2601,7 @@ class GraphQLService {
                 // Material Master (F&O Sync) — Map to material_master table columns
                 fields = `MATERIAL: itemid
                             DESCRIPTION: searchname
-                            UNIT: bomunitid
+                            UNIT: unitid
                             DAMAGE_MATERIAL: bpc_damageitem
                             DAMAGE_MAT_DESC: bpc_damageitem_desc`;
             } else {
