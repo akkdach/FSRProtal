@@ -3489,7 +3489,11 @@ class GraphQLService {
                         bpc_zonegroup
                         bpc_workerpersonnelnum
                         firstname
+                        lastname
                         worker
+                        description
+                        serviceobjectid
+                        serviceobjectgroup
                         qty
                         serviceFeeTotal
                         travelFeeTotal
@@ -3598,7 +3602,11 @@ class GraphQLService {
                         bpc_zonegroup
                         bpc_workerpersonnelnum
                         firstname
+                        lastname
                         worker
+                        description
+                        serviceobjectid
+                        serviceobjectgroup
                         qty
                         serviceFeeTotal
                         travelFeeTotal
