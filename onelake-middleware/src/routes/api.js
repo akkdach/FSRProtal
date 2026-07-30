@@ -45,6 +45,7 @@ router.delete('/worker/:no', (req, res) => fsrProtalControllerSql.deleteWorker(r
 router.get('/work-log', (req, res) => fsrProtalControllerSql.getWorkLog(req, res));
 router.get('/work-center', (req, res) => fsrProtalControllerSql.getWorkCenter(req, res));
 router.get('/van-fuel-avg', (req, res) => fsrProtalControllerSql.getVanFuelAvg(req, res));
+router.get('/service-order-coords', (req, res) => fsrProtalControllerSql.getServiceOrderCoords(req, res));
 
 // Project: FSR Protal
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));

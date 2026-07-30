@@ -330,6 +330,47 @@ class FSRProtalController {
             });
         }
     }
+
+    // GET /api/service-order-coords?orders=S0030701,S0030703
+    // พิกัดร้าน (ที่อยู่ลูกค้าจาก logisticspostaladdress) ต่อใบงาน
+    // ใช้ stored procedure dbo.usp_get_service_order_coords บน Fabric SQL endpoint
+    async getServiceOrderCoords(req, res) {
+        try {
+            const orders = (req.query.orders || '').trim();
+
+            if (!orders) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'orders query param is required (comma-separated service order ids)'
+                });
+            }
+            // อนุญาตเฉพาะ id ตัวอักษร/ตัวเลข คั่นด้วย comma
+            if (!/^[A-Za-z0-9_\-]+(\s*,\s*[A-Za-z0-9_\-]+)*$/.test(orders)) {
+                return res.status(400).json({ success: false, message: 'invalid orders format' });
+            }
+            if (orders.split(',').length > 200) {
+                return res.status(400).json({ success: false, message: 'too many orders (max 200)' });
+            }
+
+            logToFile(`[FSRProtal-SQL] API Request: /api/service-order-coords (${orders.split(',').length} orders)`);
+
+            const data = await sqlService.getServiceOrderCoords(orders);
+
+            res.json({
+                success: true,
+                data: data,
+                total: data.length
+            });
+
+        } catch (error) {
+            logToFile(`[FSRProtal-SQL] Error: ${error.message}`);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to fetch service order coords from OneLake SQL',
+                details: error.message
+            });
+        }
+    }
 }
 
 module.exports = new FSRProtalController();

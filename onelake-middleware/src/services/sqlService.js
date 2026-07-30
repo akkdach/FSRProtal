@@ -33,6 +33,25 @@ class SqlService {
         return this._connecting;
     }
 
+    // EXEC dbo.usp_get_service_order_coords — พิกัดร้าน (logisticspostaladdress) ต่อใบงาน
+    // orders = comma-separated service order ids เช่น 'S0030701,S0030703'
+    async getServiceOrderCoords(orders) {
+        try {
+            const pool = await this.connect();
+            logToFile(`Executing Proc: usp_get_service_order_coords (${orders.split(',').length} orders)`);
+
+            const result = await pool.request()
+                .input('orders', sql.NVarChar(sql.MAX), orders)
+                .execute('dbo.usp_get_service_order_coords');
+
+            logToFile(`Proc Success: Retrieved ${result.recordset.length} rows from usp_get_service_order_coords`);
+            return result.recordset;
+        } catch (err) {
+            logToFile(`SQL Proc Error (usp_get_service_order_coords): ${err.message}`);
+            throw err;
+        }
+    }
+
     async getViewData(viewName) {
         try {
             const pool = await this.connect();
