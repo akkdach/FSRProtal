@@ -47,6 +47,10 @@ router.get('/work-center', (req, res) => fsrProtalControllerSql.getWorkCenter(re
 router.get('/van-fuel-avg', (req, res) => fsrProtalControllerSql.getVanFuelAvg(req, res));
 router.get('/service-order-coords', (req, res) => fsrProtalControllerSql.getServiceOrderCoords(req, res));
 
+// Project: Fuel Price (Thailand retail daily snapshots)
+const fuelPriceController = require('../controllers/fuelPriceController');
+router.get('/fuel-price', (req, res) => fuelPriceController.getFuelPrice(req, res));
+
 // Project: FSR Protal
 router.get('/fsr-protal/orders', (req, res) => fsrProtalController.getOrders(req, res));
 router.get('/service-header', (req, res) => fsrProtalController.getServiceHeader(req, res));
