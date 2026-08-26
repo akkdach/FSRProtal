@@ -112,7 +112,8 @@ module.exports = {
         clientId: process.env.ENTRA_CLIENT_ID
     },
     teams: {
-        webhookUrl: process.env.TEAMS_WEBHOOK_URL
+        webhookUrl: process.env.TEAMS_WEBHOOK_URL,                  // ห้องหลัก — Technician = Yes / ว่าง
+        webhookUrlNonTech: process.env.TEAMS_WEBHOOK_URL_NON_TECH,  // ห้องพนักงานที่ไม่ใช่ช่าง — Technician = No
     },
     freezeDataPath: '/app/freeze-data',
     cache: {

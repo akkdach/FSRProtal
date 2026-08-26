@@ -195,11 +195,11 @@ class FSRProtalController {
 
             logToFile(`[FSRProtal-SQL] API Request: DELETE /api/manpower/${no}`);
             const prodSqlService = require('../services/prodSqlService');
-            await prodSqlService.deleteManpower(no);
+            const { technician } = (await prodSqlService.deleteManpower(no)) || {};
             
             // Notify MS Teams
             const teamsNotificationService = require('../services/teamsNotificationService');
-            teamsNotificationService.notifyDeleteManpower(deletedName, deletedCode, deletedBy).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+            teamsNotificationService.notifyDeleteManpower(deletedName, deletedCode, deletedBy, technician).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
 
             res.json({ success: true, message: 'Manpower deleted' });
         } catch (error) {

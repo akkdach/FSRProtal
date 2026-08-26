@@ -38,7 +38,7 @@ docker compose up -d --build
 env keys ที่ backend ใช้ (เขียนได้แค่ชื่อ key — ค่าจริงอยู่ใน `.env` ที่ gitignore แล้ว):
 `PORT` · `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` (service principal ต่อ Fabric) ·
 `JWT_SECRET` · `BASIC_AUTH_USER/PASS` · `SYNC_AUTH_USER/PASS` · `ENTRA_TENANT_ID` / `ENTRA_CLIENT_ID` ·
-`QAS_DB_*` / `PROD_DB_*` / `SYNC_DB_*` (SQL Server 3 ชุด) · `TEAMS_WEBHOOK_URL` · `MATERIAL_MASTER_CRON`
+`QAS_DB_*` / `PROD_DB_*` / `SYNC_DB_*` (SQL Server 3 ชุด) · `TEAMS_WEBHOOK_URL` (ห้อง Teams หลัก — Technician = Yes/ว่าง) / `TEAMS_WEBHOOK_URL_NON_TECH` (ห้องสำหรับ Technician = No; ไม่ตั้ง = fallback ห้องหลัก) · `MATERIAL_MASTER_CRON`
 
 ## Deploy
 
