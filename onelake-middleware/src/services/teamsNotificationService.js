@@ -54,8 +54,13 @@ async function postCard(webhookUrl, card) {
 }
 
 class TeamsNotificationService {
-    /** DRAFT summary — one card per room, each listing only that room's people. */
-    async checkAndNotifyDraftManpower() {
+    /**
+     * DRAFT summary — one card per room, each listing only that room's people.
+     * Pass { technician } (the value just saved) to notify ONLY that group's room —
+     * the create/update triggers do this so saving a Technician = No row never pings
+     * the technician room. Omit it (cron / test-webhook) to send both rooms.
+     */
+    async checkAndNotifyDraftManpower({ technician } = {}) {
         if (!config.teams?.webhookUrl) {
             logToFile('[TeamsAlert] Warning: TEAMS_WEBHOOK_URL is not configured in .env');
             return;
@@ -85,7 +90,11 @@ class TeamsNotificationService {
             const byGroup = { tech: [], nonTech: [] };
             rows.forEach(r => byGroup[groupOf(r.Technician).key].push(r));
 
-            for (const group of [GROUPS.tech, GROUPS.nonTech]) {
+            const targetGroups = technician === undefined
+                ? [GROUPS.tech, GROUPS.nonTech]
+                : [groupOf(technician)];
+
+            for (const group of targetGroups) {
                 const list = byGroup[group.key];
                 if (list.length === 0) continue;
 
