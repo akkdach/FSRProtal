@@ -134,7 +134,7 @@ const manpowerProperties = {
     Technician: { type: 'string' },
     Team: { type: 'string' },
     ModifyDate: { type: 'string', format: 'date-time' },
-    HR_Status: { type: 'string', default: 'DRAFT', description: 'ถ้าเป็น DRAFT ระบบจะส่ง Teams notification' },
+    HR_Status: { type: 'string', default: 'DRAFT', description: 'ถ้าเป็น DRAFT ระบบจะส่ง Teams notification (ห้องเลือกจาก Technician: No → ห้อง non-tech, อื่นๆ → ห้องหลัก)' },
     Type: { type: 'string' },
     ResignDate: { type: 'string', format: 'date' },
     StartDate: { type: 'string', format: 'date' },
@@ -470,7 +470,7 @@ const swaggerSpec = {
             post: {
                 tags: ['👷 Manpower & Worker'],
                 summary: 'เพิ่ม Manpower',
-                description: 'ถ้า HR_Status เป็น DRAFT ระบบจะส่ง Teams notification อัตโนมัติ',
+                description: 'ถ้า HR_Status เป็น DRAFT ระบบจะส่ง Teams notification อัตโนมัติ — แยกห้องตาม Technician: Yes/ว่าง → ห้องหลัก (TEAMS_WEBHOOK_URL), No → ห้องพนักงานที่ไม่ใช่ช่าง (TEAMS_WEBHOOK_URL_NON_TECH)',
                 security: JWT,
                 requestBody: jsonBody(manpowerProperties),
                 responses: {
@@ -1053,7 +1053,7 @@ const swaggerSpec = {
             get: {
                 tags: ['🛠️ System'],
                 summary: 'ทดสอบส่ง Teams notification',
-                description: '⚠️ เส้นนี้ไม่มีการตรวจสอบสิทธิ์ และจะส่ง Teams notification จริงทันทีที่เรียก',
+                description: '⚠️ เส้นนี้ไม่มีการตรวจสอบสิทธิ์ และจะส่ง Teams notification จริงทันทีที่เรียก — ส่งแยกห้องตาม Technician (Yes/ว่าง → ห้องหลัก, No → ห้อง non-tech ถ้าตั้ง TEAMS_WEBHOOK_URL_NON_TECH ไว้ ไม่งั้น fallback ห้องหลัก)',
                 security: [],
                 responses: {
                     '200': { description: 'ส่ง notification แล้ว' },
