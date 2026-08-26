@@ -156,7 +156,7 @@ class FSRProtalController {
             
             if (String(req.body.HR_Status || '').trim().toUpperCase() === 'DRAFT') {
                 const teamsNotificationService = require('../services/teamsNotificationService');
-                teamsNotificationService.checkAndNotifyDraftManpower().catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+                teamsNotificationService.checkAndNotifyDraftManpower({ technician: req.body.Technician }).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
             }
 
             res.status(201).json({ success: true, data: result, message: 'Manpower created' });
@@ -175,7 +175,7 @@ class FSRProtalController {
             
             if (String(req.body.HR_Status || '').trim().toUpperCase() === 'DRAFT') {
                 const teamsNotificationService = require('../services/teamsNotificationService');
-                teamsNotificationService.checkAndNotifyDraftManpower().catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+                teamsNotificationService.checkAndNotifyDraftManpower({ technician: req.body.Technician }).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
             }
 
             res.json({ success: true, data: result, message: 'Manpower updated' });

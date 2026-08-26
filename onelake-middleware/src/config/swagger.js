@@ -470,7 +470,7 @@ const swaggerSpec = {
             post: {
                 tags: ['👷 Manpower & Worker'],
                 summary: 'เพิ่ม Manpower',
-                description: 'ถ้า HR_Status เป็น DRAFT ระบบจะส่ง Teams notification อัตโนมัติ — แยกห้องตาม Technician: Yes/ว่าง → ห้องหลัก (TEAMS_WEBHOOK_URL), No → ห้องพนักงานที่ไม่ใช่ช่าง (TEAMS_WEBHOOK_URL_NON_TECH)',
+                description: 'ถ้า HR_Status เป็น DRAFT ระบบจะส่ง Teams notification อัตโนมัติ — แยกห้องตาม Technician: Yes/ว่าง → ห้องหลัก (TEAMS_WEBHOOK_URL), No → ห้องพนักงานที่ไม่ใช่ช่าง (TEAMS_WEBHOOK_URL_NON_TECH) — ส่งเฉพาะห้องของกลุ่มที่บันทึก (การ์ดสรุปรายชื่อ DRAFT ทั้งหมดในกลุ่มนั้น)',
                 security: JWT,
                 requestBody: jsonBody(manpowerProperties),
                 responses: {
