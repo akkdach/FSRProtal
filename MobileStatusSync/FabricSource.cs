@@ -73,6 +73,37 @@ public static class FabricSource
         return rows;
     }
 
+    /// <summary>Diagnostics: run an arbitrary read-only query on the Fabric endpoint and print the result (max rows) as a text table.</summary>
+    public static async Task ProbeAsync(FabricSettings s, string accessToken, string sql, int maxRows, CancellationToken ct)
+    {
+        var csb = new SqlConnectionStringBuilder
+        {
+            DataSource = $"tcp:{s.Server},1433",
+            InitialCatalog = s.Database,
+            Encrypt = SqlConnectionEncryptOption.Mandatory,
+            TrustServerCertificate = false,
+            ConnectTimeout = 60,
+            ApplicationName = "MobileStatusSync-probe",
+        };
+        await using var conn = new SqlConnection(csb.ConnectionString) { AccessToken = accessToken };
+        await conn.OpenAsync(ct);
+        await using var cmd = new SqlCommand(sql, conn) { CommandTimeout = s.CommandTimeoutSeconds };
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+
+        var names = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray();
+        Console.WriteLine(string.Join(" | ", names));
+        Console.WriteLine(new string('-', Math.Min(160, names.Sum(n => n.Length + 3))));
+        int shown = 0;
+        while (await reader.ReadAsync(ct))
+        {
+            if (shown++ >= maxRows) { Console.WriteLine($"… (more rows, showing first {maxRows})"); break; }
+            var cells = Enumerable.Range(0, reader.FieldCount).Select(i =>
+                reader.IsDBNull(i) ? "NULL" : reader.GetValue(i) is DateTime dt ? dt.ToString("yyyy-MM-dd HH:mm:ss") : Convert.ToString(reader.GetValue(i)) ?? "");
+            Console.WriteLine(string.Join(" | ", cells));
+        }
+        Console.WriteLine($"({shown} rows)");
+    }
+
     /// <summary>
     /// One row per service order. Rows whose duplicates disagree on mobilestatus are dropped (ambiguous) and reported.
     /// </summary>

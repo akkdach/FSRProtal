@@ -39,7 +39,7 @@ flowchart LR
 
 จึงตั้ง default = `WEB_STATUS`; ถ้าเจ้าของระบบยืนยันว่าต้องการคอลัมน์อื่น เปลี่ยนที่ `Target:StatusColumn` ได้โดยไม่ต้องแก้โค้ด
 
-⚠️ ผล dry-run รอบแรก (831 รายการต่างกัน) มี transition `1→0` (212) และ `3→2` (208) — สถานะ `1`/`3` เป็นขั้นกลางที่ app เดินเอง (view ไม่มีค่านี้)
+⚠️ ผล dry-run รอบแรก (831 รายการต่างกัน) มี transition `1→0` (212) และ `3→2` (208) — สถานะ `1`/`3` เป็นขั้นกลางที่ app เดินเอง (view ไม่มีค่านี้) · เจ้าของระบบยืนยัน 2026-09-07: **`3` = รออนุมัติ ห้ามถอยเป็น `2`** ส่วนอื่นอัปเดตหมด → ตั้งเป็น `BlockedTransitions: ["3>2"]` แล้ว
 การเขียนทับจะ**ถอยงานที่ช่างกำลังทำ** → ใช้ `Sync:AllowedTransitions` จำกัดให้เหลือเฉพาะเคสที่ต้องการ เช่น `["4>0", "4>2", "*>4"]` (D365 เรียกงานกลับ / D365 ปิดงานแล้ว)
 
 ## Config (appsettings.json → appsettings.Production.json → env `MSS_*` → command line)
@@ -58,6 +58,7 @@ flowchart LR
 | `Sync:DryRun` | **`true`** | เทียบ + รายงาน + audit CSV แต่ไม่ UPDATE — ต้องตั้ง `false` (หรือ `--apply`) เองเมื่อพร้อม |
 | `Sync:MaxChangesPerRun` | `500` | circuit breaker: ถ้าต่างกันมากกว่านี้ **ไม่อัปเดต** ส่ง Teams เตือนแทน (กัน view พัง/แมปผิดแล้วกวาดทั้งตาราง) · `0` = ไม่จำกัด |
 | `Sync:AllowedTransitions` | `[]` = เขียนทุกความต่าง | whitelist `old>new` (`*` = อะไรก็ได้, `NULL` = ปลายทางว่าง) — แนะนำ `["4>0","4>2","*>4"]` |
+| `Sync:BlockedTransitions` | `["3>2"]` | blacklist `old>new` ชนะ whitelist — `3>2` = แถวที่ `WEB_STATUS = 3` (**รออนุมัติ**) ห้ามถอยกลับเป็น 2 ส่วนอื่นเขียนหมด (กฎธุรกิจ 2026-09-07) · ทุกกฎถูกบังคับซ้ำใน SQL `UPDATE` ด้วย |
 | `Teams:WebhookUrl` | *(ว่าง — ต้องใส่)* | ค่าเดียวกับ `TEAMS_WEBHOOK_URL` |
 | `Teams:MaxListedRows` | `20` | จำนวนแถวที่โชว์ในการ์ด (ทั้งหมดอยู่ใน `changes-*.csv`) |
 | `Teams:NotifyWhenNoChanges` | `false` | `true` = ส่งการ์ดทุกรอบแม้ไม่มีอะไรเปลี่ยน (ทุก 1 ชั่วโมง — ไม่แนะนำ) |

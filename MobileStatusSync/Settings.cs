@@ -101,23 +101,54 @@ public sealed class SyncSettings
     /// </summary>
     public List<string> AllowedTransitions { get; set; } = [];
 
+    /// <summary>
+    /// Blacklist with the same "old>new" syntax; wins over AllowedTransitions.
+    /// Business rule 2026-09-07: "3>2" — WEB_STATUS 3 = waiting for approval, must not fall back to 2; every other change is written.
+    /// Every entry is also enforced inside the SQL UPDATE (see TargetSession.ApplyAsync).
+    /// </summary>
+    public List<string> BlockedTransitions { get; set; } = [];
+
     public void Validate()
     {
         if (MaxChangesPerRun < 0) throw new ConfigException("Sync:MaxChangesPerRun must be >= 0");
-        foreach (var t in AllowedTransitions)
+        ValidateRules(AllowedTransitions, "Sync:AllowedTransitions");
+        ValidateRules(BlockedTransitions, "Sync:BlockedTransitions");
+    }
+
+    private static void ValidateRules(IEnumerable<string> rules, string key)
+    {
+        foreach (var t in rules)
         {
             var parts = t.Split('>');
             if (parts.Length != 2 || parts.Any(p => string.IsNullOrWhiteSpace(p)))
-                throw new ConfigException($"Sync:AllowedTransitions entry '{t}' must look like old>new (e.g. 4>0, *>4, NULL>2)");
+                throw new ConfigException($"{key} entry '{t}' must look like old>new (e.g. 4>0, *>4, NULL>2, 3>*)");
         }
     }
 
-    /// <summary>True when the (old → new) change is permitted by AllowedTransitions.</summary>
+    /// <summary>True when the (old → new) change is permitted: not blocked, and (whitelist empty or matched).</summary>
     public bool IsAllowed(string? oldValue, string newValue)
     {
+        if (Matches(BlockedTransitions, oldValue, newValue)) return false;
         if (AllowedTransitions.Count == 0) return true;
+        return Matches(AllowedTransitions, oldValue, newValue);
+    }
+
+    /// <summary>Why a change is skipped — for reporting.</summary>
+    public string SkipReason(string? oldValue, string newValue) =>
+        Matches(BlockedTransitions, oldValue, newValue) ? "blocked" : "not-allowed";
+
+    /// <summary>BlockedTransitions parsed into (old, new) pairs; "*" = any, "NULL" = NULL target. Enforced again in SQL.</summary>
+    public IReadOnlyList<(string Old, string New)> BlockedRules =>
+        BlockedTransitions
+            .Select(t => t.Split('>'))
+            .Select(p => (Old: p[0].Trim(), New: p[1].Trim()))
+            .Distinct()
+            .ToList();
+
+    private static bool Matches(IEnumerable<string> rules, string? oldValue, string newValue)
+    {
         var old = oldValue ?? "NULL";
-        foreach (var t in AllowedTransitions)
+        foreach (var t in rules)
         {
             var parts = t.Split('>');
             var o = parts[0].Trim();

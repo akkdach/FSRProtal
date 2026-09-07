@@ -12,7 +12,7 @@ pmSyncedAt:
 
 | | |
 |---|---|
-| เวอร์ชันเอกสาร | 2026-09-04 |
+| เวอร์ชันเอกสาร | 2026-09-07 |
 | ชั้นเอกสาร | C — เจ้าของต้องตรวจ/เซ็น (ร่างโดย AI จากโค้ดจริงใน `MobileStatusSync/` และผล dry-run 2026-09-04) |
 | เจ้าของ | DevOps |
 | แหล่งความจริง | `MobileStatusSync/` (โค้ด + `deploy/*.ps1`) |
@@ -52,7 +52,7 @@ New-Item -ItemType Directory -Force C:\Services\MobileStatusSync
   "Fabric":  { "TenantId": "<AZURE_TENANT_ID>", "ClientId": "<AZURE_CLIENT_ID>", "ClientSecret": "<AZURE_CLIENT_SECRET>" },
   "Target":  { "ConnectionString": "Server=localhost,1433;Database=BevproFsProd;User ID=<PROD_DB_USER>;Password=<PROD_DB_PASSWORD>;Encrypt=False;TrustServerCertificate=True;Connection Timeout=30" },
   "Teams":   { "WebhookUrl": "<TEAMS_WEBHOOK_URL>" },
-  "Sync":    { "DryRun": true, "MaxChangesPerRun": 500, "AllowedTransitions": [] }
+  "Sync":    { "DryRun": true, "MaxChangesPerRun": 500, "AllowedTransitions": [], "BlockedTransitions": ["3>2"] }
 }
 ```
 
@@ -69,7 +69,7 @@ icacls C:\Services\MobileStatusSync\appsettings.Production.json /inheritance:r /
 | ขั้น | คำสั่ง (ใน `C:\Services\MobileStatusSync`) | ผ่านเมื่อ |
 |---|---|---|
 | 3.1 dry-run รอบแรก | `.\MobileStatusSync.exe --dry-run` | log ขึ้นครบ `[1/4]…[4/4]`, มีการ์ด 🧪 ใน Teams, มี `logs\changes-<วันที่>.csv` |
-| 3.2 ทบทวน transition | เปิด CSV ดูคอลัมน์ `old_value,new_value` | เจ้าของระบบยืนยันว่า transition ไหนต้องเขียน (ผล 2026-09-04: `1→0` และ `3→2` รวม ~420 แถวคือสถานะกลางของ app **ไม่ควรเขียนทับ**) |
+| 3.2 ทบทวน transition | เปิด CSV ดูคอลัมน์ `old_value,new_value` | เจ้าของระบบยืนยันว่า transition ไหนต้องเขียน (ยืนยันแล้ว 2026-09-07: `3` = รออนุมัติ ห้ามถอยเป็น `2` ส่วนอื่นอัปเดตหมด → `BlockedTransitions: ["3>2"]` เป็น default) |
 | 3.3 ตั้ง whitelist | แก้ `appsettings.Production.json` → `"AllowedTransitions": ["4>0", "4>2", "*>4"]` (หรือตามที่ตกลง) แล้ว `--dry-run` อีกครั้ง | breakdown เหลือเฉพาะที่ต้องการ · จำนวน "ข้าม" ตรงกับที่คาด |
 | 3.4 apply ครั้งแรก (backlog) | `.\MobileStatusSync.exe --apply --Sync:MaxChangesPerRun=5000` | การ์ด 🔄 บอกจำนวนที่อัปเดต = จำนวนใน dry-run รอบก่อน (±ที่ D365 เปลี่ยนระหว่างนั้น) |
 | 3.5 เปิดโหมดจริง | ตั้ง `"DryRun": false` ในไฟล์ · `MaxChangesPerRun` กลับเป็น `500` | `--dry-run` ไม่ต้องใส่อีก |

@@ -24,6 +24,15 @@ public static class Program
         args = ExpandShortcuts(args);
         try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* no console (Task Scheduler) */ }
 
+        // Diagnostics: --probe "<read-only SQL>" runs the query on the Fabric endpoint, prints the rows, and exits (no sync, no Teams).
+        string? probeSql = null;
+        var probeIdx = Array.IndexOf(args, "--probe");
+        if (probeIdx >= 0 && probeIdx + 1 < args.Length)
+        {
+            probeSql = args[probeIdx + 1];
+            args = args.Where((_, i) => i != probeIdx && i != probeIdx + 1).Append("--Teams:Enabled=false").ToArray();
+        }
+
         // A scheduled run must never overlap the previous one (Task Scheduler is also set to IgnoreNew, this is the second lock).
         using var mutex = new Mutex(initiallyOwned: true, name: @"Global\MobileStatusSync", out var isFirstInstance);
         if (!isFirstInstance)
@@ -62,6 +71,21 @@ public static class Program
         var host = Environment.MachineName;
         string Footer(int shown, int total) => $"{mode} · {host} · {DateTime.Now:yyyy-MM-dd HH:mm} · แสดง {shown} จาก {total} รายการ";
 
+        if (probeSql is not null)
+        {
+            try
+            {
+                var probeToken = await FabricSource.GetAccessTokenAsync(settings.Fabric, http, ct);
+                await FabricSource.ProbeAsync(settings.Fabric, probeToken, probeSql, maxRows: 100, ct);
+                return ExitOk;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"PROBE FAILED: {ex.GetType().Name}: {ex.Message}");
+                return ExitError;
+            }
+        }
+
         log.Info($"=== MobileStatusSync v{typeof(Program).Assembly.GetName().Version} start · mode={mode} · target={t.Table}.{t.StatusColumn} (key {t.KeyColumn}) · host={host}");
 
         try
@@ -94,22 +118,33 @@ public static class Program
             var allDiffs = await target.FindDiffsAsync(ct);
             log.Info($"[3/4] Compared with {t.Table}: {allDiffs.Count} service orders differ ({sw.ElapsedMilliseconds} ms)");
 
-            // Sync:AllowedTransitions — differences outside the whitelist are reported but never written.
+            // Transition rules: Sync:BlockedTransitions (blacklist, wins) then Sync:AllowedTransitions (whitelist).
+            // Differences that fail a rule are reported but never written.
             var diffs = allDiffs.Where(d => settings.Sync.IsAllowed(d.OldValue, d.NewValue)).ToList();
             var skipped = allDiffs.Count - diffs.Count;
             var skippedNote = "";
             if (skipped > 0)
             {
-                var skippedBreakdown = Breakdown(allDiffs.Where(d => !settings.Sync.IsAllowed(d.OldValue, d.NewValue)));
-                log.Info($"      skipped by Sync:AllowedTransitions ({skipped}): {skippedBreakdown}");
-                skippedNote = $"\n\nข้าม {skipped} รายการที่อยู่นอก AllowedTransitions: {skippedBreakdown}";
+                var rejected = allDiffs.Where(d => !settings.Sync.IsAllowed(d.OldValue, d.NewValue)).ToList();
+                var blocked = rejected.Where(d => settings.Sync.SkipReason(d.OldValue, d.NewValue) == "blocked").ToList();
+                var notAllowed = rejected.Where(d => settings.Sync.SkipReason(d.OldValue, d.NewValue) == "not-allowed").ToList();
+                if (blocked.Count > 0)
+                {
+                    log.Info($"      protected by Sync:BlockedTransitions ({blocked.Count}): {Breakdown(blocked)}");
+                    skippedNote += $"\n\n🔒 ไม่แตะ {blocked.Count} รายการตามกฎ BlockedTransitions ({string.Join(", ", settings.Sync.BlockedTransitions)}): {Breakdown(blocked)}";
+                }
+                if (notAllowed.Count > 0)
+                {
+                    log.Info($"      outside Sync:AllowedTransitions ({notAllowed.Count}): {Breakdown(notAllowed)}");
+                    skippedNote += $"\n\nข้าม {notAllowed.Count} รายการที่อยู่นอก AllowedTransitions: {Breakdown(notAllowed)}";
+                }
             }
 
             if (diffs.Count == 0)
             {
                 log.Info(skipped > 0 ? "No allowed differences — nothing to update." : "No differences — nothing to update.");
                 if (settings.Teams.NotifyWhenNoChanges)
-                    await SendAsync(settings.Teams, http, log, $"✅ {title}", "ไม่มี service order ที่ต้องอัปเดต" + skippedNote, [], "Good", Footer(0, allDiffs.Count), ct);
+                    await SendAsync(settings.Teams, http, log, $"✅ {title}", "ไม่มี service order ที่ต้องอัปเดต" + skippedNote, null, [], "Good", Footer(0, allDiffs.Count), ct);
                 return ExitOk;
             }
 
@@ -120,9 +155,14 @@ public static class Program
             if (diffs.Count > settings.Teams.MaxListedRows)
                 log.Info($"      … and {diffs.Count - settings.Teams.MaxListedRows} more");
 
-            var facts = diffs.Take(settings.Teams.MaxListedRows)
-                .Select(d => new Fact(d.Key, $"stage {d.StageId ?? "-"} · {d.OldValue ?? "NULL"} → {d.NewValue}"))
+            // Table for the Teams card: rows that will be written, then (up to 10) rows protected by BlockedTransitions.
+            var tableRows = diffs.Take(settings.Teams.MaxListedRows)
+                .Select(d => new[] { d.Key, d.StageId ?? "-", d.OldValue ?? "NULL", d.NewValue })
                 .ToList();
+            tableRows.AddRange(allDiffs
+                .Where(d => settings.Sync.SkipReason(d.OldValue, d.NewValue) == "blocked" && !settings.Sync.IsAllowed(d.OldValue, d.NewValue))
+                .Take(10)
+                .Select(d => new[] { d.Key, d.StageId ?? "-", d.OldValue ?? "NULL", $"🔒 คงเดิม (ไม่ให้เป็น {d.NewValue})" }));
 
             // circuit breaker (APPLY only — a dry run always reports the full picture)
             var overCap = settings.Sync.MaxChangesPerRun > 0 && diffs.Count > settings.Sync.MaxChangesPerRun;
@@ -132,7 +172,7 @@ public static class Program
                 await AlertOnceAsync(settings, http, log, "cap-exceeded",
                     $"⛔ {title}: หยุดอัปเดต — เกินเพดาน",
                     $"พบ **{diffs.Count}** รายการที่ต่างกัน มากกว่าเพดาน {settings.Sync.MaxChangesPerRun} รายการ/รอบ (Sync:MaxChangesPerRun) — **ยังไม่ได้อัปเดต** ตรวจสอบก่อนแล้วปรับเพดานถ้าถูกต้อง\n\n{breakdown}",
-                    "Attention", ct, facts, Footer(facts.Count, diffs.Count));
+                    "Attention", ct, tableRows, Footer(Math.Min(diffs.Count, settings.Teams.MaxListedRows), diffs.Count));
                 return ExitBlockedByCap;
             }
 
@@ -143,20 +183,20 @@ public static class Program
                 WriteChangeAudit(settings.LogDirectory, "DRY-RUN", diffs, log);
                 await SendAsync(settings.Teams, http, log,
                     $"🧪 [DRY RUN] {title}",
-                    $"พบ **{diffs.Count}** service order ที่ค่า `{t.StatusColumn}` ต่างจาก stage ใน D365 — **ยังไม่ได้อัปเดต** (โหมดทดสอบ)\n\n{breakdown}"
+                    $"พบ **{diffs.Count}** service order ที่ค่า `{t.StatusColumn}` (Mobile) ต่างจาก stage ใน F&O — **ยังไม่ได้อัปเดต** (โหมดทดสอบ)\n\n{breakdown}"
                     + (overCap ? $"\n\n⚠️ เกินเพดาน {settings.Sync.MaxChangesPerRun} รายการ/รอบ — โหมด APPLY จะถูกบล็อกจนกว่าจะปรับ Sync:MaxChangesPerRun" : ""),
-                    facts, "Warning", Footer(facts.Count, diffs.Count), ct);
+                    TableHeaders, tableRows, "Warning", Footer(Math.Min(diffs.Count, settings.Teams.MaxListedRows), diffs.Count), ct);
                 return ExitOk;
             }
 
             sw.Restart();
-            var affected = await target.ApplyAsync(diffs.Select(d => d.Key).ToList(), ct);
+            var affected = await target.ApplyAsync(diffs.Select(d => d.Key).ToList(), settings.Sync.BlockedRules, ct);
             log.Info($"[4/4] UPDATED {affected} rows in {t.Table}.{t.StatusColumn} ({sw.ElapsedMilliseconds} ms)");
             WriteChangeAudit(settings.LogDirectory, "APPLIED", diffs, log);
             await SendAsync(settings.Teams, http, log,
                 $"🔄 {title}: อัปเดต {affected} รายการ",
-                $"ค่า `{t.StatusColumn}` ของ service order ต่อไปนี้ถูกอัปเดตตาม stage ปัจจุบันใน D365\n\n{breakdown}",
-                facts, "Good", Footer(facts.Count, diffs.Count), ct);
+                $"ค่า `{t.StatusColumn}` (Mobile) ของ service order ต่อไปนี้ถูกอัปเดตตาม stage ปัจจุบันใน F&O\n\n{breakdown}",
+                TableHeaders, tableRows, "Good", Footer(Math.Min(diffs.Count, settings.Teams.MaxListedRows), diffs.Count), ct);
             return ExitOk;
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
@@ -231,8 +271,11 @@ public static class Program
     /// Error/warning cards are throttled per key (default 60 min) so a persistent failure does not post to Teams on every scheduled run.
     /// State lives in &lt;LogDirectory&gt;/alert-state.json.
     /// </summary>
+    /// <summary>Column headers of the change table in every card — makes clear which side is F&amp;O and which is Mobile.</summary>
+    private static readonly string[] TableHeaders = ["Service order", "F&O stage", "Mobile ตอนนี้", "Mobile จะเป็น"];
+
     private static async Task AlertOnceAsync(AppSettings s, HttpClient http, Log log, string key, string title, string summary, string color,
-        CancellationToken ct, IReadOnlyList<Fact>? facts = null, string? footer = null)
+        CancellationToken ct, IReadOnlyList<string[]>? rows = null, string? footer = null)
     {
         if (!s.Teams.Enabled) return;
         var dir = ResolveDir(s.LogDirectory);
@@ -251,7 +294,8 @@ public static class Program
             return;
         }
 
-        var sent = await SendAsync(s.Teams, http, log, title, summary, facts ?? [], color, footer ?? $"{Environment.MachineName} · {DateTime.Now:yyyy-MM-dd HH:mm}", ct);
+        var sent = await SendAsync(s.Teams, http, log, title, summary, rows is { Count: > 0 } ? TableHeaders : null, rows ?? [], color,
+            footer ?? $"{Environment.MachineName} · {DateTime.Now:yyyy-MM-dd HH:mm}", ct);
         if (!sent) return;
         state[key] = DateTime.UtcNow;
         try

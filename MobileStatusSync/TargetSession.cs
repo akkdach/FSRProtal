@@ -99,7 +99,7 @@ ORDER BY t.{_t.QuotedKey};";
     /// The diff predicate is re-checked so a row that changed between diff and apply is not blindly overwritten.
     /// Returns rows affected.
     /// </summary>
-    public async Task<int> ApplyAsync(IReadOnlyCollection<string> keys, CancellationToken ct)
+    public async Task<int> ApplyAsync(IReadOnlyCollection<string> keys, IReadOnlyList<(string Old, string New)> blockedRules, CancellationToken ct)
     {
         if (keys.Count == 0) return 0;
 
@@ -118,17 +118,34 @@ ORDER BY t.{_t.QuotedKey};";
         }
 
         var touch = _t.QuotedTouch is null ? "" : $", t.{_t.QuotedTouch} = SYSDATETIME()";
+
+        // Second line of defence for Sync:BlockedTransitions: even if the target changed between FindDiffs and this
+        // UPDATE, a blocked (old → new) pair is never written. "*" = any value, "NULL" = NULL target.
+        var oldExpr = $"ISNULL(CAST(t.{_t.QuotedStatus} AS nvarchar(40)), N'NULL')";
+        var guard = "";
+        var guardParams = new List<(string name, string value)>();
+        for (int i = 0; i < blockedRules.Count; i++)
+        {
+            var (o, n) = blockedRules[i];
+            if (o == "*" && n == "*") { guard += "\n  AND 1 = 0"; continue; }          // blocks everything
+            var conds = new List<string>();
+            if (o != "*") { guardParams.Add(($"@bo{i}", o)); conds.Add($"{oldExpr} = @bo{i}"); }
+            if (n != "*") { guardParams.Add(($"@bn{i}", n)); conds.Add($"s.mobilestatus = @bn{i}"); }
+            guard += $"\n  AND NOT ({string.Join(" AND ", conds)})";
+        }
+
         var sql = $@"
 UPDATE t SET t.{_t.QuotedStatus} = s.mobilestatus{touch}
 FROM {_t.QuotedTable} AS t
 JOIN #src AS s ON s.serviceorderid = t.{_t.QuotedKey}
 JOIN #apply AS a ON a.serviceorderid = t.{_t.QuotedKey}
-WHERE {DiffPredicate};";
+WHERE {DiffPredicate}{guard};";
 
         await using var tx = (SqlTransaction)await _conn.BeginTransactionAsync(ct);
         try
         {
             await using var cmd = new SqlCommand(sql, _conn, tx) { CommandTimeout = _t.CommandTimeoutSeconds };
+            foreach (var (name, value) in guardParams) cmd.Parameters.Add(name, SqlDbType.NVarChar, 40).Value = value;
             var affected = await cmd.ExecuteNonQueryAsync(ct);
             await tx.CommitAsync(ct);
             return affected;
