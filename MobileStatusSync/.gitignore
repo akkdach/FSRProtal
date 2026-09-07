@@ -1,0 +1,12 @@
+# build output
+bin/
+obj/
+publish/
+*.user
+
+# runtime
+logs/
+
+# real secrets live only on the VM
+appsettings.Production.json
+appsettings.*.local.json

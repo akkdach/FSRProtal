@@ -16,6 +16,7 @@ Microsoft Fabric OneLake (GraphQL + SQL Endpoint) มา cache แล้วเ�
 |---|---|
 | `onelake-middleware/` | Backend — Node.js (CommonJS) + Express 4, โครง MVC: `src/routes/api.js` → `src/controllers/` → `src/services/` · auth 3 แบบ: Entra ID → internal JWT (`/api/auth/login`), Basic Auth (`/api/request-status`), Sync Basic Auth (`/api/sync/*`) |
 | `FSRProtal/` | Frontend — React 19 + Vite 7 + TypeScript + MUI 7 + material-react-table + i18next (th/en/ja/zh) · หลายหน้ายังใช้ mock data ใน `src/data/` |
+| `MobileStatusSync/` | Console app .NET 8 (C#) รันจาก Windows Task Scheduler บน VM `20.33.118.76` ทุก 1 ชั่วโมง — อ่าน view `update_mobile_status_when_callbackwork` จาก Fabric SQL endpoint แล้วอัปเดต `BevproFsProd.dbo.work_order.WEB_STATUS` + แจ้ง Teams · อ่าน `MobileStatusSync/README.md` ก่อนแตะ (มีข้อสันนิษฐาน ZZMOBILE_STATUS vs WEB_STATUS ที่ต้องยืนยัน) |
 | `.github/workflows/` | CI/CD ตัวจริง (GitHub อ่านเฉพาะ `.github/` ที่ root) — มีสำเนาซ้ำใน `onelake-middleware/.github/` เนื้อหาเดียวกัน |
 | `onelake-middleware/test_*.js`, `debug_*.js`, `introspect_*.js` | สคริปต์ ad-hoc ยิงระบบจริงเพื่อ debug/สำรวจ schema — ไม่ใช่ test suite อัตโนมัติ (repo นี้ไม่มี test framework เลย) |
 
@@ -33,6 +34,11 @@ npm --prefix FSRProtal run lint            # ESLint
 
 # Docker (ในโฟลเดอร์ onelake-middleware/ — port 3005, mount Freeze Data จาก NAS)
 docker compose up -d --build
+
+# MobileStatusSync (.NET 8 — ต้องมี dotnet SDK; runtime ใหม่กว่าใช้ได้ผ่าน RollForward=Major)
+dotnet build MobileStatusSync -c Release
+dotnet MobileStatusSync/bin/Release/net8.0/MobileStatusSync.dll --dry-run --no-teams   # ใส่ creds ผ่าน env MSS_* (ดู README)
+dotnet publish MobileStatusSync -c Release -r win-x64 --self-contained true -o MobileStatusSync/publish   # แพ็กไป VM
 ```
 
 env keys ที่ backend ใช้ (เขียนได้แค่ชื่อ key — ค่าจริงอยู่ใน `.env` ที่ gitignore แล้ว):
@@ -47,6 +53,9 @@ env keys ที่ backend ใช้ (เขียนได้แค่ชื่
 - มี `docker-compose.yml` + `Dockerfile` (port 3005) สำหรับรันบน Synology NAS ด้วย — mount `/volume1/web/Freeze Data`
   ⚠️ mount path นี้ไม่ตรงกับ `config.freezeDataPath` (`/app/freeze-data`) ใน `src/config/index.js` — เช็คก่อนพึ่ง Freeze Data ใน container
 - **Frontend ไม่มี pipeline deploy** — มีแค่ `dist/` ที่ commit ค้างไว้ใน git
+- **MobileStatusSync ไม่มี pipeline** — publish เอง copy ไป `C:\Services\MobileStatusSync` บน VM `20.33.118.76` แล้วรัน
+  `deploy/Install-ScheduledTask.ps1` — ขั้นตอน/rollback ใน `docs/RB-mobile-status-sync.md` · secret อยู่ใน `appsettings.Production.json` บน VM เท่านั้น (gitignore)
+  ⚠️ default `Sync:DryRun=true` — ห้ามตั้ง `false` จนกว่าเจ้าของระบบยืนยัน `Target:StatusColumn` และ `Sync:AllowedTransitions`
 
 ## ข้อห้าม / กับดักที่มีหลักฐานจริง
 
@@ -76,6 +85,7 @@ env keys ที่ backend ใช้ (เขียนได้แค่ชื่
 | เพิ่ม config key / env | `.env` (เครื่องตัวเอง) + ตาราง env keys ใน `CLAUDE.md` นี้ — ยังไม่มี `.env.example` ถ้าสร้างให้ใส่แค่ชื่อ key |
 | แก้ `Dockerfile` / `docker-compose.yml` / workflow | สำเนา workflow ทั้ง 2 ที่ (ดูข้อห้าม) + `docs/RB-*.md` ถ้าเริ่มมี runbook |
 | แก้ auth flow (JWT / Basic / Entra) | `src/config/swagger.js` (security scheme) + `test_login.html` ที่ใช้ทดสอบ login |
+| แก้ `MobileStatusSync/*.cs` หรือ `appsettings.json` | `MobileStatusSync/README.md` (ตาราง config/พฤติกรรม) + `docs/RB-mobile-status-sync.md` ถ้ากระทบขั้นติดตั้ง/rollback · publish ใหม่แล้ว copy ทับบน VM |
 | ตัดสินใจเชิงสถาปัตยกรรม | `docs/AD-*.md` ฉบับใหม่ — ไม่แก้ทับฉบับเก่า ฉบับเก่ามาร์ค superseded |
 
 ## แผนที่เอกสาร
@@ -85,4 +95,6 @@ env keys ที่ backend ใช้ (เขียนได้แค่ชื่
 | `CLAUDE.md` | ไฟล์นี้ — กติกา + แผนที่ (repo ยังไม่มี README ที่ root; `FSRProtal/README.md` เป็น Vite template ไม่มีเนื้อหาจริง) |
 | `docs/ST-documentation-standard.md` | มาตรฐานชื่อไฟล์/โครงเอกสารของทีม — เอกสารใหม่ทุกฉบับต้องตามนี้ |
 | Swagger UI `/api-docs` | สัญญา API ทุก endpoint — generate สดจาก `onelake-middleware/src/config/swagger.js` |
+| `MobileStatusSync/README.md` | MobileStatusSync ทำอะไร, config ทุก key, ทำไมปลายทางเป็น `WEB_STATUS`, ผล dry-run |
+| `docs/RB-mobile-status-sync.md` | runbook ติดตั้ง/rollout/ตรวจสอบ/แก้ปัญหา/rollback ของ MobileStatusSync บน VM (ชั้น C — DevOps ต้องเซ็น) |
 | `onelake-middleware/introspect.txt`, `git_error.log`, `push_error.log` | เศษไฟล์ debug เก่า — ไม่ใช่เอกสาร อย่าใช้อ้างอิง |
