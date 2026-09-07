@@ -156,7 +156,7 @@ class FSRProtalController {
             
             if (String(req.body.HR_Status || '').trim().toUpperCase() === 'DRAFT') {
                 const teamsNotificationService = require('../services/teamsNotificationService');
-                teamsNotificationService.checkAndNotifyDraftManpower().catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+                teamsNotificationService.checkAndNotifyDraftManpower({ technician: req.body.Technician }).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
             }
 
             res.status(201).json({ success: true, data: result, message: 'Manpower created' });
@@ -175,7 +175,7 @@ class FSRProtalController {
             
             if (String(req.body.HR_Status || '').trim().toUpperCase() === 'DRAFT') {
                 const teamsNotificationService = require('../services/teamsNotificationService');
-                teamsNotificationService.checkAndNotifyDraftManpower().catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+                teamsNotificationService.checkAndNotifyDraftManpower({ technician: req.body.Technician }).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
             }
 
             res.json({ success: true, data: result, message: 'Manpower updated' });
@@ -195,11 +195,11 @@ class FSRProtalController {
 
             logToFile(`[FSRProtal-SQL] API Request: DELETE /api/manpower/${no}`);
             const prodSqlService = require('../services/prodSqlService');
-            await prodSqlService.deleteManpower(no);
+            const { technician } = (await prodSqlService.deleteManpower(no)) || {};
             
             // Notify MS Teams
             const teamsNotificationService = require('../services/teamsNotificationService');
-            teamsNotificationService.notifyDeleteManpower(deletedName, deletedCode, deletedBy).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
+            teamsNotificationService.notifyDeleteManpower(deletedName, deletedCode, deletedBy, technician).catch(e => logToFile(`[TeamsAlert] Trigger Error: ${e.message}`));
 
             res.json({ success: true, message: 'Manpower deleted' });
         } catch (error) {

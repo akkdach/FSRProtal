@@ -308,12 +308,19 @@ class ProdSqlService {
             const pool = await this.connect();
             logToFile(`Deleting from Table: Manpower_Operations No=${no} in BevproFsProd`);
 
+            // Read the Technician flag first — the Teams delete alert is routed by it
+            const before = await pool.request()
+                .input('No', sql.Int, no)
+                .query(`SELECT [Technician] FROM [dbo].[Manpower_Operations] WHERE [No] = @No`);
+            const technician = before.recordset[0] ? before.recordset[0].Technician : null;
+
             const result = await pool.request()
                 .input('No', sql.Int, no)
                 .query(`DELETE FROM [dbo].[Manpower_Operations] WHERE [No] = @No`);
 
             if (result.rowsAffected[0] === 0) throw new Error(`Manpower No ${no} not found`);
             logToFile(`Delete Success: Manpower No=${no}`);
+            return { technician };
         } catch (err) {
             logToFile(`SQL Delete Error (Manpower_Operations): ${err.message}`);
             throw err;
