@@ -17,7 +17,7 @@ Microsoft Fabric OneLake (GraphQL + SQL Endpoint) มา cache แล้วเ�
 | `onelake-middleware/` | Backend — Node.js (CommonJS) + Express 4, โครง MVC: `src/routes/api.js` → `src/controllers/` → `src/services/` · auth 3 แบบ: Entra ID → internal JWT (`/api/auth/login`), Basic Auth (`/api/request-status`), Sync Basic Auth (`/api/sync/*`) |
 | `FSRProtal/` | Frontend — React 19 + Vite 7 + TypeScript + MUI 7 + material-react-table + i18next (th/en/ja/zh) · หลายหน้ายังใช้ mock data ใน `src/data/` |
 | `MobileStatusSync/` | Console app .NET 8 (C#) รันจาก Windows Task Scheduler บน VM `20.33.118.76` ทุก 1 ชั่วโมง — อ่าน view `update_mobile_status_when_callbackwork` จาก Fabric SQL endpoint แล้วอัปเดต `BevproFsProd.dbo.work_order.WEB_STATUS` + แจ้ง Teams · อ่าน `MobileStatusSync/README.md` ก่อนแตะ (มีข้อสันนิษฐาน ZZMOBILE_STATUS vs WEB_STATUS ที่ต้องยืนยัน) |
-| `.github/workflows/` | CI/CD ตัวจริง (GitHub อ่านเฉพาะ `.github/` ที่ root) — มีสำเนาซ้ำใน `onelake-middleware/.github/` เนื้อหาเดียวกัน |
+| `.github/workflows/` | CI/CD ตัวจริง (GitHub อ่านเฉพาะ `.github/` ที่ root) — มีสำเนาซ้ำใน `onelake-middleware/.github/` เนื้อหาเดียวกัน · `main_onelake-middleware.yml` = deploy backend · `material-master-sync.yml` = ตัวตั้งเวลานอกแอป ยิง `POST /api/sync/material-master-sync` 05:30 + 13:00 (Asia/Bangkok) |
 | `onelake-middleware/test_*.js`, `debug_*.js`, `introspect_*.js` | สคริปต์ ad-hoc ยิงระบบจริงเพื่อ debug/สำรวจ schema — ไม่ใช่ test suite อัตโนมัติ (repo นี้ไม่มี test framework เลย) |
 
 ## คำสั่งที่ใช้จริง
@@ -44,7 +44,10 @@ dotnet publish MobileStatusSync -c Release -r win-x64 --self-contained true -o M
 env keys ที่ backend ใช้ (เขียนได้แค่ชื่อ key — ค่าจริงอยู่ใน `.env` ที่ gitignore แล้ว):
 `PORT` · `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` (service principal ต่อ Fabric) ·
 `JWT_SECRET` · `BASIC_AUTH_USER/PASS` · `SYNC_AUTH_USER/PASS` · `ENTRA_TENANT_ID` / `ENTRA_CLIENT_ID` ·
-`QAS_DB_*` / `PROD_DB_*` / `SYNC_DB_*` (SQL Server 3 ชุด) · `TEAMS_WEBHOOK_URL` (ห้อง Teams หลัก — Technician = Yes/ว่าง) / `TEAMS_WEBHOOK_URL_NON_TECH` (ห้องสำหรับ Technician = No; ไม่ตั้ง = fallback ห้องหลัก) · `MATERIAL_MASTER_CRON`
+`QAS_DB_*` / `PROD_DB_*` / `SYNC_DB_*` (SQL Server 3 ชุด) · `TEAMS_WEBHOOK_URL` (ห้อง Teams หลัก — Technician = Yes/ว่าง) / `TEAMS_WEBHOOK_URL_NON_TECH` (ห้องสำหรับ Technician = No; ไม่ตั้ง = fallback ห้องหลัก) ·
+`SYNC_TEAMS_WEBHOOK_URL` (ห้องงานระบบ = แชต "Noti Innovation" — การ์ดผล sync ทุกรอบ; ไม่ตั้ง = ไม่ส่ง ไม่ fallback ไปห้อง HR; เครื่อง dev อ่าน `MOBILE_SYNC_TEAMS_WEBHOOK_URL` แทนได้) ·
+`MATERIAL_MASTER_CRON` (รอบ **สำรอง** ในโปรเซส: cron หลายตัวคั่นด้วย `;` หรือ `off`; default `45 5 * * *;15 13 * * *`) · `MATERIAL_MASTER_DEDUP_MINUTES` (default 45)
+GitHub Actions secrets (repo Settings): `SYNC_AUTH_USER` / `SYNC_AUTH_PASS` — ใช้โดย `material-master-sync.yml` ค่าเดียวกับ app setting ของ Web App
 
 ## Deploy
 
@@ -61,7 +64,8 @@ env keys ที่ backend ใช้ (เขียนได้แค่ชื่
 
 - **ห้าม commit secret** — `.env` มีค่าจริงครบชุด (gitignore แล้ว ห้ามหลุด) และมี **credential จริง hardcode
   เป็น default อยู่ใน `onelake-middleware/src/config/index.js` ส่วน `syncSql`** — ห้าม copy ค่านั้นไปไฟล์อื่น/เอกสาร/chat
-  งานค้าง: ย้ายเข้า env แล้ว rotate
+  งานค้าง: ย้ายเข้า env แล้ว rotate — ⚠️ **repo นี้เป็น public** (`gh repo view` → `isPrivate: false`, ตรวจ 2026-09-17)
+  ค่าที่ hardcode จึงถือว่าหลุดแล้ว และ log ของ GitHub Actions ทุก run ใครก็เปิดอ่านได้ — ห้าม echo ค่า secret ใน workflow
 - **ห้ามเปิด/อ่านไฟล์ใหญ่ทั้งไฟล์** — `server_debug.log` (~1.3GB, logger เขียนต่อท้ายเรื่อย ๆ) และ
   `data_cache_*.json` (~100-170MB, disk cache ของ OneLake — ลบได้ ระบบดึงใหม่เอง) ใช้ `tail`/`grep` เท่านั้น
 - **git track ของที่ไม่ควร track ค้างอยู่** — `FSRProtal/node_modules/` (1,800+ ไฟล์), `FSRProtal/dist/`,
@@ -69,8 +73,13 @@ env keys ที่ backend ใช้ (เขียนได้แค่ชื่
   จะเอาออกต้อง `git rm --cached` (อย่าทำโดยไม่ได้รับคำสั่ง)
 - **workflow มี 2 สำเนา** (`.github/` ที่ root และใน `onelake-middleware/.github/`) — ตัวที่ทำงานจริงคือ root
   แก้แล้วต้องแก้ให้ตรงกันทั้งคู่ หรือตกลงลบสำเนาซ้อน
-- **cron 18-table sync (23:00) ถูกปิดไว้ใน `server.js`** ("รอกำหนดเวลา Sync ใหม่") — เหลือเฉพาะ
-  Material Master sync (default 08:45 Asia/Bangkok, override ด้วย `MATERIAL_MASTER_CRON`) — อย่าเปิด `initCronJobs()` กลับเอง
+- **cron 18-table sync (23:00) ถูกปิดไว้ใน `server.js`** ("รอกำหนดเวลา Sync ใหม่") — อย่าเปิด `initCronJobs()` กลับเอง
+- **Material Master sync มีตัวตั้งเวลา 2 ตัวโดยตั้งใจ** — หลัก = GitHub Actions 05:30 + 13:00, สำรอง = `node-cron` ในโปรเซส 05:45 + 13:15
+  ทั้งคู่วิ่งผ่าน `src/jobs/materialMasterSync.js` ซึ่งกันรันซ้ำ (กำลังรันอยู่ / เพิ่งสำเร็จ < 45 นาที → ข้าม) อย่าเรียก
+  `syncService.syncFromGraphQLUpsert` ตรง ๆ จากที่อื่น จะข้ามทั้งตัวกันซ้ำและการแจ้ง Teams · `node-cron` ยิงไม่ได้ถ้าโปรเซสถูก unload
+  → Web App ต้องเปิด **Always On** · app setting `MATERIAL_MASTER_CRON` แบบหลายรอบ (`;`) ต้องตั้ง **หลัง** deploy โค้ดชุดนี้เท่านั้น
+- **MERGE ของ material_master อัปเดตเฉพาะคอลัมน์ที่ต้นทางส่งมา** (`syncService.buildUpsertMerge`) — `PICTURE_URL`, `TRADE_CODE`,
+  `ITEM_REFERENCE`, `COMPRESSOR` เป็นคอลัมน์ที่ดูแลจากที่อื่น ห้ามแก้กลับเป็น "อัปเดตทุกคอลัมน์" (เคยเขียน NULL ทับทุกเช้า)
 - **สคริปต์ `test_*.js` / `debug_*.js` ยิงระบบจริง** (Fabric / SQL / GraphQL production) — อ่านโค้ดก่อนรันทุกครั้ง
 - CI รัน `npm run test --if-present` = ไม่มี test รันจริง — **การ build ผ่านไม่ได้แปลว่าโค้ดถูก** เช็คเองก่อน push main
 
@@ -97,4 +106,5 @@ env keys ที่ backend ใช้ (เขียนได้แค่ชื่
 | Swagger UI `/api-docs` | สัญญา API ทุก endpoint — generate สดจาก `onelake-middleware/src/config/swagger.js` |
 | `MobileStatusSync/README.md` | MobileStatusSync ทำอะไร, config ทุก key, ทำไมปลายทางเป็น `WEB_STATUS`, ผล dry-run |
 | `docs/RB-mobile-status-sync.md` | runbook ติดตั้ง/rollout/ตรวจสอบ/แก้ปัญหา/rollback ของ MobileStatusSync บน VM (ชั้น C — DevOps ต้องเซ็น) |
+| `docs/RB-material-master-sync.md` | runbook ของ Auto Sync Material Master — ตารางเวลา 2 ตัวตั้งเวลา, ค่าที่ต้องตั้ง, วิธีรู้ว่าทำงาน, แก้ปัญหา, สั่งรันเอง, ปิด/ย้อนกลับ (ชั้น C — DevOps ต้องเซ็น) |
 | `onelake-middleware/introspect.txt`, `git_error.log`, `push_error.log` | เศษไฟล์ debug เก่า — ไม่ใช่เอกสาร อย่าใช้อ้างอิง |

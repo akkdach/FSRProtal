@@ -41,7 +41,7 @@ const proIoT = (summary, extraParams = [], description) => ({
     }
 });
 
-// Sync endpoints ทั้ง 19 เส้นใช้ Basic Auth และไม่รับ parameter ใดๆ
+// Sync endpoints ทั้ง 19 เส้นใช้ Basic Auth และไม่รับ parameter ใดๆ (ยกเว้น material-master-sync — ดูด้านล่าง)
 const syncOp = (label, sourceView, targetTable, mode) => ({
     post: {
         tags: ['🔄 Sync (F&O → SQL)'],
@@ -103,10 +103,33 @@ const syncPaths = {};
 SYNC_ENDPOINTS.forEach(([route, label, sourceView, targetTable]) => {
     syncPaths[`/api/sync/${route}`] = syncOp(label, sourceView, targetTable, TRUNCATE_LOAD);
 });
-// Material Master ใช้ MERGE (upsert) ลง PROD ไม่ truncate — มี cron รันทุกวัน 08:45 (Asia/Bangkok)
-syncPaths['/api/sync/material-master-sync'] = syncOp(
+// Material Master ใช้ MERGE (upsert) ลง PROD ไม่ truncate
+// ตัวตั้งเวลาหลัก = GitHub Actions (.github/workflows/material-master-sync.yml) 05:30 + 13:00 Asia/Bangkok ยิงเส้นนี้
+// รอบสำรองในแอป = node-cron 05:45 + 13:15 (MATERIAL_MASTER_CRON) — ข้ามเองถ้าเพิ่ง sync สำเร็จ
+const materialMasterOp = syncOp(
     'Material Master', 'Sync_Material_master', 'material_master (BevproFsProd)', 'Upsert (MERGE)'
 );
+materialMasterOp.post.description +=
+    '\n\n**MERGE อัปเดตเฉพาะคอลัมน์ที่ต้นทางส่งมา** (DESCRIPTION, UNIT, DAMAGE_MATERIAL, DAMAGE_MAT_DESC) — คอลัมน์ที่มีเฉพาะปลายทาง (PICTURE_URL, TRADE_CODE, ITEM_REFERENCE, COMPRESSOR) ไม่ถูกแตะ; แถวใหม่ INSERT ครบทุกคอลัมน์' +
+    '\n\nส่งผลทุกรอบ (สำเร็จ/ล้มเหลว) เป็นการ์ดเข้า Teams ห้องงานระบบ (SYNC_TEAMS_WEBHOOK_URL)' +
+    '\n\nกันรันซ้ำ: ถ้ามีรอบกำลังรันอยู่ หรือเพิ่ง sync สำเร็จภายใน MATERIAL_MASTER_DEDUP_MINUTES (default 45) จะตอบ 200 พร้อม `skipped: true` โดยไม่ sync และไม่แจ้ง Teams — ใช้ `force=1` เพื่อบังคับรัน';
+materialMasterOp.post.parameters = [
+    { name: 'force', in: 'query', required: false, description: 'บังคับรันแม้เพิ่ง sync สำเร็จ (1 / true) — ไม่ข้ามกรณีมีรอบกำลังรันอยู่', schema: { type: 'string', enum: ['1', 'true', '0', 'false'], example: '1' } },
+    { name: 'trigger', in: 'query', required: false, description: 'ใครสั่งรัน — แสดงในการ์ด Teams และ log', schema: { type: 'string', enum: ['github-actions', 'manual'], default: 'manual' } }
+];
+Object.assign(materialMasterOp.post.responses['200'].content['application/json'].schema.properties, {
+    skipped: { type: 'boolean', description: 'true = ไม่ได้ sync รอบนี้ (ดู reason)', example: false },
+    reason: { type: 'string', enum: ['already_running', 'recent_success'], description: 'มีเฉพาะเมื่อ skipped = true' },
+    lastSuccessAt: { type: 'string', format: 'date-time', description: 'มีเฉพาะเมื่อ reason = recent_success' },
+    durationSec: { type: 'number', example: 12.4 }
+});
+Object.assign(materialMasterOp.post.responses['200'].content['application/json'].schema.properties.data.properties, {
+    inserted: { type: 'integer', description: 'แถวใหม่ที่ INSERT', example: 3 },
+    updated: { type: 'integer', description: 'แถวเดิมที่ถูก UPDATE ทับ', example: 5892 },
+    updatedColumns: { type: 'array', items: { type: 'string' }, example: ['DESCRIPTION', 'UNIT', 'DAMAGE_MATERIAL', 'DAMAGE_MAT_DESC'] },
+    preservedColumns: { type: 'array', items: { type: 'string' }, example: ['PICTURE_URL', 'TRADE_CODE', 'ITEM_REFERENCE', 'COMPRESSOR'] }
+});
+syncPaths['/api/sync/material-master-sync'] = materialMasterOp;
 
 // ========== Manpower / Worker field schemas ==========
 const manpowerProperties = {

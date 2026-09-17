@@ -378,6 +378,46 @@ class SyncService {
     }
 
     /**
+     * Build the MERGE batch for syncFromGraphQLUpsert (pure — no DB access, unit-testable).
+     *
+     * WHEN MATCHED updates ONLY the columns the source delivers (`sourceKeys`). Columns that exist only in
+     * the target (material_master: PICTURE_URL, TRADE_CODE, ITEM_REFERENCE, COMPRESSOR) are maintained
+     * elsewhere; staging holds NULL for them, so including them in UPDATE SET wiped them on every run.
+     * New rows still INSERT every column (target-only ones start as NULL).
+     * OUTPUT $action feeds the inserted/updated counts shown in the Teams result card.
+     */
+    buildUpsertMerge({ targetTableName, stagingTableName, primaryKey, columns, sourceKeys }) {
+        if (!columns.includes(primaryKey)) throw new Error(`Target table ${targetTableName} has no column ${primaryKey}`);
+        if (!sourceKeys.has(primaryKey)) throw new Error(`Source data has no primary key field ${primaryKey}`);
+
+        const updatable = columns.filter(c => c !== primaryKey && sourceKeys.has(c));
+        const preserved = columns.filter(c => c !== primaryKey && !sourceKeys.has(c));
+        const insertCols = columns.map(c => `[${c}]`).join(', ');
+        const insertVals = columns.map(c => `SOURCE.[${c}]`).join(', ');
+        const whenMatched = updatable.length
+            ? `WHEN MATCHED THEN
+                    UPDATE SET ${updatable.map(c => `TARGET.[${c}] = SOURCE.[${c}]`).join(', ')}`
+            : '';
+
+        const sqlText = `
+                DECLARE @merge_actions TABLE (act NVARCHAR(10));
+                MERGE dbo.[${targetTableName}] AS TARGET
+                USING dbo.[${stagingTableName}] AS SOURCE
+                ON (TARGET.[${primaryKey}] = SOURCE.[${primaryKey}])
+                ${whenMatched}
+                WHEN NOT MATCHED BY TARGET THEN
+                    INSERT (${insertCols})
+                    VALUES (${insertVals})
+                OUTPUT $action INTO @merge_actions;
+                SELECT
+                    ISNULL(SUM(CASE WHEN act = 'INSERT' THEN 1 ELSE 0 END), 0) AS inserted,
+                    ISNULL(SUM(CASE WHEN act = 'UPDATE' THEN 1 ELSE 0 END), 0) AS updated
+                FROM @merge_actions;
+            `;
+        return { sql: sqlText, updatable, preserved };
+    }
+
+    /**
      * Upsert Sync Function (INSERT + UPDATE via MERGE, NO TRUNCATE)
      * Uses a staging table approach: bulk insert into staging, then MERGE into target.
      */
@@ -469,32 +509,29 @@ class SyncService {
             const colResult = await pool.request().query(colQuery);
             const columns = colResult.recordset.map(r => r.COLUMN_NAME);
 
-            const updateSet = columns.filter(c => c !== primaryKey).map(c => `TARGET.[${c}] = SOURCE.[${c}]`).join(', ');
-            const insertCols = columns.map(c => `[${c}]`).join(', ');
-            const insertVals = columns.map(c => `SOURCE.[${c}]`).join(', ');
+            // Only fields the source actually delivers may overwrite existing rows (see buildUpsertMerge).
+            // prepareBulkData matches by exact column name (item[col]), so the same rule applies here.
+            const sourceKeys = new Set();
+            for (const row of allData) for (const k of Object.keys(row)) sourceKeys.add(k);
 
             // 7. Execute MERGE (INSERT + UPDATE)
-            const mergeQuery = `
-                MERGE dbo.[${targetTableName}] AS TARGET
-                USING dbo.[${stagingTableName}] AS SOURCE
-                ON (TARGET.[${primaryKey}] = SOURCE.[${primaryKey}])
-                WHEN MATCHED THEN
-                    UPDATE SET ${updateSet}
-                WHEN NOT MATCHED BY TARGET THEN
-                    INSERT (${insertCols})
-                    VALUES (${insertVals});
-            `;
-
-            logToFile(`[SyncService][Upsert] Executing MERGE statement...`);
-            const mergeResult = await pool.request().query(mergeQuery);
+            const merge = this.buildUpsertMerge({ targetTableName, stagingTableName, primaryKey, columns, sourceKeys });
+            logToFile(`[SyncService][Upsert] Executing MERGE — update columns: ${merge.updatable.join(', ') || '(none)'}; preserved (not in source): ${merge.preserved.join(', ') || '(none)'}`);
+            const mergeResult = await pool.request().query(merge.sql);
 
             // 8. Cleanup staging
             await pool.request().query(`DROP TABLE dbo.[${stagingTableName}];`);
 
-            const modifiedRows = mergeResult.rowsAffected[0];
-            logToFile(`[SyncService][Upsert] MERGE completed. Modified rows: ${modifiedRows}, Total processed: ${allData.length}`);
+            const counts = (mergeResult.recordset && mergeResult.recordset[0]) || {};
+            const inserted = Number(counts.inserted) || 0;
+            const updated = Number(counts.updated) || 0;
+            logToFile(`[SyncService][Upsert] MERGE completed. Inserted: ${inserted}, Updated: ${updated}, Total processed: ${allData.length}`);
 
-            return { success: true, mode: 'Upsert (MERGE)', modified: modifiedRows, total: allData.length };
+            return {
+                success: true, mode: 'Upsert (MERGE)', total: allData.length,
+                inserted, updated, modified: inserted + updated,
+                updatedColumns: merge.updatable, preservedColumns: merge.preserved,
+            };
         } catch (err) {
             logToFile(`[SyncService][Upsert] Sync Error: ${err.message}`);
             throw err;

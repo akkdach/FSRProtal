@@ -70,38 +70,44 @@ function initCronJobs() {
     logToFile('[Cron] Scheduled job set for 23:00 (Asia/Bangkok) every day — 18 table sync.');
 }
 
-module.exports = { initCronJobs, initMaterialMasterSyncJob };
+module.exports = { initCronJobs, initMaterialMasterSyncJob, parseCronList };
+
+// In-process FALLBACK schedule for the Material Master sync.
+// Primary scheduler = GitHub Actions (.github/workflows/material-master-sync.yml, 05:30 + 13:00 BKK) calling
+// POST /api/sync/material-master-sync. These rounds run 15 minutes later and skip themselves when the primary
+// already succeeded (see src/jobs/materialMasterSync.js) — so a late/missed GitHub run never costs a round.
+// MATERIAL_MASTER_CRON: one or more cron expressions separated by ';' (Asia/Bangkok), or 'off' to disable.
+// Never throws: a bad expression is logged and skipped so it cannot take the server down at startup.
+function parseCronList(raw) {
+    const text = String(raw ?? '').trim();
+    if (!text || text.toLowerCase() === 'off') return { disabled: true, valid: [], invalid: [] };
+    const all = text.split(';').map(s => s.trim()).filter(Boolean);
+    return { disabled: false, valid: all.filter(e => cron.validate(e)), invalid: all.filter(e => !cron.validate(e)) };
+}
 
 function initMaterialMasterSyncJob() {
-    logToFile('[Cron] Initializing Material Master Sync Job...');
+    logToFile('[Cron] Initializing Material Master Sync fallback job...');
+    const { runMaterialMasterSync } = require('./materialMasterSync');
+    const { disabled, valid, invalid } = parseCronList(config.materialMasterSync?.cron);
 
-    // Fetch cron schedule from ENV, default to 08:45 AM Bangkok time
-    const scheduleTime = process.env.MATERIAL_MASTER_CRON || '45 8 * * *';
+    if (disabled) {
+        logToFile('[Cron] Material Master in-process schedule is OFF (MATERIAL_MASTER_CRON=off) — relying on the external scheduler only.');
+        return [];
+    }
+    invalid.forEach(expr => logToFile(`[Cron] ⚠️ Ignored invalid MATERIAL_MASTER_CRON expression: "${expr}"`));
 
-    cron.schedule(scheduleTime, async () => {
-        logToFile(`\n======================================================`);
-        logToFile(`[Cron] STARTING DAILY MATERIAL MASTER SYNC`);
-        logToFile(`======================================================\n`);
-
-        try {
-            const startTime = Date.now();
-            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.prodSql);
-            const durationStr = ((Date.now() - startTime) / 1000).toFixed(2);
-
-            logToFile(`✅ [Cron][SUCCESS] MaterialMaster Sync completed in ${durationStr} seconds.`);
-            logToFile(`   -> Mode: ${result.mode}, Inserted: ${result.inserted || 0}`);
-        } catch (error) {
-            logToFile(`❌ [Cron][FAILED] MaterialMaster Sync failed!`);
-            logToFile(`   -> Reason: ${error.message}`);
-        }
-
-        logToFile(`\n======================================================`);
-        logToFile(`[Cron] MATERIAL MASTER SYNC PROCESS FINISHED`);
-        logToFile(`======================================================\n`);
-    }, {
-        scheduled: true,
-        timezone: "Asia/Bangkok"
+    return valid.map(expr => {
+        const task = cron.schedule(expr, async () => {
+            try {
+                await runMaterialMasterSync({ trigger: 'cron' });
+            } catch (error) {
+                // already logged + sent to Teams by the runner
+            }
+        }, {
+            scheduled: true,
+            timezone: "Asia/Bangkok"
+        });
+        logToFile(`[Cron] Material Master Sync fallback scheduled: ${expr} (Asia/Bangkok).`);
+        return task;
     });
-
-    logToFile(`[Cron] Material Master Sync scheduled for ${scheduleTime} (Asia/Bangkok).`);
 }

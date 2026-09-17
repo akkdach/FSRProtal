@@ -164,6 +164,7 @@ app.listen(config.port, () => {
 
     const { initMaterialMasterSyncJob } = require('./src/jobs/cronJobs');
 
-    // Initialize Material Master Sync Job (Runs daily at 08:45 Bangkok time)
+    // Material Master Sync — in-process FALLBACK rounds (default 05:45 + 13:15 Asia/Bangkok, MATERIAL_MASTER_CRON).
+    // Primary scheduler is GitHub Actions (.github/workflows/material-master-sync.yml) at 05:30 + 13:00.
     initMaterialMasterSyncJob();
 });

@@ -1,0 +1,66 @@
+# External scheduler for the Material Master sync (F&O view -> BevproFsProd.dbo.material_master).
+#
+# Why this exists: the sync used to be triggered only by node-cron INSIDE the Web App process. If the
+# process was unloaded or restarting at that minute, the round was silently lost. This workflow triggers
+# the same sync from outside, and every run is visible (green/red) under the Actions tab.
+#
+# The app keeps an in-process fallback (05:45 + 13:15 BKK, MATERIAL_MASTER_CRON). Double runs are prevented
+# server-side: the endpoint answers 200 { skipped: true } when a run is in progress or one succeeded recently.
+#
+# Required repository secrets: SYNC_AUTH_USER, SYNC_AUTH_PASS (same values as the Web App settings).
+# GitHub cron is UTC and may start several minutes late. Scheduled workflows of a public repo are
+# disabled automatically after 60 days without repository activity — re-enable from the Actions tab.
+# Runbook: docs/RB-material-master-sync.md
+
+name: Material Master Sync (scheduled)
+
+on:
+  schedule:
+    - cron: '30 22 * * *'   # 05:30 Asia/Bangkok
+    - cron: '0 6 * * *'     # 13:00 Asia/Bangkok
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Run even if a sync succeeded within the dedup window'
+        type: boolean
+        default: false
+
+concurrency:
+  group: material-master-sync
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/sync/material-master-sync
+        env:
+          SYNC_URL: https://onelake-middleware-hth2cxh5hfhwdxhs.southeastasia-01.azurewebsites.net/api/sync/material-master-sync
+          SYNC_AUTH_USER: ${{ secrets.SYNC_AUTH_USER }}
+          SYNC_AUTH_PASS: ${{ secrets.SYNC_AUTH_PASS }}
+          FORCE: ${{ inputs.force || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SYNC_AUTH_USER}" ] || [ -z "${SYNC_AUTH_PASS}" ]; then
+            echo "::error::Repository secrets SYNC_AUTH_USER / SYNC_AUTH_PASS are not set"
+            exit 1
+          fi
+          # No --retry: a failed sync already posts a Teams card; retrying would post it again.
+          code=$(curl -sS -o response.json -w '%{http_code}' \
+            --connect-timeout 30 --max-time 420 \
+            -X POST -u "${SYNC_AUTH_USER}:${SYNC_AUTH_PASS}" \
+            "${SYNC_URL}?trigger=github-actions&force=${FORCE}")
+          echo "HTTP ${code}"
+          cat response.json; echo
+          {
+            echo "### Material Master Sync"
+            echo "- HTTP status: \`${code}\`"
+            echo "- Response: \`$(head -c 600 response.json)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${code}" != "200" ]; then
+            echo "::error::Sync endpoint returned HTTP ${code}"
+            exit 1
+          fi

@@ -168,6 +168,58 @@ class TeamsNotificationService {
             logToFile('[TeamsAlert] Error: ' + err.message);
         }
     }
+
+    /**
+     * Sync result card → ห้องงานระบบ (SYNC_TEAMS_WEBHOOK_URL, แชต "Noti Innovation").
+     * ส่งทุกรอบทั้งสำเร็จและล้มเหลว — ก่อนหน้านี้ผล sync อยู่ใน server_debug.log อย่างเดียว ไม่มีใครรู้ถ้า fail.
+     * ไม่ throw เด็ดขาด: การแจ้งเตือนพังต้องไม่ทำให้ sync ถูกนับว่าพัง.
+     */
+    async notifySyncResult({ label, ok, trigger, durationSec, result, error } = {}) {
+        const webhookUrl = config.teams?.webhookUrlSync;
+        if (!webhookUrl) {
+            logToFile('[TeamsAlert] Warning: SYNC_TEAMS_WEBHOOK_URL is not configured — sync result not sent to Teams');
+            return false;
+        }
+        const TRIGGER_LABELS = {
+            'github-actions': 'GitHub Actions (ตัวตั้งเวลานอกแอป)',
+            cron: 'node-cron ในแอป (รอบสำรอง)',
+            manual: 'สั่งรันเอง',
+        };
+        const facts = [
+            { title: 'เวลา:', value: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }) },
+            { title: 'สั่งรันโดย:', value: TRIGGER_LABELS[trigger] || String(trigger || 'ไม่ระบุ') },
+            { title: 'ใช้เวลา:', value: `${durationSec ?? '-'} วินาที` },
+        ];
+        if (ok) {
+            facts.push({ title: 'ดึงจากต้นทาง:', value: `${result?.total ?? 0} แถว` });
+            facts.push({ title: 'เพิ่มใหม่:', value: `${result?.inserted ?? 0} แถว` });
+            facts.push({ title: 'อัปเดตทับ:', value: `${result?.updated ?? 0} แถว` });
+            if (result?.updatedColumns?.length) facts.push({ title: 'คอลัมน์ที่อัปเดต:', value: result.updatedColumns.join(', ') });
+            if (result?.preservedColumns?.length) facts.push({ title: 'คอลัมน์ที่ไม่แตะ:', value: result.preservedColumns.join(', ') });
+        } else {
+            facts.push({ title: 'สาเหตุ:', value: String(error?.message || error || 'unknown error').slice(0, 600) });
+        }
+        try {
+            await postCard(webhookUrl, {
+                body: [
+                    {
+                        type: 'TextBlock',
+                        text: ok ? `✅ ${label} Sync สำเร็จ` : `❌ ${label} Sync ล้มเหลว`,
+                        weight: 'Bolder',
+                        size: 'Large',
+                        color: ok ? 'Good' : 'Attention',
+                        wrap: true,
+                    },
+                    { type: 'FactSet', facts },
+                ],
+            });
+            logToFile(`[TeamsAlert] Sync result sent (${label}, ${ok ? 'success' : 'failed'}).`);
+            return true;
+        } catch (err) {
+            logToFile('[TeamsAlert] Error sending sync result: ' + err.message);
+            return false;
+        }
+    }
 }
 
 module.exports = new TeamsNotificationService();

@@ -193,11 +193,20 @@ class SyncController {
             res.status(500).json({ success: false, message: `Maintenanceactivitytype Sync failed: ${error.message}` });
         }
     }
+    // POST /api/sync/material-master-sync?trigger=github-actions&force=1
+    // Runs through the shared runner (src/jobs/materialMasterSync.js): Teams result card + skip when a run is
+    // in progress or one succeeded within MATERIAL_MASTER_DEDUP_MINUTES (force=1 bypasses the latter).
     async syncMaterialMaster(req, res) {
         try {
-            logToFile(`[SyncController] API Request: /api/sync/material-master-sync`);
-            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.prodSql);
-            res.json({ success: true, message: "MaterialMaster Sync completed successfully", data: result });
+            const trigger = ['github-actions', 'manual'].includes(req.query?.trigger) ? req.query.trigger : 'manual';
+            const force = ['1', 'true', 'yes'].includes(String(req.query?.force || '').toLowerCase());
+            logToFile(`[SyncController] API Request: /api/sync/material-master-sync (trigger=${trigger}, force=${force})`);
+            const { runMaterialMasterSync } = require('../jobs/materialMasterSync');
+            const run = await runMaterialMasterSync({ trigger, force });
+            if (run.skipped) {
+                return res.json({ success: true, skipped: true, reason: run.reason, lastSuccessAt: run.lastSuccessAt, message: `MaterialMaster Sync skipped (${run.reason})` });
+            }
+            res.json({ success: true, skipped: false, message: "MaterialMaster Sync completed successfully", durationSec: run.durationSec, data: run.result });
         } catch (error) {
             logToFile(`[SyncController] API Error (MaterialMaster): ${error.message}`);
             res.status(500).json({ success: false, message: `MaterialMaster Sync failed: ${error.message}` });

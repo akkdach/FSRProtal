@@ -114,6 +114,15 @@ module.exports = {
     teams: {
         webhookUrl: process.env.TEAMS_WEBHOOK_URL,                  // ห้องหลัก — Technician = Yes / ว่าง
         webhookUrlNonTech: process.env.TEAMS_WEBHOOK_URL_NON_TECH,  // ห้องพนักงานที่ไม่ใช่ช่าง — Technician = No
+        // ห้องงานระบบ (แชต "Noti Innovation") — ผล sync ทุกรอบ; ไม่ตั้ง = ไม่ส่ง (log warning) ไม่ fallback ไปห้อง HR
+        webhookUrlSync: process.env.SYNC_TEAMS_WEBHOOK_URL || process.env.MOBILE_SYNC_TEAMS_WEBHOOK_URL,
+    },
+    materialMasterSync: {
+        // รอบสำรองในโปรเซส (Asia/Bangkok) — cron หลายตัวคั่นด้วย ';' หรือ 'off' เพื่อปิด
+        // ตัวตั้งเวลาหลักคือ GitHub Actions (.github/workflows/material-master-sync.yml) 05:30 + 13:00
+        // รอบสำรองตั้งช้ากว่า 15 นาที และข้ามเองถ้าเพิ่ง sync สำเร็จภายใน dedupMinutes
+        cron: process.env.MATERIAL_MASTER_CRON || '45 5 * * *;15 13 * * *',
+        dedupMinutes: parseInt(process.env.MATERIAL_MASTER_DEDUP_MINUTES) || 45,
     },
     freezeDataPath: '/app/freeze-data',
     cache: {
