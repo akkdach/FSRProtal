@@ -114,6 +114,25 @@ module.exports = {
     teams: {
         webhookUrl: process.env.TEAMS_WEBHOOK_URL,                  // ห้องหลัก — Technician = Yes / ว่าง
         webhookUrlNonTech: process.env.TEAMS_WEBHOOK_URL_NON_TECH,  // ห้องพนักงานที่ไม่ใช่ช่าง — Technician = No
+        // ห้องงานระบบ (แชต "Noti Innovation") — ผล sync ทุกรอบ; ไม่ตั้ง = ไม่ส่ง (log warning) ไม่ fallback ไปห้อง HR
+        webhookUrlSync: process.env.SYNC_TEAMS_WEBHOOK_URL || process.env.MOBILE_SYNC_TEAMS_WEBHOOK_URL,
+    },
+    materialMasterSync: {
+        // รอบสำรองในโปรเซส (Asia/Bangkok) — cron หลายตัวคั่นด้วย ';' หรือ 'off' เพื่อปิด
+        // ตัวตั้งเวลาหลักคือ GitHub Actions (.github/workflows/material-master-sync.yml) 05:30 + 13:00
+        // รอบสำรองตั้งช้ากว่า 15 นาที และข้ามเองถ้าเพิ่ง sync สำเร็จภายใน dedupMinutes
+        cron: process.env.MATERIAL_MASTER_CRON || '45 5 * * *;15 13 * * *',
+        dedupMinutes: parseInt(process.env.MATERIAL_MASTER_DEDUP_MINUTES) || 45,
+        // ประวัติรอบ sync + รายการ record ที่เปลี่ยน (JSON ต่อรอบ) — ใช้สร้าง Excel ตอนกดดาวน์โหลดจากการ์ด Teams
+        // บน Azure เก็บนอก wwwroot (/home/data อยู่รอดข้าม deploy/restart); เครื่อง dev เก็บใน onelake-middleware/sync-history/ (gitignore)
+        historyDir: process.env.SYNC_HISTORY_DIR
+            || (process.env.WEBSITE_SITE_NAME ? '/home/data/material-master-sync' : require('path').join(__dirname, '../../sync-history')),
+        historyKeep: parseInt(process.env.SYNC_HISTORY_KEEP) || 120,          // ~60 วันที่ 2 รอบ/วัน
+        linkTtlDays: parseInt(process.env.SYNC_LINK_TTL_DAYS) || 14,          // อายุลิงก์ดาวน์โหลดในการ์ด Teams
+        // ลิงก์ดาวน์โหลดเป็น signed URL (HMAC) เพราะเปิดจาก Teams แนบ JWT ไม่ได้ — key แยกได้ด้วย SYNC_LINK_SECRET
+        linkSecret: process.env.SYNC_LINK_SECRET || process.env.JWT_SECRET,
+        publicBaseUrl: (process.env.PUBLIC_BASE_URL
+            || (process.env.WEBSITE_HOSTNAME ? `https://${process.env.WEBSITE_HOSTNAME}` : `http://localhost:${process.env.PORT || 3000}`)).replace(/\/$/, ''),
     },
     freezeDataPath: '/app/freeze-data',
     cache: {

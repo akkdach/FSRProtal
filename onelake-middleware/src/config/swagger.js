@@ -41,7 +41,7 @@ const proIoT = (summary, extraParams = [], description) => ({
     }
 });
 
-// Sync endpoints ทั้ง 19 เส้นใช้ Basic Auth และไม่รับ parameter ใดๆ
+// Sync endpoints ทั้ง 19 เส้นใช้ Basic Auth และไม่รับ parameter ใดๆ (ยกเว้น material-master-sync — ดูด้านล่าง)
 const syncOp = (label, sourceView, targetTable, mode) => ({
     post: {
         tags: ['🔄 Sync (F&O → SQL)'],
@@ -103,10 +103,56 @@ const syncPaths = {};
 SYNC_ENDPOINTS.forEach(([route, label, sourceView, targetTable]) => {
     syncPaths[`/api/sync/${route}`] = syncOp(label, sourceView, targetTable, TRUNCATE_LOAD);
 });
-// Material Master ใช้ MERGE (upsert) ลง PROD ไม่ truncate — มี cron รันทุกวัน 08:45 (Asia/Bangkok)
-syncPaths['/api/sync/material-master-sync'] = syncOp(
+// Material Master ใช้ MERGE (upsert) ลง PROD ไม่ truncate
+// ตัวตั้งเวลาหลัก = GitHub Actions (.github/workflows/material-master-sync.yml) 05:30 + 13:00 Asia/Bangkok ยิงเส้นนี้
+// รอบสำรองในแอป = node-cron 05:45 + 13:15 (MATERIAL_MASTER_CRON) — ข้ามเองถ้าเพิ่ง sync สำเร็จ
+const materialMasterOp = syncOp(
     'Material Master', 'Sync_Material_master', 'material_master (BevproFsProd)', 'Upsert (MERGE)'
 );
+materialMasterOp.post.description +=
+    '\n\n**MERGE อัปเดตเฉพาะคอลัมน์ที่ต้นทางส่งมา** (DESCRIPTION, UNIT, DAMAGE_MATERIAL, DAMAGE_MAT_DESC) — คอลัมน์ที่มีเฉพาะปลายทาง (PICTURE_URL, TRADE_CODE, ITEM_REFERENCE, COMPRESSOR) ไม่ถูกแตะ; แถวใหม่ INSERT ครบทุกคอลัมน์' +
+    '\n\nส่งผลทุกรอบ (สำเร็จ/ล้มเหลว) เป็นการ์ดเข้า Teams ห้องงานระบบ (SYNC_TEAMS_WEBHOOK_URL)' +
+    '\n\nกันรันซ้ำ: ถ้ามีรอบกำลังรันอยู่ หรือเพิ่ง sync สำเร็จภายใน MATERIAL_MASTER_DEDUP_MINUTES (default 45) จะตอบ 200 พร้อม `skipped: true` โดยไม่ sync และไม่แจ้ง Teams — ใช้ `force=1` เพื่อบังคับรัน';
+materialMasterOp.post.parameters = [
+    { name: 'force', in: 'query', required: false, description: 'บังคับรันแม้เพิ่ง sync สำเร็จ (1 / true) — ไม่ข้ามกรณีมีรอบกำลังรันอยู่', schema: { type: 'string', enum: ['1', 'true', '0', 'false'], example: '1' } },
+    { name: 'trigger', in: 'query', required: false, description: 'ใครสั่งรัน — แสดงในการ์ด Teams และ log', schema: { type: 'string', enum: ['github-actions', 'manual'], default: 'manual' } }
+];
+Object.assign(materialMasterOp.post.responses['200'].content['application/json'].schema.properties, {
+    skipped: { type: 'boolean', description: 'true = ไม่ได้ sync รอบนี้ (ดู reason)', example: false },
+    reason: { type: 'string', enum: ['already_running', 'recent_success'], description: 'มีเฉพาะเมื่อ skipped = true' },
+    lastSuccessAt: { type: 'string', format: 'date-time', description: 'มีเฉพาะเมื่อ reason = recent_success' },
+    durationSec: { type: 'number', example: 12.4 }
+});
+Object.assign(materialMasterOp.post.responses['200'].content['application/json'].schema.properties.data.properties, {
+    runId: { type: 'string', description: 'รหัสรอบ sync — ใช้อ้างอิงประวัติ/ไฟล์ Excel', example: '20260917-053004-a1b2c3' },
+    inserted: { type: 'integer', description: 'record ใหม่ที่ INSERT', example: 3 },
+    updated: { type: 'integer', description: 'record เดิมที่ค่าเปลี่ยนจริงและถูก UPDATE (เทียบแบบ case-sensitive)', example: 7 },
+    changedRecords: { type: 'integer', description: 'inserted + updated ตามรายการที่จับได้ก่อน MERGE', example: 10 },
+    changeDetection: { type: 'boolean', description: 'false = ชนิดคอลัมน์เทียบไม่ได้ จึงอัปเดตทับทุกแถวและไม่มีรายการเปลี่ยนแปลง', example: true },
+    updatedColumns: { type: 'array', items: { type: 'string' }, example: ['DESCRIPTION', 'UNIT', 'DAMAGE_MATERIAL', 'DAMAGE_MAT_DESC'] },
+    preservedColumns: { type: 'array', items: { type: 'string' }, example: ['PICTURE_URL', 'TRADE_CODE', 'ITEM_REFERENCE', 'COMPRESSOR'] }
+});
+materialMasterOp.post.description +=
+    '\n\nรายการ record ที่เปลี่ยน (ค่าเดิม → ค่าใหม่) **ไม่อยู่ใน response นี้** — เก็บเป็นประวัติบน server และดาวน์โหลดเป็น Excel ได้จากปุ่มในการ์ด Teams (ดู `GET /api/sync/material-master-sync/changes/{runId}`)';
+syncPaths['/api/sync/material-master-sync'] = materialMasterOp;
+syncPaths['/api/sync/material-master-sync/changes/{runId}'] = {
+    get: {
+        tags: ['🔄 Sync (F&O → SQL)'],
+        summary: 'ดาวน์โหลด Excel รายการ record ที่รอบ sync นั้นเปลี่ยน',
+        description: 'ลิงก์แบบ signed URL (HMAC-SHA256 ของ `runId.exp`) ที่ระบบสร้างและส่งเข้าการ์ด Teams เท่านั้น — เปิดจาก Teams แนบ JWT/Basic Auth ไม่ได้ จึงให้สิทธิ์ด้วยลายเซ็น + วันหมดอายุ (default 14 วัน, `SYNC_LINK_TTL_DAYS`)\n\nไฟล์สร้างสดจากประวัติรอบ sync บน server (เก็บ ~120 รอบล่าสุด): ชีต "รายการที่เปลี่ยน" (ประเภท, MATERIAL, ฟิลด์ที่เปลี่ยน, ค่าเดิม/ค่าใหม่ทุกคอลัมน์) + ชีต "สรุป"',
+        security: [],
+        parameters: [
+            { name: 'runId', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{8}-\\d{6}-[a-f0-9]{6}$', example: '20260917-053004-a1b2c3' } },
+            { name: 'exp', in: 'query', required: true, description: 'เวลาหมดอายุ (unix seconds)', schema: { type: 'integer' } },
+            { name: 'sig', in: 'query', required: true, description: 'ลายเซ็น base64url', schema: { type: 'string' } }
+        ],
+        responses: {
+            '200': { description: 'ไฟล์ .xlsx', content: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { schema: { type: 'string', format: 'binary' } } } },
+            '403': { description: 'ลายเซ็นไม่ถูกต้อง หรือ ลิงก์หมดอายุ' },
+            '404': { description: 'ไม่พบประวัติรอบ sync (ถูกลบตามอายุการเก็บ)' }
+        }
+    }
+};
 
 // ========== Manpower / Worker field schemas ==========
 const manpowerProperties = {

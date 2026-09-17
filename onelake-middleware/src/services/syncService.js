@@ -378,6 +378,89 @@ class SyncService {
     }
 
     /**
+     * Build the MERGE batch for syncFromGraphQLUpsert (pure — no DB access, unit-testable).
+     *
+     * WHEN MATCHED updates ONLY the columns the source delivers (`sourceKeys`). Columns that exist only in
+     * the target (material_master: PICTURE_URL, TRADE_CODE, ITEM_REFERENCE, COMPRESSOR) are maintained
+     * elsewhere; staging holds NULL for them, so including them in UPDATE SET wiped them on every run.
+     * New rows still INSERT every column (target-only ones start as NULL).
+     * OUTPUT $action feeds the inserted/updated counts shown in the Teams result card.
+     *
+     * Change detection: a matched row is UPDATEd only when at least one source column really differs
+     * (NULL-safe `SELECT … EXCEPT SELECT …`; character columns compared with a BIN2 collation so a
+     * case-only or accent-only edit in F&O still counts). That makes `updated` = "records that changed",
+     * and `diffSql` (run BEFORE the merge) lists those records with old/new values for the Excel export.
+     * If a column type cannot be compared (text/ntext/image/xml/…), detection is switched off and the
+     * merge falls back to overwriting every matched row (`diffSql` = null).
+     */
+    buildUpsertMerge({ targetTableName, stagingTableName, primaryKey, columns, sourceKeys, columnTypes = {} }) {
+        if (!columns.includes(primaryKey)) throw new Error(`Target table ${targetTableName} has no column ${primaryKey}`);
+        if (!sourceKeys.has(primaryKey)) throw new Error(`Source data has no primary key field ${primaryKey}`);
+
+        const updatable = columns.filter(c => c !== primaryKey && sourceKeys.has(c));
+        const preserved = columns.filter(c => c !== primaryKey && !sourceKeys.has(c));
+        const insertCols = columns.map(c => `[${c}]`).join(', ');
+        const insertVals = columns.map(c => `SOURCE.[${c}]`).join(', ');
+
+        const typeOf = c => String(columnTypes[c] || 'nvarchar').toLowerCase();
+        const NOT_COMPARABLE = ['text', 'ntext', 'image', 'xml', 'geography', 'geometry', 'hierarchyid', 'sql_variant'];
+        const changeDetection = updatable.length > 0 && updatable.every(c => !NOT_COMPARABLE.includes(typeOf(c)));
+        const cmp = (alias, c) => (/char/.test(typeOf(c)) ? `${alias}.[${c}] COLLATE Latin1_General_100_BIN2` : `${alias}.[${c}]`);
+        const differs = (src, tgt) => `EXISTS (SELECT ${updatable.map(c => cmp(src, c)).join(', ')} EXCEPT SELECT ${updatable.map(c => cmp(tgt, c)).join(', ')})`;
+
+        const whenMatched = updatable.length
+            ? `WHEN MATCHED${changeDetection ? ` AND ${differs('SOURCE', 'TARGET')}` : ''} THEN
+                    UPDATE SET ${updatable.map(c => `TARGET.[${c}] = SOURCE.[${c}]`).join(', ')}`
+            : '';
+
+        // Rows that WILL change, with old/new values — must run before the MERGE (afterwards old values are gone).
+        const diffSql = changeDetection ? `
+                SELECT 'UPDATE' AS [__action], S.[${primaryKey}] AS [__key],
+                       ${updatable.map(c => `T.[${c}] AS [old__${c}], S.[${c}] AS [new__${c}]`).join(', ')}
+                FROM dbo.[${stagingTableName}] S
+                INNER JOIN dbo.[${targetTableName}] T ON T.[${primaryKey}] = S.[${primaryKey}]
+                WHERE ${differs('S', 'T')}
+                UNION ALL
+                SELECT 'INSERT', S.[${primaryKey}],
+                       ${updatable.map(c => `NULL, S.[${c}]`).join(', ')}
+                FROM dbo.[${stagingTableName}] S
+                WHERE NOT EXISTS (SELECT 1 FROM dbo.[${targetTableName}] T WHERE T.[${primaryKey}] = S.[${primaryKey}])
+                ORDER BY 1, 2;
+            ` : null;
+
+        const sqlText = `
+                DECLARE @merge_actions TABLE (act NVARCHAR(10));
+                MERGE dbo.[${targetTableName}] AS TARGET
+                USING dbo.[${stagingTableName}] AS SOURCE
+                ON (TARGET.[${primaryKey}] = SOURCE.[${primaryKey}])
+                ${whenMatched}
+                WHEN NOT MATCHED BY TARGET THEN
+                    INSERT (${insertCols})
+                    VALUES (${insertVals})
+                OUTPUT $action INTO @merge_actions;
+                SELECT
+                    ISNULL(SUM(CASE WHEN act = 'INSERT' THEN 1 ELSE 0 END), 0) AS inserted,
+                    ISNULL(SUM(CASE WHEN act = 'UPDATE' THEN 1 ELSE 0 END), 0) AS updated
+                FROM @merge_actions;
+            `;
+        return { sql: sqlText, diffSql, changeDetection, updatable, preserved };
+    }
+
+    /** Shape one diffSql record into { action, key, changedFields, fields: { COL: { old, new } } }. */
+    shapeChangeRow(record, updatable) {
+        const norm = v => (v === null || v === undefined ? null : v instanceof Date ? v.toISOString() : v);
+        const fields = {};
+        const changedFields = [];
+        for (const c of updatable) {
+            const oldV = norm(record[`old__${c}`]);
+            const newV = norm(record[`new__${c}`]);
+            fields[c] = { old: oldV, new: newV };
+            if (record.__action === 'UPDATE' && String(oldV ?? '') !== String(newV ?? '')) changedFields.push(c);
+        }
+        return { action: record.__action, key: norm(record.__key), changedFields, fields };
+    }
+
+    /**
      * Upsert Sync Function (INSERT + UPDATE via MERGE, NO TRUNCATE)
      * Uses a staging table approach: bulk insert into staging, then MERGE into target.
      */
@@ -465,36 +548,51 @@ class SyncService {
             `);
 
             // 6. Get columns for MERGE
-            const colQuery = `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${targetTableName}'`;
+            const colQuery = `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '${targetTableName}' ORDER BY ORDINAL_POSITION`;
             const colResult = await pool.request().query(colQuery);
             const columns = colResult.recordset.map(r => r.COLUMN_NAME);
+            const columnTypes = {};
+            colResult.recordset.forEach(r => { columnTypes[r.COLUMN_NAME] = r.DATA_TYPE; });
 
-            const updateSet = columns.filter(c => c !== primaryKey).map(c => `TARGET.[${c}] = SOURCE.[${c}]`).join(', ');
-            const insertCols = columns.map(c => `[${c}]`).join(', ');
-            const insertVals = columns.map(c => `SOURCE.[${c}]`).join(', ');
+            // Only fields the source actually delivers may overwrite existing rows (see buildUpsertMerge).
+            // prepareBulkData matches by exact column name (item[col]), so the same rule applies here.
+            const sourceKeys = new Set();
+            for (const row of allData) for (const k of Object.keys(row)) sourceKeys.add(k);
+
+            const merge = this.buildUpsertMerge({ targetTableName, stagingTableName, primaryKey, columns, sourceKeys, columnTypes });
+
+            // 6.5 Capture what is about to change (old → new) while the old values still exist
+            let changes = null;
+            if (merge.diffSql) {
+                const diffResult = await pool.request().query(merge.diffSql);
+                changes = diffResult.recordset.map(r => this.shapeChangeRow(r, merge.updatable));
+                logToFile(`[SyncService][Upsert] Change detection: ${changes.length} record(s) differ from target.`);
+            } else {
+                logToFile(`[SyncService][Upsert] Change detection OFF (non-comparable column type) — every matched row will be overwritten.`);
+            }
 
             // 7. Execute MERGE (INSERT + UPDATE)
-            const mergeQuery = `
-                MERGE dbo.[${targetTableName}] AS TARGET
-                USING dbo.[${stagingTableName}] AS SOURCE
-                ON (TARGET.[${primaryKey}] = SOURCE.[${primaryKey}])
-                WHEN MATCHED THEN
-                    UPDATE SET ${updateSet}
-                WHEN NOT MATCHED BY TARGET THEN
-                    INSERT (${insertCols})
-                    VALUES (${insertVals});
-            `;
-
-            logToFile(`[SyncService][Upsert] Executing MERGE statement...`);
-            const mergeResult = await pool.request().query(mergeQuery);
+            logToFile(`[SyncService][Upsert] Executing MERGE — update columns: ${merge.updatable.join(', ') || '(none)'}; preserved (not in source): ${merge.preserved.join(', ') || '(none)'}`);
+            const mergeResult = await pool.request().query(merge.sql);
 
             // 8. Cleanup staging
             await pool.request().query(`DROP TABLE dbo.[${stagingTableName}];`);
 
-            const modifiedRows = mergeResult.rowsAffected[0];
-            logToFile(`[SyncService][Upsert] MERGE completed. Modified rows: ${modifiedRows}, Total processed: ${allData.length}`);
+            const counts = (mergeResult.recordset && mergeResult.recordset[0]) || {};
+            const inserted = Number(counts.inserted) || 0;
+            const updated = Number(counts.updated) || 0;
+            logToFile(`[SyncService][Upsert] MERGE completed. Inserted: ${inserted}, Updated: ${updated}, Total processed: ${allData.length}`);
+            if (changes && changes.length !== inserted + updated) {
+                logToFile(`[SyncService][Upsert] ⚠️ diff listed ${changes.length} record(s) but MERGE changed ${inserted + updated} — table was modified between the two statements?`);
+            }
 
-            return { success: true, mode: 'Upsert (MERGE)', modified: modifiedRows, total: allData.length };
+            return {
+                success: true, mode: 'Upsert (MERGE)', total: allData.length,
+                inserted, updated, modified: inserted + updated,
+                changeDetection: merge.changeDetection, primaryKey,
+                updatedColumns: merge.updatable, preservedColumns: merge.preserved,
+                changes,   // [{ action, key, changedFields, fields }] — NOT returned over HTTP (see materialMasterSync.js)
+            };
         } catch (err) {
             logToFile(`[SyncService][Upsert] Sync Error: ${err.message}`);
             throw err;

@@ -193,14 +193,52 @@ class SyncController {
             res.status(500).json({ success: false, message: `Maintenanceactivitytype Sync failed: ${error.message}` });
         }
     }
+    // POST /api/sync/material-master-sync?trigger=github-actions&force=1
+    // Runs through the shared runner (src/jobs/materialMasterSync.js): Teams result card + skip when a run is
+    // in progress or one succeeded within MATERIAL_MASTER_DEDUP_MINUTES (force=1 bypasses the latter).
     async syncMaterialMaster(req, res) {
         try {
-            logToFile(`[SyncController] API Request: /api/sync/material-master-sync`);
-            const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.prodSql);
-            res.json({ success: true, message: "MaterialMaster Sync completed successfully", data: result });
+            const trigger = ['github-actions', 'manual'].includes(req.query?.trigger) ? req.query.trigger : 'manual';
+            const force = ['1', 'true', 'yes'].includes(String(req.query?.force || '').toLowerCase());
+            logToFile(`[SyncController] API Request: /api/sync/material-master-sync (trigger=${trigger}, force=${force})`);
+            const { runMaterialMasterSync } = require('../jobs/materialMasterSync');
+            const run = await runMaterialMasterSync({ trigger, force });
+            if (run.skipped) {
+                return res.json({ success: true, skipped: true, reason: run.reason, lastSuccessAt: run.lastSuccessAt, message: `MaterialMaster Sync skipped (${run.reason})` });
+            }
+            res.json({ success: true, skipped: false, message: "MaterialMaster Sync completed successfully", durationSec: run.durationSec, data: run.result });
         } catch (error) {
             logToFile(`[SyncController] API Error (MaterialMaster): ${error.message}`);
             res.status(500).json({ success: false, message: `MaterialMaster Sync failed: ${error.message}` });
+        }
+    }
+
+    // GET /api/sync/material-master-sync/changes/:runId?exp=…&sig=…
+    // Excel of the records one sync run changed (old → new). No JWT/Basic Auth: the link is opened from the Teams
+    // card in a browser, so access is granted by the HMAC signature + expiry minted in syncHistoryService.
+    async downloadMaterialMasterChanges(req, res) {
+        try {
+            const syncHistoryService = require('../services/syncHistoryService');
+            const { runId } = req.params;
+            const check = syncHistoryService.verifyLink(runId, req.query?.exp, req.query?.sig);
+            if (!check.ok) {
+                const message = check.reason === 'expired'
+                    ? 'ลิงก์หมดอายุแล้ว — ขอไฟล์ใหม่ได้จากผู้ดูแลระบบ (ประวัติรอบ sync ยังอยู่บน server)'
+                    : 'ลิงก์ไม่ถูกต้อง';
+                return res.status(403).json({ success: false, message });
+            }
+            const run = syncHistoryService.loadRun(runId);
+            if (!run) return res.status(404).json({ success: false, message: 'ไม่พบประวัติรอบ sync นี้ (อาจถูกลบตามอายุการเก็บ)' });
+
+            const buffer = await syncHistoryService.buildWorkbookBuffer(run);
+            logToFile(`[SyncController] Changes Excel downloaded: run=${runId} records=${(run.changes || []).length}`);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename="material-master-changes-${runId}.xlsx"`);
+            res.setHeader('Cache-Control', 'private, no-store');
+            res.send(Buffer.from(buffer));
+        } catch (error) {
+            logToFile(`[SyncController] Changes download error: ${error.message}`);
+            res.status(500).json({ success: false, message: 'สร้างไฟล์ Excel ไม่สำเร็จ' });
         }
     }
 }
