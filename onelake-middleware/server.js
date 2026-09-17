@@ -53,6 +53,8 @@ app.post('/api/sync/dirperson-sync', validateSyncBasicAuth, (req, res) => syncCo
 app.post('/api/sync/custtable-sync', validateSyncBasicAuth, (req, res) => syncController.syncCusttable(req, res));
 app.post('/api/sync/maintenanceactivitytype-sync', validateSyncBasicAuth, (req, res) => syncController.syncMaintenanceactivitytype(req, res));
 app.post('/api/sync/material-master-sync', validateSyncBasicAuth, (req, res) => syncController.syncMaterialMaster(req, res));
+// Excel of what a run changed — signed expiring link from the Teams card (no auth header possible from Teams)
+app.get('/api/sync/material-master-sync/changes/:runId', (req, res) => syncController.downloadMaterialMasterChanges(req, res));
 
 // Entra ID Login (public - no JWT required)
 const jwt = require('jsonwebtoken');

@@ -174,7 +174,7 @@ class TeamsNotificationService {
      * ส่งทุกรอบทั้งสำเร็จและล้มเหลว — ก่อนหน้านี้ผล sync อยู่ใน server_debug.log อย่างเดียว ไม่มีใครรู้ถ้า fail.
      * ไม่ throw เด็ดขาด: การแจ้งเตือนพังต้องไม่ทำให้ sync ถูกนับว่าพัง.
      */
-    async notifySyncResult({ label, ok, trigger, durationSec, result, error } = {}) {
+    async notifySyncResult({ label, ok, trigger, durationSec, result, error, changes, downloadUrl } = {}) {
         const webhookUrl = config.teams?.webhookUrlSync;
         if (!webhookUrl) {
             logToFile('[TeamsAlert] Warning: SYNC_TEAMS_WEBHOOK_URL is not configured — sync result not sent to Teams');
@@ -191,9 +191,20 @@ class TeamsNotificationService {
             { title: 'ใช้เวลา:', value: `${durationSec ?? '-'} วินาที` },
         ];
         if (ok) {
+            const inserted = result?.inserted ?? 0;
+            const updated = result?.updated ?? 0;
             facts.push({ title: 'ดึงจากต้นทาง:', value: `${result?.total ?? 0} แถว` });
-            facts.push({ title: 'เพิ่มใหม่:', value: `${result?.inserted ?? 0} แถว` });
-            facts.push({ title: 'อัปเดตทับ:', value: `${result?.updated ?? 0} แถว` });
+            if (result?.changeDetection === false) {
+                // fallback mode: every matched row is overwritten, so "updated" is not a change count
+                facts.push({ title: 'เพิ่มใหม่:', value: `${inserted} record` });
+                facts.push({ title: 'อัปเดตทับ:', value: `${updated} record (ไม่ได้ตรวจว่าค่าเปลี่ยนจริงหรือไม่)` });
+            } else if (inserted + updated === 0) {
+                facts.push({ title: 'เปลี่ยนแปลง:', value: 'ไม่มี — ข้อมูลตรงกับต้นทางอยู่แล้ว' });
+            } else {
+                facts.push({ title: 'เปลี่ยนแปลง:', value: `**${inserted + updated} record** (เพิ่มใหม่ ${inserted} · แก้ไข ${updated})` });
+                const sample = (changes || []).slice(0, 5).map(c => (c.action === 'INSERT' ? `${c.key} (ใหม่)` : `${c.key} (${(c.changedFields || []).join('/')})`));
+                if (sample.length) facts.push({ title: 'ตัวอย่าง:', value: sample.join(', ') + ((changes || []).length > sample.length ? ` … อีก ${(changes || []).length - sample.length}` : '') });
+            }
             if (result?.updatedColumns?.length) facts.push({ title: 'คอลัมน์ที่อัปเดต:', value: result.updatedColumns.join(', ') });
             if (result?.preservedColumns?.length) facts.push({ title: 'คอลัมน์ที่ไม่แตะ:', value: result.preservedColumns.join(', ') });
         } else {
@@ -212,6 +223,8 @@ class TeamsNotificationService {
                     },
                     { type: 'FactSet', facts },
                 ],
+                // signed, expiring link → GET /api/sync/material-master-sync/changes/:runId (only when something changed)
+                ...(ok && downloadUrl ? { actions: [{ type: 'Action.OpenUrl', title: 'ดาวน์โหลด Excel รายการที่เปลี่ยน', url: downloadUrl }] } : {}),
             });
             logToFile(`[TeamsAlert] Sync result sent (${label}, ${ok ? 'success' : 'failed'}).`);
             return true;

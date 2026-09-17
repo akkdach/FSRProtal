@@ -9,6 +9,7 @@
 // restart simply forgets the last success (worst case = one extra idempotent MERGE).
 const syncService = require('../services/syncService');
 const teamsNotificationService = require('../services/teamsNotificationService');
+const syncHistoryService = require('../services/syncHistoryService');
 const config = require('../config');
 const { logToFile } = require('../utils/logger');
 
@@ -35,11 +36,27 @@ async function runMaterialMasterSync({ trigger = 'manual', force = false } = {})
     const startedAt = Date.now();
     logToFile(`[MaterialMasterSync] START trigger=${trigger} force=${force}`);
     try {
-        const result = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.prodSql);
+        const full = await syncService.syncFromGraphQLUpsert('Sync_Material_master', 'material_master', 'MATERIAL', config.prodSql);
         const durationSec = Number(((Date.now() - startedAt) / 1000).toFixed(2));
         state.lastSuccessAt = Date.now();
-        logToFile(`✅ [MaterialMasterSync][SUCCESS] ${durationSec}s — total=${result.total ?? 0} inserted=${result.inserted ?? 0} updated=${result.updated ?? 0}`);
-        await teamsNotificationService.notifySyncResult({ label: LABEL, ok: true, trigger, durationSec, result });
+
+        // The change list (old → new per record) stays on the server: saved as run history and exported to Excel
+        // on demand. Only counts leave this function — the HTTP response ends up in the public GitHub Actions log.
+        const { changes, ...result } = full;
+        const runId = syncHistoryService.newRunId(new Date(startedAt));
+        result.runId = runId;
+        result.changedRecords = Array.isArray(changes) ? changes.length : null;
+        logToFile(`✅ [MaterialMasterSync][SUCCESS] ${durationSec}s — run=${runId} total=${result.total ?? 0} inserted=${result.inserted ?? 0} updated=${result.updated ?? 0}`);
+
+        const saved = syncHistoryService.safeSave({
+            runId, label: LABEL, trigger, durationSec,
+            startedAt: new Date(startedAt).toISOString(), finishedAt: new Date().toISOString(),
+            sourceView: 'Sync_Material_master', targetTable: 'BevproFsProd.dbo.material_master',
+            ...result, changes: changes || [],
+        });
+        const downloadUrl = saved && Array.isArray(changes) && changes.length > 0 ? syncHistoryService.buildDownloadUrl(runId) : null;
+
+        await teamsNotificationService.notifySyncResult({ label: LABEL, ok: true, trigger, durationSec, result, changes, downloadUrl });
         return { skipped: false, durationSec, result };
     } catch (error) {
         const durationSec = Number(((Date.now() - startedAt) / 1000).toFixed(2));

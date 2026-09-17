@@ -46,7 +46,8 @@ env keys ที่ backend ใช้ (เขียนได้แค่ชื่
 `JWT_SECRET` · `BASIC_AUTH_USER/PASS` · `SYNC_AUTH_USER/PASS` · `ENTRA_TENANT_ID` / `ENTRA_CLIENT_ID` ·
 `QAS_DB_*` / `PROD_DB_*` / `SYNC_DB_*` (SQL Server 3 ชุด) · `TEAMS_WEBHOOK_URL` (ห้อง Teams หลัก — Technician = Yes/ว่าง) / `TEAMS_WEBHOOK_URL_NON_TECH` (ห้องสำหรับ Technician = No; ไม่ตั้ง = fallback ห้องหลัก) ·
 `SYNC_TEAMS_WEBHOOK_URL` (ห้องงานระบบ = แชต "Noti Innovation" — การ์ดผล sync ทุกรอบ; ไม่ตั้ง = ไม่ส่ง ไม่ fallback ไปห้อง HR; เครื่อง dev อ่าน `MOBILE_SYNC_TEAMS_WEBHOOK_URL` แทนได้) ·
-`MATERIAL_MASTER_CRON` (รอบ **สำรอง** ในโปรเซส: cron หลายตัวคั่นด้วย `;` หรือ `off`; default `45 5 * * *;15 13 * * *`) · `MATERIAL_MASTER_DEDUP_MINUTES` (default 45)
+`MATERIAL_MASTER_CRON` (รอบ **สำรอง** ในโปรเซส: cron หลายตัวคั่นด้วย `;` หรือ `off`; default `45 5 * * *;15 13 * * *`) · `MATERIAL_MASTER_DEDUP_MINUTES` (default 45) ·
+ประวัติรอบ sync + ลิงก์ดาวน์โหลด Excel (ไม่บังคับทุกตัว): `SYNC_HISTORY_DIR` (default Azure `/home/data/material-master-sync`, dev `onelake-middleware/sync-history/`) · `SYNC_HISTORY_KEEP` (120) · `SYNC_LINK_TTL_DAYS` (14) · `SYNC_LINK_SECRET` (default ใช้ `JWT_SECRET`) · `PUBLIC_BASE_URL` (default `https://$WEBSITE_HOSTNAME`)
 GitHub Actions secrets (repo Settings): `SYNC_AUTH_USER` / `SYNC_AUTH_PASS` — ใช้โดย `material-master-sync.yml` ค่าเดียวกับ app setting ของ Web App
 
 ## Deploy
@@ -80,6 +81,9 @@ GitHub Actions secrets (repo Settings): `SYNC_AUTH_USER` / `SYNC_AUTH_PASS` — 
   → Web App ต้องเปิด **Always On** · app setting `MATERIAL_MASTER_CRON` แบบหลายรอบ (`;`) ต้องตั้ง **หลัง** deploy โค้ดชุดนี้เท่านั้น
 - **MERGE ของ material_master อัปเดตเฉพาะคอลัมน์ที่ต้นทางส่งมา** (`syncService.buildUpsertMerge`) — `PICTURE_URL`, `TRADE_CODE`,
   `ITEM_REFERENCE`, `COMPRESSOR` เป็นคอลัมน์ที่ดูแลจากที่อื่น ห้ามแก้กลับเป็น "อัปเดตทุกคอลัมน์" (เคยเขียน NULL ทับทุกเช้า)
+- **รายการ record ที่ sync เปลี่ยน (ค่าเดิม→ค่าใหม่) และลิงก์ดาวน์โหลด Excel ห้ามออกทาง HTTP response ของ `POST /api/sync/material-master-sync`** —
+  response นั้นถูกพิมพ์ใน log ของ GitHub Actions ซึ่งเป็น public · ข้อมูลอยู่ในประวัติบน server (`syncHistoryService`) และลิงก์แบบ signed URL
+  ส่งเข้า Teams เท่านั้น · `GET …/changes/:runId` ไม่มี JWT โดยตั้งใจ (เปิดจาก Teams แนบ header ไม่ได้) สิทธิ์มาจากลายเซ็น HMAC + วันหมดอายุ
 - **สคริปต์ `test_*.js` / `debug_*.js` ยิงระบบจริง** (Fabric / SQL / GraphQL production) — อ่านโค้ดก่อนรันทุกครั้ง
 - CI รัน `npm run test --if-present` = ไม่มี test รันจริง — **การ build ผ่านไม่ได้แปลว่าโค้ดถูก** เช็คเองก่อน push main
 

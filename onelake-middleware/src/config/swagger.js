@@ -124,12 +124,35 @@ Object.assign(materialMasterOp.post.responses['200'].content['application/json']
     durationSec: { type: 'number', example: 12.4 }
 });
 Object.assign(materialMasterOp.post.responses['200'].content['application/json'].schema.properties.data.properties, {
-    inserted: { type: 'integer', description: 'แถวใหม่ที่ INSERT', example: 3 },
-    updated: { type: 'integer', description: 'แถวเดิมที่ถูก UPDATE ทับ', example: 5892 },
+    runId: { type: 'string', description: 'รหัสรอบ sync — ใช้อ้างอิงประวัติ/ไฟล์ Excel', example: '20260917-053004-a1b2c3' },
+    inserted: { type: 'integer', description: 'record ใหม่ที่ INSERT', example: 3 },
+    updated: { type: 'integer', description: 'record เดิมที่ค่าเปลี่ยนจริงและถูก UPDATE (เทียบแบบ case-sensitive)', example: 7 },
+    changedRecords: { type: 'integer', description: 'inserted + updated ตามรายการที่จับได้ก่อน MERGE', example: 10 },
+    changeDetection: { type: 'boolean', description: 'false = ชนิดคอลัมน์เทียบไม่ได้ จึงอัปเดตทับทุกแถวและไม่มีรายการเปลี่ยนแปลง', example: true },
     updatedColumns: { type: 'array', items: { type: 'string' }, example: ['DESCRIPTION', 'UNIT', 'DAMAGE_MATERIAL', 'DAMAGE_MAT_DESC'] },
     preservedColumns: { type: 'array', items: { type: 'string' }, example: ['PICTURE_URL', 'TRADE_CODE', 'ITEM_REFERENCE', 'COMPRESSOR'] }
 });
+materialMasterOp.post.description +=
+    '\n\nรายการ record ที่เปลี่ยน (ค่าเดิม → ค่าใหม่) **ไม่อยู่ใน response นี้** — เก็บเป็นประวัติบน server และดาวน์โหลดเป็น Excel ได้จากปุ่มในการ์ด Teams (ดู `GET /api/sync/material-master-sync/changes/{runId}`)';
 syncPaths['/api/sync/material-master-sync'] = materialMasterOp;
+syncPaths['/api/sync/material-master-sync/changes/{runId}'] = {
+    get: {
+        tags: ['🔄 Sync (F&O → SQL)'],
+        summary: 'ดาวน์โหลด Excel รายการ record ที่รอบ sync นั้นเปลี่ยน',
+        description: 'ลิงก์แบบ signed URL (HMAC-SHA256 ของ `runId.exp`) ที่ระบบสร้างและส่งเข้าการ์ด Teams เท่านั้น — เปิดจาก Teams แนบ JWT/Basic Auth ไม่ได้ จึงให้สิทธิ์ด้วยลายเซ็น + วันหมดอายุ (default 14 วัน, `SYNC_LINK_TTL_DAYS`)\n\nไฟล์สร้างสดจากประวัติรอบ sync บน server (เก็บ ~120 รอบล่าสุด): ชีต "รายการที่เปลี่ยน" (ประเภท, MATERIAL, ฟิลด์ที่เปลี่ยน, ค่าเดิม/ค่าใหม่ทุกคอลัมน์) + ชีต "สรุป"',
+        security: [],
+        parameters: [
+            { name: 'runId', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{8}-\\d{6}-[a-f0-9]{6}$', example: '20260917-053004-a1b2c3' } },
+            { name: 'exp', in: 'query', required: true, description: 'เวลาหมดอายุ (unix seconds)', schema: { type: 'integer' } },
+            { name: 'sig', in: 'query', required: true, description: 'ลายเซ็น base64url', schema: { type: 'string' } }
+        ],
+        responses: {
+            '200': { description: 'ไฟล์ .xlsx', content: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { schema: { type: 'string', format: 'binary' } } } },
+            '403': { description: 'ลายเซ็นไม่ถูกต้อง หรือ ลิงก์หมดอายุ' },
+            '404': { description: 'ไม่พบประวัติรอบ sync (ถูกลบตามอายุการเก็บ)' }
+        }
+    }
+};
 
 // ========== Manpower / Worker field schemas ==========
 const manpowerProperties = {

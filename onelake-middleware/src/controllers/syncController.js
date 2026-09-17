@@ -212,6 +212,35 @@ class SyncController {
             res.status(500).json({ success: false, message: `MaterialMaster Sync failed: ${error.message}` });
         }
     }
+
+    // GET /api/sync/material-master-sync/changes/:runId?exp=…&sig=…
+    // Excel of the records one sync run changed (old → new). No JWT/Basic Auth: the link is opened from the Teams
+    // card in a browser, so access is granted by the HMAC signature + expiry minted in syncHistoryService.
+    async downloadMaterialMasterChanges(req, res) {
+        try {
+            const syncHistoryService = require('../services/syncHistoryService');
+            const { runId } = req.params;
+            const check = syncHistoryService.verifyLink(runId, req.query?.exp, req.query?.sig);
+            if (!check.ok) {
+                const message = check.reason === 'expired'
+                    ? 'ลิงก์หมดอายุแล้ว — ขอไฟล์ใหม่ได้จากผู้ดูแลระบบ (ประวัติรอบ sync ยังอยู่บน server)'
+                    : 'ลิงก์ไม่ถูกต้อง';
+                return res.status(403).json({ success: false, message });
+            }
+            const run = syncHistoryService.loadRun(runId);
+            if (!run) return res.status(404).json({ success: false, message: 'ไม่พบประวัติรอบ sync นี้ (อาจถูกลบตามอายุการเก็บ)' });
+
+            const buffer = await syncHistoryService.buildWorkbookBuffer(run);
+            logToFile(`[SyncController] Changes Excel downloaded: run=${runId} records=${(run.changes || []).length}`);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename="material-master-changes-${runId}.xlsx"`);
+            res.setHeader('Cache-Control', 'private, no-store');
+            res.send(Buffer.from(buffer));
+        } catch (error) {
+            logToFile(`[SyncController] Changes download error: ${error.message}`);
+            res.status(500).json({ success: false, message: 'สร้างไฟล์ Excel ไม่สำเร็จ' });
+        }
+    }
 }
 
 module.exports = new SyncController();
