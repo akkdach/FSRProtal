@@ -263,6 +263,23 @@ const swaggerSpec = {
                 scheme: 'basic',
                 description: 'ใช้กับกลุ่ม Sync และ Request Status (username/password จาก environment)'
             }
+        },
+        schemas: {
+            // payload shared by /api/request-status (Fabric) and /api/request-status-sims (SIMS PostgreSQL)
+            RequestStatusResponse: {
+                type: 'object',
+                properties: {
+                    Serviceorderid: { type: 'string', description: 'เลขใบงาน' },
+                    ServiceStage: { type: 'string', description: 'สถานะ/ขั้นของงาน' },
+                    PostponeDate: { type: 'string', example: '1900-01-01', description: 'วันที่เลื่อน (YYYY-MM-DD) · 1900-01-01 = ไม่ได้เลื่อน (ค่าว่างของ F&O ทั้งสองเส้นตอบแบบนี้) · "" เฉพาะเมื่อ STATUS เป็น NOT_FOUND / ERROR' },
+                    UnkhowpostponeDate: { type: 'string', enum: ['Yes', 'No', ''], description: 'เลื่อนแบบไม่ระบุวัน · "" เมื่อ STATUS เป็น NOT_FOUND / ERROR หรือ (เส้น SIMS) เมื่อค่าใน SIMS ไม่ใช่ yes/no/1/0/true/false/ว่าง' },
+                    PostponereasonDesc: { type: 'string', description: 'เหตุผลที่เลื่อน ("" ถ้าไม่มี)' },
+                    Scheduledstart: { type: 'string', example: '2026-10-28', description: 'วันนัดเริ่มงาน (YYYY-MM-DD) · 1900-01-01 = ไม่มีวันนัด · "" เฉพาะเมื่อ STATUS เป็น NOT_FOUND / ERROR' },
+                    Modelnodescription: { type: 'string', description: 'รุ่นเครื่อง' },
+                    STATUS: { type: 'string', enum: ['SUCCESS', 'NOT_FOUND', 'ERROR'] },
+                    MESSAGE: { type: 'string' }
+                }
+            }
         }
     },
     paths: {
@@ -630,6 +647,49 @@ const swaggerSpec = {
                 summary: 'ดึงค่าเฉลี่ยการใช้น้ำมันของรถแต่ละคัน',
                 security: JWT,
                 responses: listResponse('ค่าเฉลี่ยน้ำมันต่อคัน')
+            }
+        },
+        // Declared here so kong-api-gateway/scripts/sync-routes-from-swagger.py keeps the Kong route
+        // (the sync deletes routes under this service that are not in Swagger). Handler: fuelPriceController.js
+        '/api/fuel-price': {
+            get: {
+                tags: ['👷 Manpower & Worker'],
+                summary: 'ราคาน้ำมันขายปลีกรายวัน (บางจาก) สำหรับคำนวณค่าน้ำมันเป็นบาท',
+                description: 'scrape หน้า historical ของ bangchak.co.th (cache รายปี) แล้วเลือกราคาที่มีผล ณ วันที่ขอ (fill-forward จากวันประกาศล่าสุด) ไม่ใช่ตารางใน DB',
+                security: JWT,
+                parameters: [
+                    { name: 'date', in: 'query', required: true, description: 'วันที่ต้องการราคา YYYY-MM-DD', schema: { type: 'string', format: 'date', example: '2026-09-05' } },
+                    { name: 'product', in: 'query', required: false, description: 'ชื่อผลิตภัณฑ์ (ค่าเริ่มต้น Hi Diesel S = ดีเซล B7); จับคู่แบบ substring ได้', schema: { type: 'string', example: 'Hi Diesel S' } }
+                ],
+                responses: {
+                    '200': {
+                        description: 'ราคาที่มีผล ณ วันที่ขอ',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        data: {
+                                            type: 'object',
+                                            properties: {
+                                                date: { type: 'string', format: 'date', example: '2026-09-05' },
+                                                priceDate: { type: 'string', format: 'date', description: 'วันประกาศราคาล่าสุดก่อนหรือเท่ากับ date', example: '2026-09-02' },
+                                                exact: { type: 'boolean', description: 'true = ชื่อผลิตภัณฑ์ตรงทั้งคำ' },
+                                                product: { type: 'string', example: 'Hi Diesel S' },
+                                                price: { type: 'number', description: 'บาทต่อลิตร', example: 39.14 },
+                                                all: { type: 'object', additionalProperties: { type: 'number' }, description: 'ราคาทุกผลิตภัณฑ์ในประกาศนั้น' },
+                                                source: { type: 'string', example: 'bangchak-history' }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    '400': { description: 'date ไม่ถูกต้อง' },
+                    '404': { description: 'ไม่พบผลิตภัณฑ์ (คืน availableProducts)' }
+                }
             }
         },
 
@@ -1028,6 +1088,70 @@ const swaggerSpec = {
                 responses: {
                     '200': { description: 'บันทึกสำเร็จ' },
                     '401': { description: 'Unauthorized (Basic Auth)' }
+                }
+            }
+        },
+
+        // ========== Request Status (SIMS PostgreSQL) ==========
+        '/api/request-status-sims/order/{serviceOrderNumber}': {
+            get: {
+                tags: ['📝 Request Status'],
+                summary: 'ดึงสถานะงานจาก SIMS ด้วยเลขใบงาน (Basic Auth)',
+                description: 'เฉพาะ SIMS (เส้นเดิม Fabric ไม่มี) · ค้นด้วยเลขใบงานแทน Ticket No ใช้กับใบงานที่ไม่มี Ticket No (ใบงานจาก SAP ส่วนใหญ่) · '
+                    + 'response ชุดเดียวกับ GET /api/request-status-sims/{referencedPoNumber} · ตรงตัวพิมพ์ ใบงาน SAP ต้องมีเลข 0 นำหน้าครบ 12 หลัก · '
+                    + 'ไม่พบข้อมูลยังตอบ HTTP 200 แต่ STATUS = NOT_FOUND',
+                security: BASIC,
+                parameters: [
+                    { name: 'serviceOrderNumber', in: 'path', required: true, schema: { type: 'string' }, description: 'เลขใบงาน เช่น SV0000251 หรือ 000049042875', example: 'SV0000251' }
+                ],
+                responses: {
+                    '200': { description: 'พบ (STATUS=SUCCESS) หรือไม่พบ (STATUS=NOT_FOUND)', content: { 'application/json': { schema: { $ref: '#/components/schemas/RequestStatusResponse' } } } },
+                    '401': { description: 'Unauthorized (Basic Auth)' },
+                    '500': { description: 'STATUS=ERROR (เช่น ต่อฐานข้อมูล SIMS ไม่ได้)', content: { 'application/json': { schema: { $ref: '#/components/schemas/RequestStatusResponse' } } } }
+                }
+            }
+        },
+        '/api/request-status-sims/{referencedPoNumber}': {
+            get: {
+                tags: ['📝 Request Status'],
+                summary: 'ดึงสถานะงานจากระบบใหม่ SIMS (Basic Auth)',
+                description: 'สัญญาเดียวกับ GET /api/request-status แต่อ่านจากฐานข้อมูล SIMS (PostgreSQL) แทน Fabric · '
+                    + 'referencedPoNumber = Ticket No ของใบงาน · ใช้ Basic Auth ชุดเดียวกับเส้นเดิม · '
+                    + 'ไม่พบข้อมูลยังตอบ HTTP 200 แต่ STATUS = NOT_FOUND',
+                security: BASIC,
+                parameters: [
+                    { name: 'referencedPoNumber', in: 'path', required: true, schema: { type: 'string' }, description: 'Ticket No ของใบงาน' }
+                ],
+                responses: {
+                    '200': { description: 'พบ (STATUS=SUCCESS) หรือไม่พบ (STATUS=NOT_FOUND)', content: { 'application/json': { schema: { $ref: '#/components/schemas/RequestStatusResponse' } } } },
+                    '401': { description: 'Unauthorized (Basic Auth)' },
+                    '500': { description: 'STATUS=ERROR (เช่น ต่อฐานข้อมูล SIMS ไม่ได้)', content: { 'application/json': { schema: { $ref: '#/components/schemas/RequestStatusResponse' } } } }
+                }
+            }
+        },
+        '/api/request-status-sims': {
+            post: {
+                tags: ['📝 Request Status'],
+                summary: 'ดึงสถานะงานจากระบบใหม่ SIMS ด้วย body (Basic Auth)',
+                description: 'เหมือน GET /api/request-status-sims/{referencedPoNumber} แต่ส่งเลขใน body · อ่านอย่างเดียว ไม่บันทึกข้อมูล',
+                security: BASIC,
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['referencedPoNumber'],
+                                properties: { referencedPoNumber: { type: 'string', description: 'Ticket No ของใบงาน' } }
+                            }
+                        }
+                    }
+                },
+                responses: {
+                    '200': { description: 'พบ (STATUS=SUCCESS) หรือไม่พบ (STATUS=NOT_FOUND)', content: { 'application/json': { schema: { $ref: '#/components/schemas/RequestStatusResponse' } } } },
+                    '400': { description: 'ไม่ได้ส่ง referencedPoNumber', content: { 'application/json': { schema: { $ref: '#/components/schemas/RequestStatusResponse' } } } },
+                    '401': { description: 'Unauthorized (Basic Auth)' },
+                    '500': { description: 'STATUS=ERROR', content: { 'application/json': { schema: { $ref: '#/components/schemas/RequestStatusResponse' } } } }
                 }
             }
         },

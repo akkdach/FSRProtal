@@ -14,7 +14,7 @@ Microsoft Fabric OneLake (GraphQL + SQL Endpoint) มา cache แล้วเ�
 
 | โฟลเดอร์ | คือ |
 |---|---|
-| `onelake-middleware/` | Backend — Node.js (CommonJS) + Express 4, โครง MVC: `src/routes/api.js` → `src/controllers/` → `src/services/` · auth 3 แบบ: Entra ID → internal JWT (`/api/auth/login`), Basic Auth (`/api/request-status`), Sync Basic Auth (`/api/sync/*`) |
+| `onelake-middleware/` | Backend — Node.js (CommonJS) + Express 4, โครง MVC: `src/routes/api.js` → `src/controllers/` → `src/services/` · auth 3 แบบ: Entra ID → internal JWT (`/api/auth/login`), Basic Auth (`/api/request-status` และ `/api/request-status-sims`), Sync Basic Auth (`/api/sync/*`) · แหล่งข้อมูล: Fabric (GraphQL + SQL endpoint) เป็นหลัก, SQL Server 3 ชุด, PostgreSQL ระบบใหม่ SIMS (`src/services/simsDbService.js`) |
 | `FSRProtal/` | Frontend — React 19 + Vite 7 + TypeScript + MUI 7 + material-react-table + i18next (th/en/ja/zh) · หลายหน้ายังใช้ mock data ใน `src/data/` |
 | `MobileStatusSync/` | Console app .NET 8 (C#) รันจาก Windows Task Scheduler บน VM `20.33.118.76` ทุก 1 ชั่วโมง — อ่าน view `update_mobile_status_when_callbackwork` จาก Fabric SQL endpoint แล้วอัปเดต `BevproFsProd.dbo.work_order.WEB_STATUS` + แจ้ง Teams · อ่าน `MobileStatusSync/README.md` ก่อนแตะ (มีข้อสันนิษฐาน ZZMOBILE_STATUS vs WEB_STATUS ที่ต้องยืนยัน) |
 | `.github/workflows/` | CI/CD ตัวจริง (GitHub อ่านเฉพาะ `.github/` ที่ root) — มีสำเนาซ้ำใน `onelake-middleware/.github/` เนื้อหาเดียวกัน · `main_onelake-middleware.yml` = deploy backend · `material-master-sync.yml` = ตัวตั้งเวลานอกแอป ยิง `POST /api/sync/material-master-sync` 05:30 + 13:00 (Asia/Bangkok) |
@@ -48,6 +48,7 @@ env keys ที่ backend ใช้ (เขียนได้แค่ชื่
 `SYNC_TEAMS_WEBHOOK_URL` (ห้องงานระบบ = แชต "Noti Innovation" — การ์ดผล sync ทุกรอบ; ไม่ตั้ง = ไม่ส่ง ไม่ fallback ไปห้อง HR; เครื่อง dev อ่าน `MOBILE_SYNC_TEAMS_WEBHOOK_URL` แทนได้) ·
 `MATERIAL_MASTER_CRON` (รอบ **สำรอง** ในโปรเซส: cron หลายตัวคั่นด้วย `;` หรือ `off`; default `45 5 * * *;15 13 * * *`) · `MATERIAL_MASTER_DEDUP_MINUTES` (default 45) ·
 ประวัติรอบ sync + ลิงก์ดาวน์โหลด Excel (ไม่บังคับทุกตัว): `SYNC_HISTORY_DIR` (default Azure `/home/data/material-master-sync`, dev `onelake-middleware/sync-history/`) · `SYNC_HISTORY_KEEP` (120) · `SYNC_LINK_TTL_DAYS` (14) · `SYNC_LINK_SECRET` (default ใช้ `JWT_SECRET`) · `PUBLIC_BASE_URL` (default `https://$WEBSITE_HOSTNAME`)
+ระบบใหม่ SIMS (PostgreSQL, ใช้โดย `/api/request-status-sims` เท่านั้น — ไม่ตั้งแอปยัง boot ได้ เส้นนี้ตอบ 500 "not configured"): `SIMS_DB_HOST` · `SIMS_DB_PORT` (ไม่ใช่ port มาตรฐาน) · `SIMS_DB_DATABASE` · `SIMS_DB_USER` · `SIMS_DB_PASSWORD` · `SIMS_DB_SSL` (**ต้อง `true`**) · `SIMS_DB_SSL_CA` (**บังคับ** — PEM ใบรับรอง self-signed ของเซิร์ฟเวอร์ ไม่ใส่ = ไม่ยอมต่อ (fail closed); **ห้าม commit** — ใบรับรองระบุ host DB และ repo นี้ public) · `SIMS_DB_SSL_INSECURE` (เฉพาะ DB ทดสอบในเครื่อง ห้ามใช้ production) · `SIMS_DB_CHANNEL_BINDING` (default true) · `SIMS_DB_DATA_AREA_ID` (default `BPA`) · `SIMS_DB_POOL_MAX` (default 2 — role ที่ใช้มี connection limit ต่ำและ pgAdmin ใช้ร่วม) / `SIMS_DB_IDLE_TIMEOUT_MS` / `SIMS_DB_CONNECT_TIMEOUT_MS` / `SIMS_DB_STATEMENT_TIMEOUT_MS` / `SIMS_DB_QUERY_TIMEOUT_MS` (ไม่บังคับ) · **ห้ามใส่ host / ชื่อ DB / port / ชื่อ role ของ SIMS ลงไฟล์ใน repo** (public)
 GitHub Actions secrets (repo Settings): `SYNC_AUTH_USER` / `SYNC_AUTH_PASS` — ใช้โดย `material-master-sync.yml` ค่าเดียวกับ app setting ของ Web App
 
 ## Deploy
@@ -110,5 +111,6 @@ GitHub Actions secrets (repo Settings): `SYNC_AUTH_USER` / `SYNC_AUTH_PASS` — 
 | Swagger UI `/api-docs` | สัญญา API ทุก endpoint — generate สดจาก `onelake-middleware/src/config/swagger.js` |
 | `MobileStatusSync/README.md` | MobileStatusSync ทำอะไร, config ทุก key, ทำไมปลายทางเป็น `WEB_STATUS`, ผล dry-run |
 | `docs/RB-mobile-status-sync.md` | runbook ติดตั้ง/rollout/ตรวจสอบ/แก้ปัญหา/rollback ของ MobileStatusSync บน VM (ชั้น C — DevOps ต้องเซ็น) |
+| `docs/AS-request-status-sims.md` | สัญญา `/api/request-status-sims` (อ่าน SIMS PostgreSQL): mapping field F&O → SIMS, จุดที่ตั้งใจให้ต่างจากเส้นเดิม (ticket ซ้ำ → ใบล่าสุด), ข้อจำกัด TicketNo ของใบงาน SAP, เส้นเสริม `/order/{serviceOrderNumber}` ค้นด้วยเลขใบงาน (ชั้น B) |
 | `docs/RB-material-master-sync.md` | runbook ของ Auto Sync Material Master — ตารางเวลา 2 ตัวตั้งเวลา, ค่าที่ต้องตั้ง, วิธีรู้ว่าทำงาน, แก้ปัญหา, สั่งรันเอง, ปิด/ย้อนกลับ (ชั้น C — DevOps ต้องเซ็น) |
 | `onelake-middleware/introspect.txt`, `git_error.log`, `push_error.log` | เศษไฟล์ debug เก่า — ไม่ใช่เอกสาร อย่าใช้อ้างอิง |

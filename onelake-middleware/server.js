@@ -32,6 +32,13 @@ app.get('/test-login', (req, res) => res.sendFile(path.join(__dirname, 'test_log
 app.get('/api/request-status/:referencedPoNumber', validateBasicAuth, (req, res) => fsrProtalController.getRequestStatus(req, res));
 app.post('/api/request-status', validateBasicAuth, (req, res) => fsrProtalController.postRequestStatus(req, res));
 
+// Same contract as /api/request-status, but reads the new SIMS PostgreSQL database (same Basic Auth credentials)
+const simsRequestStatusController = require('./src/controllers/simsRequestStatusController');
+// SIMS-only lookup by service order number (orders without a Ticket No); two segments, so it never shadows the ticket route
+app.get('/api/request-status-sims/order/:serviceOrderNumber', validateBasicAuth, (req, res) => simsRequestStatusController.getRequestStatusByOrder(req, res));
+app.get('/api/request-status-sims/:referencedPoNumber', validateBasicAuth, (req, res) => simsRequestStatusController.getRequestStatus(req, res));
+app.post('/api/request-status-sims', validateBasicAuth, (req, res) => simsRequestStatusController.postRequestStatus(req, res));
+
 // Sync Data Route (Protected by Basic Auth for easy automated triggering)
 const syncController = require('./src/controllers/syncController');
 app.post('/api/sync/service-order-table-sync', validateSyncBasicAuth, (req, res) => syncController.syncServiceOrderTable(req, res));

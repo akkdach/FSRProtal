@@ -1,0 +1,221 @@
+{
+  "info": {
+    "name": "OneLake Middleware - Request Status (Fabric vs SIMS)",
+    "_postman_id": "8f6c2e1a-4b7d-4c3e-9a21-request-status-sims",
+    "description": "Tests for /api/request-status-sims (new SIMS PostgreSQL source) side by side with the original /api/request-status (Fabric).\n\nBefore running:\n1. Pick an environment: 'onelake-middleware LOCAL' (server on your machine) or 'onelake-middleware PROD' (Azure; the -sims path exists only after deploy).\n2. Fill basicUser / basicPass in the environment (same values as BASIC_AUTH_USER / BASIC_AUTH_PASS in onelake-middleware/.env). Never commit them.\n\nSpec: docs/AS-request-status-sims.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{basicUser}}", "type": "string" },
+      { "key": "password", "value": "{{basicPass}}", "type": "string" }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// shared contract check: every 2xx/4xx/5xx JSON body must carry the same 9 keys in the same order",
+          "const KEYS = ['Serviceorderid','ServiceStage','PostponeDate','UnkhowpostponeDate','PostponereasonDesc','Scheduledstart','Modelnodescription','STATUS','MESSAGE'];",
+          "if (pm.response.code !== 401) {",
+          "  pm.test('response has the 9 contract keys in order', () => {",
+          "    pm.expect(Object.keys(pm.response.json())).to.eql(KEYS);",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "SIMS (new)",
+      "item": [
+        {
+          "name": "GET found - ticket shared by 2 orders (newest wins)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('STATUS = SUCCESS', () => pm.expect(j.STATUS).to.eql('SUCCESS'));",
+            "pm.test('newest order of the ticket is returned', () => pm.expect(j.Serviceorderid).to.eql('000049042875'));",
+            "pm.test('dates are YYYY-MM-DD', () => { pm.expect(j.PostponeDate).to.match(/^\\d{4}-\\d{2}-\\d{2}$/); pm.expect(j.Scheduledstart).to.match(/^\\d{4}-\\d{2}-\\d{2}$/); });"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/RP2610-00003", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "RP2610-00003"] },
+            "description": "Ticket RP2610-00003 has 2 orders in SIMS (000049042874 ZC04 + 000049042875 ZC09). The newest is returned."
+          }
+        },
+        {
+          "name": "POST found - postponed order",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('STATUS = SUCCESS', () => pm.expect(j.STATUS).to.eql('SUCCESS'));",
+            "pm.test('has a postpone reason', () => pm.expect(j.PostponereasonDesc).to.not.eql(''));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"referencedPoNumber\": \"26102026\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims"] }
+          }
+        },
+        {
+          "name": "GET your own ticket",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/{{ticket}}", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "{{ticket}}"] },
+            "description": "Set the 'ticket' variable in the environment to any Ticket No you want to check. Encode '/' as %2F."
+          }
+        },
+        {
+          "name": "GET by order number - SIMS order without Ticket No",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('STATUS = SUCCESS', () => pm.expect(j.STATUS).to.eql('SUCCESS'));",
+            "pm.test('same order is returned', () => pm.expect(j.Serviceorderid).to.eql('SV0000251'));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/order/SV0000251", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "order", "SV0000251"] },
+            "description": "SIMS-only. SV0000251 has no Ticket No, so the ticket lookup cannot reach it; the order-number lookup can."
+          }
+        },
+        {
+          "name": "GET by order number - SAP order (leading zeros kept)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('STATUS = SUCCESS', () => pm.expect(j.STATUS).to.eql('SUCCESS'));",
+            "pm.test('12-digit number with leading zeros', () => pm.expect(j.Serviceorderid).to.eql('000049042875'));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/order/000049042875", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "order", "000049042875"] }
+          }
+        },
+        {
+          "name": "GET by order number - not found",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 (not 404)', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('STATUS = NOT_FOUND', () => pm.expect(j.STATUS).to.eql('NOT_FOUND'));",
+            "pm.test('message names the order number', () => pm.expect(j.MESSAGE).to.eql('No data found for the given service order number'));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/order/SV9999999", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "order", "SV9999999"] }
+          }
+        },
+        {
+          "name": "GET your own order number",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/order/{{order}}", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "order", "{{order}}"] },
+            "description": "Set the 'order' variable in the environment to any service order number (e.g. SV0000248 or 000049042875). Exact match, upper-case, SAP numbers keep their leading zeros."
+          }
+        },
+        {
+          "name": "GET not found",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 (not 404)', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('STATUS = NOT_FOUND', () => pm.expect(j.STATUS).to.eql('NOT_FOUND'));",
+            "pm.test('all fields empty', () => pm.expect(j.Serviceorderid).to.eql(''));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/NO-SUCH-TICKET-XYZ", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "NO-SUCH-TICKET-XYZ"] }
+          }
+        },
+        {
+          "name": "GET ticket containing '/' (URL-encoded %2F)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.test('STATUS = SUCCESS', () => pm.expect(pm.response.json().STATUS).to.eql('SUCCESS'));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/2526%2F1452", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "2526%2F1452"] },
+            "description": "Ticket '2526/1452'. In a GET path the slash must be sent as %2F (or use the POST request)."
+          }
+        },
+        {
+          "name": "GET case-sensitive (cm-10 vs CM-10)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.test('lower-case ticket is its own order', () => pm.expect(pm.response.json().Serviceorderid).to.eql('SV0000362'));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/cm-10", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "cm-10"] },
+            "description": "Matching is exact and case-sensitive like the Fabric endpoint: 'cm-10' and 'CM-10' are different tickets."
+          }
+        },
+        {
+          "name": "POST missing body -> 400",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));",
+            "pm.test('STATUS = ERROR', () => pm.expect(pm.response.json().STATUS).to.eql('ERROR'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims"] }
+          }
+        },
+        {
+          "name": "GET without Basic Auth -> 401",
+          "auth": { "type": "noauth" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status-sims/RP2610-00003", "host": ["{{baseUrl}}"], "path": ["api", "request-status-sims", "RP2610-00003"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fabric (original, for comparison)",
+      "item": [
+        {
+          "name": "GET original - same ticket",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/request-status/RP2610-00003", "host": ["{{baseUrl}}"], "path": ["api", "request-status", "RP2610-00003"] },
+            "description": "Same ticket string, but Fabric (F&O) and SIMS hold different orders, so the values differ while the format is identical."
+          }
+        },
+        {
+          "name": "POST original - your own ticket",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"referencedPoNumber\": \"{{ticket}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/request-status", "host": ["{{baseUrl}}"], "path": ["api", "request-status"] }
+          }
+        }
+      ]
+    }
+  ]
+}
