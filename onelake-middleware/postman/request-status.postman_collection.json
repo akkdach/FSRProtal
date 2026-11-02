@@ -1,0 +1,192 @@
+{
+  "info": {
+    "name": "OneLake Middleware - Request Status",
+    "_postman_id": "8f6c2e1a-4b7d-4c3e-9a21-request-status",
+    "description": "Tests for /api/request-status (GET + POST, Basic Auth).\n\nBefore running:\n1. Pick an environment: 'onelake-middleware LOCAL' (server on your machine) or 'onelake-middleware PROD' (Azure).\n2. Fill basicUser / basicPass in the environment (same values as BASIC_AUTH_USER / BASIC_AUTH_PASS in onelake-middleware/.env). Never commit them.\n3. knownTicket / knownOrder (collection variables) = a ticket of an order in the new system and that order; knownLegacyTicket / knownLegacyOrder = a ticket of an order created in the old system (F&O) before the 2026-10-31 cutover. Update them when an order is gone.\n\nSpec: docs/AS-request-status.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "knownTicket", "value": "2611010075-1", "type": "string" },
+    { "key": "knownOrder", "value": "000043278387", "type": "string" },
+    { "key": "knownLegacyTicket", "value": "RP2610-00003", "type": "string" },
+    { "key": "knownLegacyOrder", "value": "000043248675", "type": "string" }
+  ],
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{basicUser}}", "type": "string" },
+      { "key": "password", "value": "{{basicPass}}", "type": "string" }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// shared contract check: every 2xx/4xx/5xx JSON body must carry the same 9 keys in the same order",
+          "const KEYS = ['Serviceorderid','ServiceStage','PostponeDate','UnkhowpostponeDate','PostponereasonDesc','Scheduledstart','Modelnodescription','STATUS','MESSAGE'];",
+          "if (pm.response.code !== 401) {",
+          "  pm.test('response has the 9 contract keys in order', () => {",
+          "    pm.expect(Object.keys(pm.response.json())).to.eql(KEYS);",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "GET found - known ticket",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "const j = pm.response.json();",
+        "pm.test('STATUS = SUCCESS', () => pm.expect(j.STATUS).to.eql('SUCCESS'));",
+        "pm.test('order of the ticket is returned', () => pm.expect(j.Serviceorderid).to.eql(pm.collectionVariables.get('knownOrder')));",
+        "pm.test('stage is a known code', () => pm.expect(['INIT','INPR','FINS','POST','CANC']).to.include(j.ServiceStage));",
+        "pm.test('dates are YYYY-MM-DD', () => { pm.expect(j.PostponeDate).to.match(/^\\d{4}-\\d{2}-\\d{2}$/); pm.expect(j.Scheduledstart).to.match(/^\\d{4}-\\d{2}-\\d{2}$/); });",
+        "pm.test('UnkhowpostponeDate is Yes/No', () => pm.expect(['Yes','No']).to.include(j.UnkhowpostponeDate));"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/request-status/{{knownTicket}}", "host": ["{{baseUrl}}"], "path": ["api", "request-status", "{{knownTicket}}"] }
+      }
+    },
+    {
+      "name": "POST found - known ticket in body",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "const j = pm.response.json();",
+        "pm.test('STATUS = SUCCESS', () => pm.expect(j.STATUS).to.eql('SUCCESS'));",
+        "pm.test('same order as GET', () => pm.expect(j.Serviceorderid).to.eql(pm.collectionVariables.get('knownOrder')));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"referencedPoNumber\": \"{{knownTicket}}\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/request-status", "host": ["{{baseUrl}}"], "path": ["api", "request-status"] }
+      }
+    },
+    {
+      "name": "POST trailing spaces are ignored",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "pm.test('same order as without spaces', () => pm.expect(pm.response.json().Serviceorderid).to.eql(pm.collectionVariables.get('knownOrder')));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"referencedPoNumber\": \"{{knownTicket}}   \"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/request-status", "host": ["{{baseUrl}}"], "path": ["api", "request-status"] }
+      }
+    },
+    {
+      "name": "GET found - order created before the cutover (old system)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "const j = pm.response.json();",
+        "pm.test('STATUS = SUCCESS', () => pm.expect(j.STATUS).to.eql('SUCCESS'));",
+        "pm.test('old order is returned', () => pm.expect(j.Serviceorderid).to.eql(pm.collectionVariables.get('knownLegacyOrder')));",
+        "pm.test('dates are YYYY-MM-DD', () => { pm.expect(j.PostponeDate).to.match(/^\\d{4}-\\d{2}-\\d{2}$/); pm.expect(j.Scheduledstart).to.match(/^\\d{4}-\\d{2}-\\d{2}$/); });"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/request-status/{{knownLegacyTicket}}", "host": ["{{baseUrl}}"], "path": ["api", "request-status", "{{knownLegacyTicket}}"] },
+        "description": "Not in the new system, so the answer comes from the old one; slower (waits for the old system)."
+      }
+    },
+    {
+      "name": "GET your own ticket",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/request-status/{{ticket}}", "host": ["{{baseUrl}}"], "path": ["api", "request-status", "{{ticket}}"] },
+        "description": "Uses the 'ticket' variable of the selected environment."
+      }
+    },
+    {
+      "name": "GET not found",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 even when not found', () => pm.response.to.have.status(200));",
+        "const j = pm.response.json();",
+        "pm.test('STATUS = NOT_FOUND', () => pm.expect(j.STATUS).to.eql('NOT_FOUND'));",
+        "pm.test('message', () => pm.expect(j.MESSAGE).to.eql('No data found for the given reference PO number'));",
+        "pm.test('all fields empty', () => ['Serviceorderid','ServiceStage','PostponeDate','UnkhowpostponeDate','PostponereasonDesc','Scheduledstart','Modelnodescription'].forEach(k => pm.expect(j[k]).to.eql('')));"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/request-status/NO-SUCH-TICKET-XYZ", "host": ["{{baseUrl}}"], "path": ["api", "request-status", "NO-SUCH-TICKET-XYZ"] }
+      }
+    },
+    {
+      "name": "GET partial ticket is not a match (exact match only)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('STATUS = NOT_FOUND', () => pm.expect(pm.response.json().STATUS).to.eql('NOT_FOUND'));"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/request-status/2611010075", "host": ["{{baseUrl}}"], "path": ["api", "request-status", "2611010075"] },
+        "description": "knownTicket without its '-1' suffix."
+      }
+    },
+    {
+      "name": "POST ticket containing '/' (use POST: GET with %2F does not reach the API on Azure)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "pm.test('STATUS is SUCCESS or NOT_FOUND', () => pm.expect(['SUCCESS','NOT_FOUND']).to.include(pm.response.json().STATUS));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"referencedPoNumber\": \"2526/1452\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/request-status", "host": ["{{baseUrl}}"], "path": ["api", "request-status"] },
+        "description": "Azure App Service decodes %2F in the path before it reaches Express, so GET /api/request-status/2526%2F1452 gets the JWT 401 there (it always has). POST works everywhere."
+      }
+    },
+    {
+      "name": "POST missing body -> 400",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('400', () => pm.response.to.have.status(400));",
+        "const j = pm.response.json();",
+        "pm.test('STATUS = ERROR', () => pm.expect(j.STATUS).to.eql('ERROR'));",
+        "pm.test('message', () => pm.expect(j.MESSAGE).to.eql('referencedPoNumber is required in request body'));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{}" },
+        "url": { "raw": "{{baseUrl}}/api/request-status", "host": ["{{baseUrl}}"], "path": ["api", "request-status"] }
+      }
+    },
+    {
+      "name": "POST number instead of string -> 500 (unchanged legacy behaviour)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('500', () => pm.response.to.have.status(500));",
+        "const j = pm.response.json();",
+        "pm.test('STATUS = ERROR', () => pm.expect(j.STATUS).to.eql('ERROR'));",
+        "pm.test('legacy message', () => pm.expect(j.MESSAGE).to.eql('String cannot coerce the given value JSON element of type `Number` to a runtime value.'));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"referencedPoNumber\": 26102026\n}" },
+        "url": { "raw": "{{baseUrl}}/api/request-status", "host": ["{{baseUrl}}"], "path": ["api", "request-status"] },
+        "description": "The ticket must be sent as a JSON string; a number has always been rejected this way."
+      }
+    },
+    {
+      "name": "GET without Basic Auth -> 401",
+      "auth": { "type": "noauth" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('401', () => pm.response.to.have.status(401));"
+      ] } }],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/request-status/{{knownTicket}}", "host": ["{{baseUrl}}"], "path": ["api", "request-status", "{{knownTicket}}"] }
+      }
+    }
+  ]
+}

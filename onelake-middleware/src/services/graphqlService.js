@@ -3450,6 +3450,11 @@ class GraphQLService {
             if (result.errors && !rows.length) {
                 throw new Error(result.errors[0].message);
             }
+            // a non-2xx answer without a GraphQL errors[] (throttling 429, auth 401, paused capacity 503, ...) is a failure,
+            // not "no rows": /api/request-status may only answer NOT_FOUND when F&O really returned no rows
+            if (!response.ok && !rows.length) {
+                throw new Error(`Fabric GraphQL HTTP ${response.status}`);
+            }
 
             return rows;
         } catch (error) {

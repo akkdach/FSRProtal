@@ -8,7 +8,6 @@ const { logToFile } = require('./src/utils/logger');
 const apiRoutes = require('./src/routes/api');
 const { validateJwt } = require('./src/middleware/authMiddleware');
 const { validateBasicAuth, validateSyncBasicAuth } = require('./src/middleware/basicAuthMiddleware');
-const fsrProtalController = require('./src/controllers/fsrProtalController_graphql');
 
 const app = express();
 
@@ -29,15 +28,11 @@ const path = require('path');
 app.get('/test-login', (req, res) => res.sendFile(path.join(__dirname, 'test_login.html')));
 
 // Routes with Basic Auth (registered before JWT middleware)
-app.get('/api/request-status/:referencedPoNumber', validateBasicAuth, (req, res) => fsrProtalController.getRequestStatus(req, res));
-app.post('/api/request-status', validateBasicAuth, (req, res) => fsrProtalController.postRequestStatus(req, res));
-
-// Same contract as /api/request-status, but reads the new SIMS PostgreSQL database (same Basic Auth credentials)
+// Request Status looks the ticket up in SIMS first and falls back to F&O (Fabric) for orders created before the
+// 2026-10-31 cutover. Same contract as before, so callers change nothing — see docs/AD-request-status-data-source.md.
 const simsRequestStatusController = require('./src/controllers/simsRequestStatusController');
-// SIMS-only lookup by service order number (orders without a Ticket No); two segments, so it never shadows the ticket route
-app.get('/api/request-status-sims/order/:serviceOrderNumber', validateBasicAuth, (req, res) => simsRequestStatusController.getRequestStatusByOrder(req, res));
-app.get('/api/request-status-sims/:referencedPoNumber', validateBasicAuth, (req, res) => simsRequestStatusController.getRequestStatus(req, res));
-app.post('/api/request-status-sims', validateBasicAuth, (req, res) => simsRequestStatusController.postRequestStatus(req, res));
+app.get('/api/request-status/:referencedPoNumber', validateBasicAuth, (req, res) => simsRequestStatusController.getRequestStatus(req, res));
+app.post('/api/request-status', validateBasicAuth, (req, res) => simsRequestStatusController.postRequestStatus(req, res));
 
 // Sync Data Route (Protected by Basic Auth for easy automated triggering)
 const syncController = require('./src/controllers/syncController');

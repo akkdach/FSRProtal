@@ -107,8 +107,8 @@ module.exports = {
             idleTimeoutMillis: 30000
         }
     },
-    // SIMS (new system, PostgreSQL — data mirrored from D365 F&O).
-    // Used by /api/request-status-sims; the original /api/request-status still reads Fabric GraphQL.
+    // SIMS (PostgreSQL — the service system that replaced D365 F&O at the 2026-10-31 cutover).
+    // Used by /api/request-status (GET + POST).
     simsDb: {
         host: process.env.SIMS_DB_HOST,
         port: Number(process.env.SIMS_DB_PORT || 5432),
@@ -117,23 +117,25 @@ module.exports = {
         password: process.env.SIMS_DB_PASSWORD,
         // company filter; SIMS stores DataAreaId in upper case ('BPA') while F&O uses 'bpa'
         dataAreaId: (process.env.SIMS_DB_DATA_AREA_ID || 'BPA').trim(),
-        // TLS (required). SIMS_DB_SSL=true + SIMS_DB_SSL_CA = PEM of the server's self-signed certificate, so the
-        // server identity is verified (pinned). Literal "\n" sequences are accepted so the PEM fits in one App Setting.
-        // The certificate is not committed: it names the DB host and this repository is public.
+        // TLS (required). SIMS_DB_SSL=true + SIMS_DB_SSL_CA = PEM of the CA certificate(s) the server certificate chains to
+        // (for a managed Azure PostgreSQL server: its public root CAs; for a self-signed server: that certificate itself),
+        // so the server identity is verified. Literal "\n" sequences are accepted so the PEM fits in one App Setting.
         // Without both, the service refuses to connect (fail closed) unless SIMS_DB_SSL_INSECURE=true.
         sslEnabled: String(process.env.SIMS_DB_SSL).toLowerCase() === 'true',
         sslCa: process.env.SIMS_DB_SSL_CA ? process.env.SIMS_DB_SSL_CA.replace(/\\n/g, '\n') : null,
         insecure: String(process.env.SIMS_DB_SSL_INSECURE).toLowerCase() === 'true',
         // SCRAM channel binding: once the server certificate is verified, it also binds the login to this TLS session.
         channelBinding: String(process.env.SIMS_DB_CHANNEL_BINDING || 'true').toLowerCase() !== 'false',
-        // small pool on purpose: the DB role is connection-capped server-wide and admin tool sessions
-        // of the same role count against it; single-row lookups need very few connections
+        // small pool on purpose: a DB role can be connection-capped and admin tool sessions of the same role
+        // count against it; single-row lookups need very few connections
         max: Number(process.env.SIMS_DB_POOL_MAX || 2),
         idleTimeoutMillis: Number(process.env.SIMS_DB_IDLE_TIMEOUT_MS || 10000),
         connectionTimeoutMillis: Number(process.env.SIMS_DB_CONNECT_TIMEOUT_MS || 15000),
         statementTimeoutMillis: Number(process.env.SIMS_DB_STATEMENT_TIMEOUT_MS || 30000),
         // client-side cap (a dropped network path never reaches the server's statement_timeout)
-        queryTimeoutMillis: Number(process.env.SIMS_DB_QUERY_TIMEOUT_MS || 35000)
+        queryTimeoutMillis: Number(process.env.SIMS_DB_QUERY_TIMEOUT_MS || 35000),
+        // /api/request-status waits at most this long for SIMS before asking F&O (SIMS normally answers in ~50 ms)
+        lookupDeadlineMillis: Number(process.env.SIMS_DB_LOOKUP_DEADLINE_MS || 5000)
     },
     entra: {
         tenantId: process.env.ENTRA_TENANT_ID || process.env.AZURE_TENANT_ID,

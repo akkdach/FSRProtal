@@ -3,13 +3,14 @@ const config = require('../config');
 const { logToFile } = require('../utils/logger');
 
 /**
- * SIMS PostgreSQL data source (new system, mirrored from D365 F&O).
+ * SIMS PostgreSQL data source (the service system that replaced D365 F&O at the 2026-10-31 cutover).
  *
- * Only used by the /api/request-status-sims endpoints. The original /api/request-status
- * keeps reading the Fabric GraphQL stored procedure and is not touched.
+ * Used by /api/request-status (GET + POST), which tries SIMS first and falls back to the Fabric GraphQL stored
+ * procedure dbo.REFERENCEDPONUMBER for orders created in F&O before the cutover (see docs/AD-request-status-data-source.md).
  *
- * The pool is created lazily so the app still boots when SIMS_DB_* is not configured
- * (e.g. local dev); in that case the endpoint answers STATUS=ERROR instead of crashing.
+ * The pool is created lazily so the app still boots when SIMS_DB_* is not configured (e.g. local dev);
+ * getPool() then throws, the controller treats that as a failed SIMS lookup and still asks F&O, so only a
+ * ticket F&O does not have answers 500 STATUS=ERROR ("not configured").
  */
 let pool = null;
 
@@ -33,7 +34,7 @@ function getPool() {
         let ssl = false;
         if (c.sslEnabled) {
             ssl = c.sslCa
-                ? { ca: c.sslCa, rejectUnauthorized: true }   // pinned self-signed server certificate
+                ? { ca: c.sslCa, rejectUnauthorized: true }   // server certificate verified against SIMS_DB_SSL_CA only
                 : { rejectUnauthorized: false };              // insecure opt-in only: encrypted, server NOT verified
         }
         pool = new Pool({
@@ -57,7 +58,7 @@ function getPool() {
         });
         // a pool-level error listener is required, otherwise an idle-client error kills the process
         pool.on('error', (err) => logToFile(`[SIMS-DB] idle client error: ${err.message}`));
-        const tlsMode = !ssl ? 'off (SIMS_DB_SSL_INSECURE)' : (c.sslCa ? 'verified (pinned CA)' : 'encrypted, server NOT verified (SIMS_DB_SSL_INSECURE)');
+        const tlsMode = !ssl ? 'off (SIMS_DB_SSL_INSECURE)' : (c.sslCa ? 'verified (SIMS_DB_SSL_CA)' : 'encrypted, server NOT verified (SIMS_DB_SSL_INSECURE)');
         logToFile(`[SIMS-DB] pool created for database ${c.database} (tls=${tlsMode}, channelBinding=${Boolean(ssl) && c.channelBinding}, max=${c.max})`);
     }
     return pool;
@@ -71,13 +72,13 @@ async function query(text, params = []) {
 }
 
 /**
- * SIMS equivalent of the Fabric stored procedure dbo.REFERENCEDPONUMBER used by /api/request-status:
+ * SIMS equivalent of the Fabric stored procedure dbo.REFERENCEDPONUMBER that /api/request-status used before the cutover:
  *
  *   SELECT serviceorderid, stageid, bpc_postponedate, CASE bpc_unkhowpostponedate 1->'Yes' 0->'No',
  *          bpc_postponereasondesc, bpc_scheduledstart, bpc_modelnodescription
  *   FROM smaserviceordertable WHERE bpc_ticketno = @REFERENCEDPONUMBER
  *
- * Column mapping (verified against the SIMS schema, see docs/AS-request-status-sims.md):
+ * Column mapping (verified against the SIMS schema, see docs/AS-request-status.md):
  *   bpc_ticketno            -> od."TicketNo"           (the "referenced PO number" = customer PO / SAP BSTKD)
  *   serviceorderid          -> so."ServiceOrderNumber"
  *   stageid                 -> od."ServiceStage"       (same codes: INIT / INPR / FINS / POST / CANC)
@@ -87,7 +88,7 @@ async function query(text, params = []) {
  *   bpc_scheduledstart      -> od."ScheduleStartDate"
  *   bpc_modelnodescription  -> od."ModelDescription", falling back to the SMAModelNumber master
  *
- * Parity choices, so callers can switch paths without code changes:
+ * Parity choices, so callers see the same values as from the Fabric implementation:
  *   - dates are returned as 'YYYY-MM-DD' text (to_char) — no JS Date / timezone shifting;
  *   - an empty date returns '1900-01-01', exactly what the Fabric endpoint returns (F&O stores 1900-01-01 for "no date");
  *   - UnkhowpostponeDate is never empty in F&O (NoYes default 0), so an unset SIMS value returns 'No';
@@ -127,30 +128,13 @@ WHERE od."DataAreaId" = $2
 ORDER BY so."CreatedDateTime" DESC, so."RecId" DESC
 LIMIT 1`;
 
-/**
- * SIMS-only lookup by service order number (no Fabric counterpart): reaches orders that have no TicketNo,
- * which is most SAP-originated orders. Same columns and conversions as the ticket lookup.
- * ServiceOrderNumber is unique per DataAreaId (11,003 rows = 11,003 numbers, 2026-10-27) and indexed on
- * ("DataAreaId", "ServiceOrderNumber"); the match is exact (numbers are stored upper-case, SAP ones keep leading zeros).
- */
-const REQUEST_STATUS_BY_ORDER_SQL = `${REQUEST_STATUS_SELECT}
-WHERE so."DataAreaId" = $2
-  AND so."ServiceOrderNumber" = rtrim($1)
-ORDER BY so."CreatedDateTime" DESC, so."RecId" DESC
-LIMIT 1`;
-
 async function getRequestStatusByPo(referencedPoNumber) {
     const dataAreaId = config.simsDb.dataAreaId || 'BPA';
     return query(REQUEST_STATUS_SQL, [String(referencedPoNumber), dataAreaId]);
-}
-
-async function getRequestStatusByOrder(serviceOrderNumber) {
-    const dataAreaId = config.simsDb.dataAreaId || 'BPA';
-    return query(REQUEST_STATUS_BY_ORDER_SQL, [String(serviceOrderNumber), dataAreaId]);
 }
 
 async function close() {
     if (pool) { await pool.end(); pool = null; }
 }
 
-module.exports = { isConfigured, query, getRequestStatusByPo, getRequestStatusByOrder, close };
+module.exports = { isConfigured, query, getRequestStatusByPo, close };
