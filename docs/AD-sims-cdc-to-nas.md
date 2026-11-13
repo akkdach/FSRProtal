@@ -16,10 +16,10 @@ pmSyncedAt:
 
 | | |
 |---|---|
-| เวอร์ชันเอกสาร | 2026-11-10 |
+| เวอร์ชันเอกสาร | 2026-11-13 — อัปเดตหลังใช้งานจริง: เปิดใช้ด้วยเกณฑ์ ก (ข้อ 2 การตัดสินใจ 10) · ข้อยกเว้น PDPA: login อ่านอย่างเดียวของเจ้าของข้อมูลบน replica (ข้อ 5) · ตัวเลขขอบเขตตามการตัดสินใจ 9 · 2026-11-11 — เพดาน WAL ของ slot ทำด้วย **WAL guard (pg_cron)** เพราะ `max_slot_wal_keep_size` เป็น Read-Only บน Azure (ข้อ 2 การตัดสินใจ 8) · ฉบับแรก 2026-11-10 |
 | ชั้นเอกสาร | C — ร่างจากการตัดสินใจของผู้ขอโครงการ รอ tech lead เซ็น |
 | เจ้าของ | Tech lead |
-| สถานะ | เสนอ (ยังไม่เซ็น) — โครงการอยู่ระยะ 0 (เก็บข้อมูลและขออนุมัติ) ยังไม่แตะ Production |
+| สถานะ | **ใช้งานจริง (LIVE) ตั้งแต่ 2026-11-13** — เจ้าของเลือกเกณฑ์ ก (reconcile 08:20 ตรงครบ 256/256 ตาราง ไม่รอ 3 คืนติด · การตัดสินใจ 10) · restart `wal_level=logical` 2026-11-12 · เอกสารยังไม่เซ็น |
 | แทนที่ | — (ฉบับแรกของเรื่องนี้) |
 | แหล่งความจริง | เอกสารทีม "On-Prem CDC Plan (ฉบับปรับปรุง)" — _(ผู้เซ็นระบุชื่อไฟล์ / ตำแหน่งบน shared drive หรือ NAS / วันที่ของฉบับที่ใช้เทียบ)_ · ผลสำรวจระยะ 0 วันที่ 2026-11-10 ในไฟล์ `phase0-survey-findings.md`, `phase0-nas-checklist.md`, `phase0-requests.md` ของโฟลเดอร์งาน `SIMS-CDC` (อยู่นอก repo — _ผู้เซ็นระบุตำแหน่งที่เก็บกลาง_) |
 
@@ -37,10 +37,10 @@ pmSyncedAt:
 | เรื่อง | ค่า | ผลต่อการออกแบบ |
 |---|---|---|
 | เวอร์ชัน | PostgreSQL 18.6 · UTF8 · timezone UTC | ต้องใช้ Debezium รุ่นที่รองรับ PG 18 |
-| ขนาด | 260 ตาราง ตอนสำรวจ (schema เดียว) · 6.64 GB · 2026-11-11 พบตารางธุรกิจใหม่อีก 1 ตาราง (สร้างหลังสำรวจ) รวม 261 | ตารางใหม่ต้องเพิ่มเข้าขอบเขต (runbook R4) |
-| Storage | ดิสก์ของฐานไม่ขยายอัตโนมัติ | ถ้า WAL ค้างจนดิสก์ใกล้เต็ม Azure จะสลับฐานเป็น read-only → ต้องมีเพดาน WAL ของ slot + alert storage |
+| ขนาด | 260 ตาราง ตอนสำรวจ (schema เดียว) · 6.64 GB · 2026-11-11 พบตารางใหม่ที่สร้างหลังสำรวจ: ธุรกิจ 1 + แก้ข้อมูลชั่วคราว 2 รวม 263 | ตารางใหม่ต้องเพิ่มเข้าขอบเขต (runbook R4) |
+| Storage | ดูไฟล์ภายใน (`SIMS-CDC`) | ถ้า WAL ค้างจนดิสก์ใกล้เต็ม ฐานอาจถูกสลับเป็น read-only → ต้องมีเพดาน WAL ของ slot + alert storage |
 | `wal_level` | `replica` (static parameter) | ต้องเปลี่ยนเป็น `logical` + **restart 1 ครั้ง** |
-| `max_slot_wal_keep_size` | ต้องตั้งเพดาน | dynamic parameter ไม่ต้อง restart |
+| `max_slot_wal_keep_size` | `-1` (ไม่มีเพดาน) · **Read-Only บน Azure Flexible Server** — ผู้ใช้ตั้งไม่ได้ (ตรวจใน portal 2026-11-11 + เอกสาร Microsoft เรื่อง logical replication) | เพดาน WAL ของ slot ต้องทำเอง → **WAL guard** (การตัดสินใจ 8) |
 | `max_replication_slots` / `max_wal_senders` | 10 / 10 | พอ |
 | Network | เข้าถึงผ่าน network rule ที่จำกัดต้นทาง | NAS ต่อ**ออก**ทางเดียว + TLS `verify-full` |
 | โหลด | CPU สูงสุด ~10% · connection สูงสุด 23 | มีพื้นที่เผื่อพอ |
@@ -52,37 +52,44 @@ pmSyncedAt:
 |---|---|---|
 | 1 | ทำ **CDC (Change Data Capture)** จาก SIMS Production ไปเก็บใน **PostgreSQL 18 บน Synology NAS ในออฟฟิศ** ด้วย **Debezium + Kafka** | อ่าน WAL ผ่าน logical decoding (`pgoutput`) → Debezium PostgreSQL source connector → Kafka (KRaft) → Debezium JDBC sink connector → PostgreSQL ปลายทาง · ทั้งหมดรันด้วย Docker บน NAS |
 | 2 | เวอร์ชัน **Debezium 3.6.3.Final** (ตรึงเวอร์ชัน ห้ามใช้ `latest`) | ทดสอบกับ PostgreSQL 14–18 · รองรับ PG 18 ตั้งแต่ 3.4.0 · Kafka 4.x (KRaft) |
-| 3 | **ขอบเขต 254 ตาราง** จาก 261 | รายละเอียดข้อ 4 |
+| 3 | **ขอบเขต 256 ตาราง** จาก 263 | รายละเอียดข้อ 4 |
 | 4 | **ข้อมูลส่วนบุคคล: เก็บครบทุกคอลัมน์ใน replica แล้วให้ AI อ่านผ่าน view เท่านั้น** | รายละเอียดข้อ 5 |
 | 5 | **ไม่ใช้ VM application server เดิมที่ใช้งานอยู่** ในงานนี้ | ดูข้อ 3 |
-| 6 | **ไม่มี DDL บนตารางของแอป SIMS** | ไม่ทำ `REPLICA IDENTITY FULL` · สิ่งที่สร้างบน Production มีแค่ object ใหม่ของ CDC (role, publication, slot, ตาราง heartbeat/signal ของ Debezium) · ปัญหา TOAST แก้ด้วย **job ซ่อมฝั่ง NAS** ไม่เปลี่ยนอะไรเพิ่มบน Production (ข้อ 6 แถว TOAST) |
+| 6 | **ไม่มี DDL บนตารางของแอป SIMS** | ไม่ทำ `REPLICA IDENTITY FULL` · สิ่งที่สร้างบน Production มีแค่ object ใหม่ของ CDC (role ของ CDC + login อ่านอย่างเดียวของ NAS `<copy_login>` (ตั้งแต่ 2026-11-12), publication, slot, ตาราง heartbeat/signal ของ Debezium, ฟังก์ชัน + ตาราง log ของ WAL guard, ส่วนขยาย pg_cron + งานตั้งเวลา 1 งาน) · ปัญหา TOAST แก้ด้วย **job ซ่อมฝั่ง NAS** ไม่เปลี่ยนอะไรเพิ่มบน Production (ข้อ 6 แถว TOAST) |
 | 7 | กฎของทีม: **ถ้าต้องเลือกระหว่างรักษา CDC กับรักษา Production ให้รักษา Production** | CDC re-snapshot ได้เสมอ |
+| 8 | **เพดาน WAL ของ slot = WAL guard บน SIMS ที่รันด้วย pg_cron ทุก 15 นาที** (แทน `max_slot_wal_keep_size` ที่ Azure ล็อกเป็น Read-Only) | ฟังก์ชันในฐาน SIMS วัด WAL ที่ slot กัก (`pg_current_wal_lsn() − restart_lsn`) ถ้าเกินเพดาน (≈ 7 วัน ข้อ 6) ทำตามลำดับ: **ปิด login ของ role CDC** → ตัด session ของ connector → **drop slot** · ทุกรอบเขียน 1 แถวลงตาราง log ที่ login อ่านอย่างเดียวของ NAS อ่านได้ · ปิด login เพื่อกัน connector กลับมาสร้าง slot ใหม่เองแล้วสตรีมต่อโดยข้ามช่วงที่หาย (สำเนาไม่ครบแบบไม่มีใครรู้ — มีผลเมื่องานรอบนั้น commit ซึ่งเร็วกว่าที่ connector รอก่อนต่อใหม่มาก) — หลัง drop เปิด login คืนตามขั้นของ runbook R3-ข เท่านั้น (หลังล้าง offset + ล้างสำเนา ก่อน resume) · ยกเว้นกรณี drop ไม่สำเร็จแล้ว slot ยังอยู่ (ไม่มีช่องว่าง) เปิด login คืนได้เลยเมื่อ WAL ลดลง · แถว drop ใน log ค้างสถานะ "ยังไม่ปิดเรื่อง" จนกว่าจะทำ R3-ข ครบแล้วบันทึกเวลาปิด — monitor แจ้ง critical ตลอดช่วงนั้น แม้ connector สร้าง slot ใหม่ได้เอง (กรณีปิด login ไม่สำเร็จ) · ทดสอบแล้วบน PostgreSQL 18 (admin ที่ไม่ใช่ superuser, slot ทั้งไม่มีและมี connector ต่ออยู่) — ตัว pg_cron ทดสอบได้บน Azure เท่านั้น (✅ รันบน Azure ทุก 15 นาทีตั้งแต่ 2026-11-12) |
+| 9 | **(2026-11-12) ตารางแก้ข้อมูลชั่วคราวที่มี primary key (64 ตาราง) ย้ายเข้า CDC real-time · ที่ไม่มี primary key (31 ตาราง) คัดลอกทั้งตารางทุก 5 นาที** — แทนแถว "job คัดลอกทั้งตารางวันละครั้ง" ในข้อ 4 (superseded) | CDC = **225 ตาราง** (publication 227 รวม heartbeat/signal) + คัดลอกทุก 5 นาที **31 ตาราง** (7.8 MB) = 256 ตารางเท่าเดิม · การตัดสินใจ 6 ยังคงอยู่: ไม่มี DDL บนตารางของแอป — ตารางที่ไม่มี PK จึงไม่เข้า publication (UPDATE/DELETE ของแอปจะ error) · เปลี่ยนบน Production แค่รายชื่อใน publication + GRANT SELECT ของ role CDC (รัน `phase2-prod.sql` ซ้ำ ไม่ต้อง restart) · 64 ตารางโหลดผ่าน incremental snapshot · ตารางชั่วคราวที่ทีม SIMS สร้างใหม่ยังไม่ถูกส่งอัตโนมัติ (publication แบบระบุรายชื่อ) |
+| 10 | **(2026-11-13) เปิดใช้งานจริงด้วยเกณฑ์ ก** — ผล reconcile 2026-11-13 08:20 ตรงครบ **256/256 ตาราง** ใช้แทนเกณฑ์ "reconciliation ตรง 100% ติดกัน 3 วัน" ในข้อ 8 | reconcile รายวัน (02:30) ยังรันทุกคืนและส่งการ์ด Teams ทุกคืน · ผลไม่ตรง → runbook R6 · เอกสารนี้และ runbook ยังไม่เซ็น (ข้อ 11) |
 
 ที่มาของแต่ละข้อ:
 - **ข้อ 1, 3, 4, 5 — ผู้ขอโครงการตัดสิน** · ข้อ 1 ทำตามเอกสารทีม "On-Prem CDC Plan (ฉบับปรับปรุง)" · ข้อ 3–4 ดูข้อ 4–5 · ข้อ 5 เพราะทรัพยากรของ VM ไม่พอ
 - **ข้อ 2 — ผลการตรวจ release notes ในระยะ 0** (ผู้ร่างเอกสาร / AI) ตามขั้นตอนในแผนที่ผู้ขอโครงการอนุมัติ ("ตรวจเวอร์ชันแล้วตรึง") — _รอผู้เซ็นยืนยัน_
-- **ข้อ 6 — ผลตามมา** จากการตัดสินให้ใช้ job คัดลอกรายวันกับตารางที่ไม่มี PK (ข้อ 4) + การแก้ปัญหา TOAST โดยไม่ใช้ `REPLICA IDENTITY FULL` · ระยะ 0 เสนอ `ReselectColumnsPostProcessor` แต่ซ้อมระยะ 1 บน NAS (2026-11-10) พบว่าใช้กับตารางของ SIMS ไม่ได้ → **ผู้ขอโครงการ (เจ้าของฐาน SIMS) ตัดสิน 2026-11-10: ซ่อมฝั่ง NAS ไม่มี DDL และไม่เปลี่ยนอะไรอื่นบน Production** (ข้อ 6 แถว TOAST)
+- **ข้อ 6 — ผลตามมา** จากการตัดสินให้ใช้ job คัดลอกทั้งตาราง (เดิมรายวัน · ทุก 5 นาทีตั้งแต่ 2026-11-12 การตัดสินใจ 9) กับตารางที่ไม่มี PK (ข้อ 4) + การแก้ปัญหา TOAST โดยไม่ใช้ `REPLICA IDENTITY FULL` · ระยะ 0 เสนอ `ReselectColumnsPostProcessor` แต่ซ้อมระยะ 1 บน NAS (2026-11-10) พบว่าใช้กับตารางของ SIMS ไม่ได้ → **ผู้ขอโครงการ (เจ้าของฐาน SIMS) ตัดสิน 2026-11-10: ซ่อมฝั่ง NAS ไม่มี DDL และไม่เปลี่ยนอะไรอื่นบน Production** (ข้อ 6 แถว TOAST)
 - **ข้อ 7 — กฎจากเอกสารทีม** "On-Prem CDC Plan (ฉบับปรับปรุง)"
+- **ข้อ 8 — ผู้ขอโครงการ (เจ้าของฐาน SIMS) ตัดสิน 2026-11-11** หลังพบว่าตั้ง `max_slot_wal_keep_size` ใน portal ไม่ได้ · ทางที่ไม่เลือก: ไม่มีเพดาน พึ่ง alert ของ storage + คนเฝ้าอย่างเดียว (ถ้าไม่มีคนตอบ alert ดิสก์เต็มได้) · ให้สคริปต์บน NAS drop slot แทน (NAS ล่ม = ไม่มีใคร drop — ตรงกับกรณีที่ต้องการเพดานที่สุด) · Azure Automation / Function นอกฐาน (มีชิ้นส่วนและ credential เพิ่ม) · ผลที่ยอมรับ: เพดานตรวจทุก 15 นาที (เกินได้ไม่เกินปริมาณ WAL ของ 15 นาที) · login admin ที่ตั้งงานต้องเป็นสมาชิกของ role CDC แบบ inherit (ไม่สวมสิทธิ์ได้) เพื่อตัด session ของ connector · Azure ทิ้ง slot ที่ไม่ active เองเมื่อดิสก์ใกล้เต็มอยู่แล้ว แต่ระหว่างนั้นฐานเป็น read-only — guard ตั้งเพดานให้ทำงานก่อนถึงจุดนั้น
+- **ข้อ 9 — ผู้ขอโครงการ (เจ้าของฐาน SIMS) ตัดสิน 2026-11-12 หลังเริ่ม CDC (start บน NAS) — ก่อนประกาศใช้งานจริง 2026-11-13** ("ต้องการเป็น real-time ทั้งหมด") · ทางที่ไม่เลือก: `REPLICA IDENTITY FULL` กับ 31 ตารางที่ไม่มี PK (DDL บน Production + WAL เพิ่ม + sink ไม่มี key ให้ upsert/delete ได้ถูกต้อง) · คัดลอกทุก 1 นาที (ผู้ขอโครงการเลือกคงไว้ที่ 5 นาที) · ทำให้ 31 ตารางเป็น real-time ได้เมื่อทีม SIMS เพิ่ม PK ให้ตารางนั้น
+- **ข้อ 10 — ผู้ขอโครงการ (เจ้าของระบบ) ตัดสิน 2026-11-13** เลือกเกณฑ์ ก · ทางที่ไม่เลือก: รอ reconciliation ตรงติดกัน 3 คืนตามเกณฑ์เดิม (ข้อ 8) · ผลที่ยอมรับ: ความไม่ตรงที่เกิดเฉพาะบางคืนจะเห็นหลังเปิดใช้แล้ว ผ่านการ์ด reconcile ทุกคืน
 - _(เหตุผลเพิ่มเติมที่ยังไม่มี — ให้ผู้เซ็นกรอก)_
 
 ```mermaid
 flowchart LR
   subgraph AZ["Azure — SIMS Production (PostgreSQL 18)"]
-    PG[(SIMS DB)] --- SLOT[replication slot + publication<br/>161 ตาราง]
+    PG[(SIMS DB)] --- SLOT[replication slot + publication<br/>225 ตาราง]
   end
   subgraph NAS["Synology NAS ในออฟฟิศ (Docker)"]
     DBZ[Kafka Connect<br/>Debezium PG source] --> K[(Kafka KRaft<br/>1 broker)]
     K --> SINK[Debezium JDBC sink<br/>upsert ตาม PK]
-    SINK --> REP[(PostgreSQL 18 replica<br/>ไม่มี FK / trigger)]
-    COPY[job คัดลอกทั้งตารางรายวัน<br/>93 ตาราง] --> REP
+    SINK --> REP[(PostgreSQL 18 replica<br/>ไม่มี FK / trigger ของแอป)]
+    COPY[job คัดลอกทั้งตารางทุก 5 นาที<br/>31 ตารางที่ไม่มี PK] --> REP
     FIX[job ซ่อม placeholder TOAST<br/>ทุก 5 นาที] --> REP
     MON[สคริปต์ monitor ทุก 5 นาที] --> TEAMS[Teams Noti Innovation]
-    REP --> V[view ที่ตัด/mask PII]
+    REP --> V[view ที่ตัด/mask PII<br/>ระยะ 6 — ยังไม่ทำ]
   end
   SLOT -- "TLS verify-full · ต่อออกจากออฟฟิศทางเดียว" --> DBZ
-  PG -- "login อ่านอย่างเดียว · วันละครั้ง" --> COPY
+  PG -- "login อ่านอย่างเดียว · ทุก 5 นาที" --> COPY
   PG -- "login อ่านอย่างเดียว · SELECT ตาม PK เฉพาะแถวที่ต้องซ่อม" --> FIX
   V --> AI[ผู้ใช้ + AI]
+  REP -- "login อ่านอย่างเดียวของเจ้าของ · ตารางดิบ · ห้ามให้ AI (ข้อ 5)" --> OWNER[เจ้าของข้อมูลคนเดียว]
 ```
 
 ## 3. ทางเลือกที่พิจารณาแล้วไม่เลือก
@@ -93,10 +100,10 @@ flowchart LR
 |---|---|---|
 | **Native logical replication** (publication บน SIMS + subscription บน PostgreSQL ที่ NAS) | เกณฑ์ในเอกสารทีมเอง: ถ้ามีปลายทาง PostgreSQL ตัวเดียวและไม่ต้องแปลงข้อมูล native ก็พอ · ไม่มี Kafka / Kafka Connect → ชิ้นส่วนน้อยกว่า ใช้ RAM บน NAS น้อยกว่า · ข้อเสีย: ไม่มี log กลางที่เก็บ event ไว้ให้ replay ย้อนหลัง · เพิ่มปลายทางได้แต่ต้องมี slot บน Production เพิ่มต่อปลายทาง (กัก WAL บน Production มากขึ้น) · mask ได้แค่เลือกคอลัมน์ (column list, PG 15+) / กรองแถว (row filter) ของ publication — แปลงค่าระหว่างทางไม่ได้ | AI แนะนำทางนี้ แต่**ผู้ขอโครงการเลือก Debezium + Kafka** ตามเอกสารทีม · _(เหตุผลเพิ่มเติม — ให้ผู้เซ็นกรอก)_ |
 | ใช้ **VM application server เดิม** เป็นปลายทาง | ไม่ต้องซื้อ/เตรียมเครื่องใหม่ · VM นี้รันงานอื่นอยู่แล้ว | **[ผู้ขอ]** ทรัพยากรไม่พอสำหรับ Kafka + Connect + PostgreSQL |
-| **`pg_dump` ทั้งฐานทุกคืน** | ง่าย ไม่ต้องเปลี่ยน `wal_level` ไม่มี slot · **[ผลทางเทคนิค]** อ่านทุกแถวทุกตารางทุกครั้ง · ข้อมูลในออฟฟิศเก่าได้ถึง ~24 ชม. ซึ่งไม่ตรงเป้า "อัปเดตแทบทันที" ในแผนที่ผู้ขออนุมัติ (ยังใช้วิธีคัดลอกทั้งตารางกับ 93 ตารางแก้ข้อมูลชั่วคราว ดูข้อ 4) | _(ให้ผู้เซ็นกรอก)_ |
+| **`pg_dump` ทั้งฐานทุกคืน** | ง่าย ไม่ต้องเปลี่ยน `wal_level` ไม่มี slot · **[ผลทางเทคนิค]** อ่านทุกแถวทุกตารางทุกครั้ง · ข้อมูลในออฟฟิศเก่าได้ถึง ~24 ชม. ซึ่งไม่ตรงเป้า "อัปเดตแทบทันที" ในแผนที่ผู้ขออนุมัติ (ยังใช้วิธีคัดลอกทั้งตาราง ทุก 5 นาที กับ 31 ตารางแก้ข้อมูลชั่วคราวที่ไม่มี PK — การตัดสินใจ 9) | _(ให้ผู้เซ็นกรอก)_ |
 | **คง Fabric ไว้** | **[ผลทางเทคนิค]** Fabric เป็น mirror ของ F&O ไม่มีข้อมูล SIMS และกำลังจะถูกปิด | _(ให้ผู้เซ็นกรอก)_ |
 
-## 4. ขอบเขต — 254 จาก 261 ตาราง
+## 4. ขอบเขต — 256 จาก 263 ตาราง
 
 ผลสำรวจ (การจัดกลุ่มใช้รูปแบบชื่อตาราง — **ทีม SIMS ต้องยืนยันรายชื่อ** โดยเฉพาะว่ากลุ่มแก้ข้อมูลชั่วคราวไม่ใช่ตารางที่แอปใช้งานจริง):
 
@@ -104,15 +111,16 @@ flowchart LR
 |---|---|---|---|---|---|
 | ตารางธุรกิจ | 132 (131 ตอนสำรวจ + 1 ตารางใหม่ 2026-11-11) | 1.96 GB | 0 | **CDC real-time** | PK ครบ ไม่ต้องแก้อะไรบน Production |
 | log ของระบบ | 29 | 4.15 GB (63% ของฐาน) | 0 | **CDC real-time** | PK ครบ · เป็นต้นเหตุหลักของปริมาณ WAL / event แต่ผู้ขอโครงการเลือกเอาด้วย |
-| ตารางแก้ข้อมูลชั่วคราว (backfill / backup / dedup) | 93 | 0.41 GB | 29 | **job คัดลอกทั้งตารางวันละครั้ง** ด้วย login อ่านอย่างเดียว | ถ้าใส่ตารางไม่มี PK ใน publication → UPDATE/DELETE ของแอป SIMS บนตารางนั้นจะ error และ sink ทำสำเนาให้ตรงไม่ได้ · ทางแก้ปกติคือ `REPLICA IDENTITY FULL` ซึ่งเป็น DDL บน Production → เลี่ยงด้วยการคัดลอกรายวัน |
+| ตารางแก้ข้อมูลชั่วคราว (backfill / backup / dedup) — **ที่มี PK** | 64 (93 ตอนสำรวจ − 29 ที่ไม่มี PK) | ~0.40 GB | 0 | **CDC real-time** — ตั้งแต่ 2026-11-12 (การตัดสินใจ 9) · _เดิม: คัดลอกทั้งตารางวันละครั้ง (superseded)_ | มี PK → ส่งด้วย CDC ได้โดยไม่ต้องมี DDL บน Production · ผู้ขอโครงการต้องการ real-time ทั้งหมด |
+| ตารางแก้ข้อมูลชั่วคราว — **ที่ไม่มี PK** | 31 (29 ตอนสำรวจ + 2 ที่สร้าง 2026-11-11) | 7.8 MB | 31 | **job คัดลอกทั้งตารางทุก 5 นาที** (TRUNCATE + COPY ใน transaction เดียว) ด้วย login อ่านอย่างเดียวของ NAS — ตั้งแต่ 2026-11-12 (การตัดสินใจ 9) · _เดิม: วันละครั้ง (superseded)_ | ถ้าใส่ตารางไม่มี PK ใน publication → UPDATE/DELETE ของแอป SIMS บนตารางนั้นจะ error และ sink ทำสำเนาให้ตรงไม่ได้ · ทางแก้ปกติคือ `REPLICA IDENTITY FULL` ซึ่งเป็น DDL บน Production → เลี่ยงด้วยการคัดลอกทั้งตาราง |
 | อ่อนไหวด้านความปลอดภัย | 7 | 0.09 GB | 0 | **ไม่ส่งออกเด็ดขาด** | 7 ตารางที่เก็บ token / session / auth profile / credential ของการเชื่อมต่อระบบอื่น / payload ดิบ — ถ้าหลุด ใช้สวมรอยเข้าระบบได้ (เหตุผลด้านความปลอดภัย ไม่ใช่แค่ PDPA) · ผู้ขอโครงการยืนยันหลังรับฟังความเสี่ยง |
 
-รวม CDC **161 ตาราง** + คัดลอกรายวัน **93 ตาราง** = **254 ตาราง**
+รวม (ตั้งแต่ 2026-11-12 การตัดสินใจ 9): CDC **225 ตาราง** (161 เดิม + 64 ตารางชั่วคราวที่มี PK) + คัดลอกทั้งตาราง**ทุก 5 นาที 31 ตาราง** (ไม่มี PK) = **256 ตาราง** · _ก่อนการตัดสินใจ 9 (superseded): CDC 161 ตาราง + คัดลอกรายวัน 95 ตาราง = 256 ตาราง_
 
 - **คอลัมน์ไฟล์ (`bytea`) ส่งออกด้วย** (ผู้ขอโครงการสั่ง) → ต้องขยายเพดานขนาดข้อความของ Kafka (ข้อ 6)
 - **ความลับใน payload ของตาราง log**: สแกน **9 จาก 29 ตาราง log** — เลือกตาราง log ของ integration / request / error / audit ซึ่งเก็บข้อความที่รับส่งกับระบบอื่น (รวม 5.17 ล้านแถว) — หาความลับรูปแบบที่พบบ่อยแล้ว**ไม่พบ** · ยืนยันด้วย positive control ว่าตัวตรวจจับทำงานจริง
-  - **ยังไม่ได้สแกน**: log อีก 20 ตาราง และคอลัมน์ payload / JSON ในตารางธุรกิจที่อยู่ในขอบเขต CDC
-  - **ระยะ 4** สุ่มตรวจ payload บนสำเนาซ้ำ โดยรวมตารางที่ยังไม่ได้สแกนด้วย
+  - **ยังไม่ได้สแกน**: log อีก 20 ตาราง · คอลัมน์ payload / JSON ในตารางธุรกิจที่อยู่ในขอบเขต CDC · ตารางแก้ข้อมูลชั่วคราวที่ส่งออก (64 ตารางที่ย้ายเข้า CDC ตามการตัดสินใจ 9 + 31 ตารางที่คัดลอกทุก 5 นาที)
+  - **ระยะ 4** สุ่มตรวจ payload บนสำเนาซ้ำ โดยรวมตารางที่ยังไม่ได้สแกนด้วย — **ณ 2026-11-13 ยังไม่มีผลบันทึก** (go-live ใช้เกณฑ์ ก = reconcile อย่างเดียว · ค้างในข้อ 10)
 
 ## 5. การปกป้องข้อมูล (PDPA)
 
@@ -120,7 +128,8 @@ flowchart LR
 |---|---|
 | คอลัมน์ข้อมูลส่วนบุคคล | **เก็บครบใน replica** (ไม่ตัดที่ต้นทางด้วย `column.exclude.list`) — ผู้ขอโครงการเลือก |
 | ผู้ใช้ + AI | อ่านผ่าน **role อ่านอย่างเดียวที่เห็นเฉพาะ view** ซึ่งตัด/mask ข้อมูลส่วนบุคคลตามที่เจ้าของข้อมูลอนุมัติ · **ห้าม AI อ่านตารางดิบ** · ต่อ AI ผ่าน RIM หรือ MCP |
-| คอลัมน์ payload ของ log | **view ต้องไม่เปิด** — มีข้อมูลลูกค้าปน ตรวจระดับคอลัมน์ไม่ได้ |
+| ข้อยกเว้น (2026-11-13): เจ้าของข้อมูลอ่านตารางดิบ | เจ้าของข้อมูล (ผู้ขอโครงการ) อ่านตารางดิบบน replica ได้เองผ่าน **`<report_login>`** — ผู้อนุมัติ: เจ้าของข้อมูล · ทางที่ไม่เลือก: รอ view ระยะ 6 · **เห็นทุกคอลัมน์รวมข้อมูลส่วนบุคคลและ payload ของ log → ใช้คนเดียว ห้ามแชร์ ห้ามให้ AI** (AI รอ view ระยะ 6) · สิทธิ์: SELECT 256 ตารางใน schema `public` + default privileges ให้ตารางที่ login ของ sink สร้างใหม่ · ไม่มีสิทธิ์ schema ของ job ซ่อม TOAST · session อ่านอย่างเดียว (`default_transaction_read_only=on`) · `statement_timeout` 5 นาที · `idle_in_transaction_session_timeout` 5 นาที · `TimeZone` `Asia/Bangkok` · จำกัด 3 connection · บังคับ TLS (`sslmode=require`) · รหัสอยู่ในไฟล์บนเครื่องของเจ้าของเท่านั้น replica เก็บแค่ SCRAM verifier · PostgreSQL ใน container เห็นทุกเครื่องใน LAN เป็น IP ของ gateway NAT ของ Docker → `pg_hba` จำกัดตามเครื่องต้นทางไม่ได้ ต้องจำกัดด้วย firewall ของ DSM · **หลัง re-snapshot ที่สร้างตารางบน replica ใหม่ ต้องรัน SQL ให้สิทธิ์ของ login นี้ซ้ำ** (runbook R3 · ไฟล์อยู่ในโฟลเดอร์งาน `SIMS-CDC`) |
+| คอลัมน์ payload ของ log | **view ต้องไม่เปิด** — มีข้อมูลลูกค้าปน ตรวจระดับคอลัมน์ไม่ได้ (ข้อยกเว้นเดียวคือ `<report_login>` ของเจ้าของข้อมูล — แถวบน) |
 | NAS (เพราะถือข้อมูลส่วนบุคคลเต็มชุด) | volume encryption · จำกัดสิทธิ์ PostgreSQL / SSH / DSM · backup ต้องเข้ารหัส |
 | การอนุมัติ | ✅ 2026-11-10 เจ้าของข้อมูลอนุมัติให้ NAS ถือข้อมูลเต็มชุด และ view **เปิดทุกระดับ A–D** (คอลัมน์ payload ของ log ยังซ่อนเสมอ) · ถ้า AI เป็นบริการภายนอก ข้อมูลที่ view เปิดจะถูกส่งให้ผู้ให้บริการประมวลผล → ควรมีข้อตกลงประมวลผลข้อมูลรองรับ |
 
@@ -135,26 +144,27 @@ flowchart LR
 
 ทางที่ไม่เลือก: ตัดคอลัมน์ PII ที่ต้นทางด้วย `column.exclude.list` — ปลอดภัยกว่าสำหรับ NAS แต่ถ้าวันหลังรายงานต้องใช้คอลัมน์นั้นต้อง re-snapshot
 
-## 6. ค่าที่จะตั้ง (ยังไม่ได้ตั้ง) และเหตุผล
+## 6. ค่าที่ตั้ง และเหตุผล
 
-> ทุกค่าในตารางนี้เป็น**แผน** สำหรับระยะ 1–2 — ณ 2026-11-10 ยังไม่ได้ตั้งค่าใดบน Production (ยังไม่มี slot / publication, `wal_level` ยังเป็น `replica`) และยังไม่ได้ติดตั้งอะไรบน NAS
+> ตั้งครบแล้ว: restart `wal_level=logical` + preload pg_cron 2026-11-12 ~12:00 · WAL guard ทำงานทุก 15 นาที · stack บน NAS ทำงาน · ใช้งานจริง 2026-11-13 (การตัดสินใจ 10)
 > ค่าตัวเลขเป็น GB ของเพดาน / alert บน Production อยู่ในไฟล์ของโฟลเดอร์งาน `SIMS-CDC` และจะอยู่ใน runbook ภายใน
 
 | ที่ตั้ง | ค่า | เหตุผล |
 |---|---|---|
 | SIMS: `wal_level` | `logical` | logical decoding ต้องใช้ · เป็น static parameter → **restart ฐาน 1 ครั้งใน maintenance window** ร่วมกับทีม SIMS (แจ้งผู้ใช้ล่วงหน้า) |
-| SIMS: `max_slot_wal_keep_size` | ≈ **7 วัน** ของ WAL ที่อัตรา 5.6 GB/วัน (ครอบคลุมวันหยุดยาว) · เพดานรวมกับข้อมูลปัจจุบันยังห่างจากจุดที่ Azure สลับเป็น read-only มาก | เพดาน WAL ที่ slot กักไว้ได้ — ถึงเพดานแล้ว PostgreSQL ทิ้ง (invalidate) slot เพื่อรักษาดิสก์: Production ทำงานต่อ CDC ต้อง re-snapshot · ถ้าไม่มีเพดาน ดิสก์ซึ่งไม่ขยายอัตโนมัติเต็มได้ → ฐานกลายเป็น read-only |
+| SIMS: เพดาน WAL ของ slot = **WAL guard** (การตัดสินใจ 8) | เพดาน ≈ **7 วัน** ของ WAL ที่อัตรา 5.6 GB/วัน (ครอบคลุมวันหยุดยาว) · ตรวจทุก **15 นาที** | ถึงเพดานแล้ว guard drop slot เพื่อรักษาดิสก์: Production ทำงานต่อ CDC ต้อง re-snapshot · ถ้าไม่มีเพดาน ดิสก์เต็มได้ → ฐานกลายเป็น read-only · `max_slot_wal_keep_size` ตั้งไม่ได้ (Read-Only บน Azure) |
+| SIMS: server parameter สำหรับ guard | allowlist ของ extension เพิ่ม **pg_cron** (dynamic) · `shared_preload_libraries` เพิ่ม **pg_cron** (static — **restart ครั้งเดียวกับ `wal_level`**) | pg_cron ใช้ background worker จึงต้อง preload · งานตั้งเวลาอยู่ในฐานระบบของ pg_cron แต่สั่งรันในฐาน SIMS |
 | เกณฑ์เตือน WAL ที่ slot กัก | warning ≈ slot ค้าง **~1.4 วัน** · critical ≈ **~4.3 วัน** (สัดส่วนของเพดานตามเอกสารทีม) | ให้มีเวลาแก้ก่อนถึงเพดาน · critical → runbook drop slot |
-| SIMS: publication | `FOR TABLE` เฉพาะ 161 ตาราง **+ ตาราง heartbeat และ signal ของ Debezium (รวม 163)** | ตารางที่ไม่อยู่ใน publication ไม่ถูกส่งออก (รวม 7 ตารางอ่อนไหว) · publication แบบระบุตาราง ทำให้ Debezium เห็นเฉพาะตารางในรายการ จึงต้องใส่ heartbeat (ให้ slot เลื่อน) และ signal (สั่ง incremental snapshot) ด้วย — 2 ตารางนี้ไม่อยู่ใน include list ของ connector จึง**ไม่ถูกส่งไป replica** |
+| SIMS: publication | `FOR TABLE` เฉพาะ 225 ตาราง (ตั้งแต่ 2026-11-12 การตัดสินใจ 9 · เดิม 161) **+ ตาราง heartbeat และ signal ของ Debezium (รวม 227)** | ตารางที่ไม่อยู่ใน publication ไม่ถูกส่งออก (รวม 7 ตารางอ่อนไหว) · publication แบบระบุตาราง ทำให้ Debezium เห็นเฉพาะตารางในรายการ จึงต้องใส่ heartbeat (ให้ slot เลื่อน) และ signal (สั่ง incremental snapshot) ด้วย — 2 ตารางนี้ไม่อยู่ใน include list ของ connector จึง**ไม่ถูกส่งไป replica** |
 | SIMS: ตาราง heartbeat + signal ของ Debezium | heartbeat ทุก 30 วินาที | heartbeat ให้ slot เลื่อนแม้ตารางในขอบเขตไม่มีการเปลี่ยน · signal ใช้สั่ง incremental snapshot |
 | Kafka message size | **32 MiB** (broker `message.max.bytes` + `replica.fetch.max.bytes`, producer `max.request.size`, `buffer.memory` 64 MiB, consumer `max.partition.fetch.bytes`) · compression `zstd` | วัดแล้วแถวใหญ่สุด **12.7 MB** (คอลัมน์ `jsonb` ของตาราง log integration) — ใน event ของ Debezium `jsonb` กลายเป็น string ที่ถูก escape → ~13–17 MB · ไฟล์ `bytea` ใหญ่สุด ~0.9 MB → ~1.2 MB เมื่อเป็น base64 · **ถ้าใช้ค่าเริ่มต้น ~1 MB connector จะหยุดที่ 36 แถว → slot ไม่เลื่อน → WAL ค้างบน Production** · 32 MiB = ~2 เท่าของ event ใหญ่สุด เผื่อโต |
 | Debezium `max.queue.size.in.bytes` · `snapshot.fetch.size` · Connect heap | 256 MiB · 2000 แถว · ตาม profile ประหยัด RAM (ข้อ 7) | กันแถวใหญ่หลายแถวกองใน heap ตอน snapshot · ต้องจด memory จริงตอนซ้อมระยะ 1 |
-| TOAST (แก้ 2026-11-10 หลังซ้อมระยะ 1) | **job ซ่อมฝั่ง NAS** แทน `ReselectColumnsPostProcessor`: บน replica มี trigger ต่อแถว (AFTER INSERT OR UPDATE) บนตารางที่มีข้อมูล TOAST จริง (ผลสำรวจระยะ 0: วันนี้ 14 จาก 161 ตาราง · รายชื่อสร้างจากผลสำรวจ เพิ่มตารางแล้วรัน setup ซ้ำได้) → แถวที่มีค่า placeholder เข้าคิว → สคริปต์ทุก 5 นาทีอ่านค่า**ปัจจุบัน**จาก SIMS ตาม PK ด้วย login อ่านอย่างเดียว แล้วแก้บน replica **เฉพาะ cell ที่ยังเป็น placeholder** (ไม่ทับค่าที่ใหม่กว่า) · แถวที่ต้นทางลบไปแล้ว = ทิ้งรายการ (event ลบที่ตามมาลบแถวเอง) · แจ้ง Teams เมื่อรายการค้างนานหรือลองซ้ำเกินเกณฑ์ · **ไม่ตั้ง post processor ของ reselect** · **`unavailable.value.placeholder` = JSON ที่ถูกต้อง** (ค่า default ไม่ใช่ JSON → placeholder ที่ตกคอลัมน์ jsonb ทำให้ sink หยุดทั้งเส้น · ซ้อมบน NAS ยืนยันว่า sink ยัง RUNNING) | ทุกตารางของ SIMS เป็น `REPLICA IDENTITY DEFAULT` → UPDATE ที่ไม่แตะคอลัมน์ใหญ่ WAL จะไม่มีค่าคอลัมน์นั้น Debezium ส่ง placeholder แทน และ JDBC sink จะ**เขียน placeholder ทับข้อมูลจริงในสำเนา** · **ทำไมไม่ใช้ reselect**: ใน Debezium 3.6.3.Final (และสาขาหลัก ณ 2026-11-10) query ที่ post processor สร้างไม่ใส่เครื่องหมายคำพูดให้ชื่อคอลัมน์ PK → ตารางที่ชื่อคอลัมน์ PK มีตัวพิมพ์ใหญ่ (ทุกตารางของ SIMS) query ล้มทุกครั้ง placeholder จึงหลุดถึงสำเนา และเหลือแค่ query ที่ล้มยิงเข้า Production (ซ้อมระยะ 1 ยืนยัน) · **ผู้ขอโครงการ / เจ้าของฐานตัดสิน: ไม่มี DDL และไม่เปลี่ยนอะไรอื่นบน Production** → ทางที่ไม่เลือก: `REPLICA IDENTITY FULL` (DDL + WAL ใหญ่ขึ้น) · แก้/build Debezium เอง · **ผลที่ยอมรับ**: ระหว่างรอซ่อม (ปกติ ≤ 5 นาที) cell นั้นในสำเนาเป็น placeholder · ภาระบน Production = SELECT ตาม PK 1 ครั้งต่อแถวที่ต้องซ่อม (log ส่วนใหญ่เป็น INSERT ไม่ต้องซ่อม) · ถ้า Debezium รุ่นใหม่แก้ปัญหานี้ ซ้อมซ้ำก่อนพิจารณากลับไปใช้ reselect |
+| TOAST (แก้ 2026-11-10 หลังซ้อมระยะ 1) | **job ซ่อมฝั่ง NAS** แทน `ReselectColumnsPostProcessor`: บน replica มี trigger ต่อแถว (AFTER INSERT OR UPDATE) บนตารางที่มีข้อมูล TOAST จริง (ผลสำรวจระยะ 0: 14 จาก 161 ตาราง · ณ 2026-11-13 ติด trigger 14 ตาราง · รายชื่อสร้างจากผลสำรวจ เพิ่มตารางแล้วรัน setup ซ้ำได้) → แถวที่มีค่า placeholder เข้าคิว → สคริปต์ทุก 5 นาทีอ่านค่า**ปัจจุบัน**จาก SIMS ตาม PK ด้วย login อ่านอย่างเดียว แล้วแก้บน replica **เฉพาะ cell ที่ยังเป็น placeholder** (ไม่ทับค่าที่ใหม่กว่า) · แถวที่ต้นทางลบไปแล้ว = ทิ้งรายการ (event ลบที่ตามมาลบแถวเอง) · แจ้ง Teams เมื่อรายการค้างนานหรือลองซ้ำเกินเกณฑ์ · **ไม่ตั้ง post processor ของ reselect** · **`unavailable.value.placeholder` = JSON ที่ถูกต้อง** (ค่า default ไม่ใช่ JSON → placeholder ที่ตกคอลัมน์ jsonb ทำให้ sink หยุดทั้งเส้น · ซ้อมบน NAS ยืนยันว่า sink ยัง RUNNING) | ทุกตารางของ SIMS เป็น `REPLICA IDENTITY DEFAULT` → UPDATE ที่ไม่แตะคอลัมน์ใหญ่ WAL จะไม่มีค่าคอลัมน์นั้น Debezium ส่ง placeholder แทน และ JDBC sink จะ**เขียน placeholder ทับข้อมูลจริงในสำเนา** · **ทำไมไม่ใช้ reselect**: ใน Debezium 3.6.3.Final (และสาขาหลัก ณ 2026-11-10) query ที่ post processor สร้างไม่ใส่เครื่องหมายคำพูดให้ชื่อคอลัมน์ PK → ตารางที่ชื่อคอลัมน์ PK มีตัวพิมพ์ใหญ่ (ทุกตารางของ SIMS) query ล้มทุกครั้ง placeholder จึงหลุดถึงสำเนา และเหลือแค่ query ที่ล้มยิงเข้า Production (ซ้อมระยะ 1 ยืนยัน) · **ผู้ขอโครงการ / เจ้าของฐานตัดสิน: ไม่มี DDL และไม่เปลี่ยนอะไรอื่นบน Production** → ทางที่ไม่เลือก: `REPLICA IDENTITY FULL` (DDL + WAL ใหญ่ขึ้น) · แก้/build Debezium เอง · **ผลที่ยอมรับ**: ระหว่างรอซ่อม (ปกติ ≤ 5 นาที) cell นั้นในสำเนาเป็น placeholder · ภาระบน Production = SELECT ตาม PK 1 ครั้งต่อแถวที่ต้องซ่อม (log ส่วนใหญ่เป็น INSERT ไม่ต้องซ่อม) · ถ้า Debezium รุ่นใหม่แก้ปัญหานี้ ซ้อมซ้ำก่อนพิจารณากลับไปใช้ reselect |
 | Kafka retention | 7 วัน | ถ้า replica บน NAS ล่ม event รอใน Kafka ได้ 7 วัน (slot ยังเลื่อนตามปกติ) |
 | ดิสก์บน NAS | Kafka ≈ 5.6 GB/วัน × 7 × 1.5 ≈ **60 GB** + snapshot ตั้งต้น ~15–20 GB + PostgreSQL ปลายทาง ~7 GB + เผื่อโต | → เกณฑ์ NAS ว่าง **≥ 200 GB** |
 | JDBC sink | `insert.mode=upsert` · `primary.key.mode=record_key` · `delete.enabled=true` · `schema.evolution=basic` · `errors.tolerance=none` | Kafka ส่งแบบ at-least-once → upsert ตาม PK ทำให้ event ซ้ำไม่เป็นอันตราย (idempotent) · error ต้องหยุดให้เห็น ไม่ข้ามเงียบ |
-| ตารางปลายทาง | สร้างจาก schema-only dump · **คง PK ตัด FK + trigger** | แต่ละตารางอยู่คนละ topic → event ต่างตารางมาไม่ตามลำดับ (เช่นใบงานมาก่อนลูกค้าใหม่) FK จะทำให้ sink ล้ม · ความสัมพันธ์ตรวจด้วย reconciliation แทน |
-| Snapshot ตั้งต้น | ตารางเล็ก/กลาง `snapshot.mode=initial` นอกเวลา peak · ตารางใหญ่ `no_data` + incremental snapshot ผ่าน signal table | ไม่อ่านตารางใหญ่ทั้งก้อนในครั้งเดียว |
+| ตารางปลายทาง | สร้างจาก schema-only dump · **คง PK ตัด FK + trigger ของแอป** (trigger ที่มีบน replica คือของ job ซ่อม TOAST เท่านั้น — แถว TOAST) | แต่ละตารางอยู่คนละ topic → event ต่างตารางมาไม่ตามลำดับ (เช่นใบงานมาก่อนลูกค้าใหม่) FK จะทำให้ sink ล้ม · ความสัมพันธ์ตรวจด้วย reconciliation แทน |
+| Snapshot ตั้งต้น | ตารางเล็ก/กลาง `snapshot.mode=initial` นอกเวลา peak · ตารางใหญ่ `no_data` + incremental snapshot ผ่าน signal table · ✅ 2026-11-12 ตารางใหญ่ 13 ตารางเสร็จ 16:36 · 64 ตารางชั่วคราว (การตัดสินใจ 9 · ส่งเป็น signal 2 แถวเพราะคอลัมน์ data ของตาราง signal ยาวได้ 2048 ตัวอักษร) เสร็จ 16:47 | ไม่อ่านตารางใหญ่ทั้งก้อนในครั้งเดียว · ⛔ **ห้ามส่ง signal snapshot ซ้ำ** — ใช้เฉพาะหลัง re-snapshot ทั้งชุด (runbook R3) |
 | ความปลอดภัยฝั่ง NAS | Kafka อยู่บน Docker network ภายใน (`internal: true` — ไม่มี port ออกนอกเครื่อง, มีแค่ Kafka Connect ต่อถึง) ใช้ PLAINTEXT · REST API ของ Kafka Connect เปิดเฉพาะ localhost ของ NAS · replica บังคับ TLS + SCRAM และ superuser เข้าทาง network ไม่ได้ · secret ไม่อยู่ใน repo | **ต่างจากร่างแรก** (ระบุ Kafka SASL/SCRAM + TLS): เมื่อ Kafka ไม่มีทางเข้าจากนอก Docker network การเพิ่ม SASL/TLS ไม่ลดความเสี่ยงที่มีนัยสำคัญแต่เพิ่มชิ้นส่วนที่พังได้ — _รอ tech lead ยอมรับ_ · ถ้าวันหลังต้องเปิด Kafka ให้เครื่องอื่น ต้องเพิ่ม SASL/TLS ก่อน |
 
 ## 7. ข้อจำกัดที่ยอมรับ
@@ -164,9 +174,9 @@ flowchart LR
 | **NAS เครื่องเดียว = Kafka 1 broker, replication factor 1** | เอกสารทีมแนะนำ 3 broker, RF 3, `min.insync.replicas=2` | เหมาะกับงานรายงาน ไม่ใช่ระบบธุรกรรม · Kafka เสียข้อมูล → re-snapshot |
 | **ต่อตรงผ่าน network rule ที่จำกัดต้นทาง + TLS `verify-full`** แทน VPN ในรอบแรก | เอกสารทีมกำหนด VPN | NAS ต่อ**ออก**ทางเดียว · ตรวจทั้ง CA และชื่อ host · network rule ของ CDC ต้องตรงกับต้นทางที่ NAS ใช้จริง (ตรวจในระยะ 0 ตาม checklist) |
 | **NAS ล่มทั้งเครื่อง** | — | event รอใน Kafka ไม่ได้ (อยู่เครื่องเดียวกัน) → slot ค้าง → WAL โตบน Production จนถึงเพดาน → slot ถูกทิ้ง → re-snapshot |
-| 93 ตารางแก้ข้อมูลชั่วคราวเก่าได้ถึง ~24 ชม. | — | ไม่ใช่ข้อมูลรายงานหลัก |
-| **RAM ของ NAS จำกัดและเพิ่มไม่ได้** (ตรวจ 2026-11-10 · ผู้ขอโครงการยืนยันว่าเพิ่มแรมไม่ได้) | เกณฑ์เดิมในแผนต้องการ RAM ว่างมากกว่านี้ | ใช้ profile ประหยัดถาวร: จำกัด RAM รวมของ Kafka + Kafka Connect + PostgreSQL ปลายทางด้วย `mem_limit` ไม่ให้แย่ง RAM ระบบอื่นบน NAS · ดิสก์เป็น HDD และ cache น้อย → query รายงานหนัก ๆ จะช้า (จำกัด `statement_timeout` / จำนวน connection ของ role ที่ AI ใช้) · ถ้า RAM ตึงต่อเนื่อง ทางถอยคือ native logical replication (ไม่ต้องมี Kafka / Connect) |
-| ไม่ทำ failover slot | เอกสารทีมมีขั้นตอนนี้ | ไม่ต้องจัดการ failover slot ในโครงสร้างปัจจุบันของฐาน SIMS |
+| 31 ตารางแก้ข้อมูลชั่วคราวที่ไม่มี PK เก่าได้ถึง ~5 นาที (+ เวลาคัดลอก) — ตั้งแต่ 2026-11-12 (_เดิม 95 ตาราง ~24 ชม. — superseded โดยการตัดสินใจ 9_) | — | ไม่ใช่ข้อมูลรายงานหลัก · เป็น real-time ได้เมื่อทีม SIMS เพิ่ม PK |
+| **RAM ของ NAS จำกัดและเพิ่มไม่ได้** (ตรวจ 2026-11-10 · ผู้ขอโครงการยืนยันว่าเพิ่มแรมไม่ได้) | เกณฑ์เดิมในแผนต้องการ RAM ว่างมากกว่านี้ | ใช้ profile ประหยัดถาวร: จำกัด RAM รวมของ Kafka + Kafka Connect + PostgreSQL ปลายทางด้วย `mem_limit` ไม่ให้แย่ง RAM ระบบอื่นบน NAS · ดิสก์เป็น HDD และ cache น้อย → query รายงานหนัก ๆ จะช้า (จำกัด `statement_timeout` / จำนวน connection ของ role ที่ AI ใช้ · `<report_login>` ของเจ้าของตั้งแล้ว: 5 นาที / 3 connection — ข้อ 5) · ถ้า RAM ตึงต่อเนื่อง ทางถอยคือ native logical replication (ไม่ต้องมี Kafka / Connect) |
+| ไม่ทำ failover slot | เอกสารทีมมีขั้นตอนนี้ | อยู่นอกขอบเขตรอบนี้ — เหตุผลอยู่ในไฟล์ภายใน (`SIMS-CDC`) |
 
 ## 8. ลำดับที่ต้องทำ (บังคับ)
 
@@ -174,18 +184,18 @@ flowchart LR
 |---|---|---|
 | 0 | สำรวจฐานแบบอ่านอย่างเดียว · สำรวจ NAS · ตรวจเวอร์ชัน · เขียน AD นี้ · **ขออนุมัติให้ครบ** (ข้อ 10) | ไม่ |
 | 1 | ติดตั้ง Docker บน NAS: Kafka KRaft + Kafka Connect + PostgreSQL 18 · ซ้อมทั้ง pipeline กับฐานทดสอบ (CRUD, ภาษาไทย, `jsonb`, restart Connect, ปิด replica 1 ชม., **UPDATE คอลัมน์เล็กของแถวที่มี payload ใหญ่แล้วสำเนาต้องได้ payload เดิมคืนหลัง job ซ่อมรอบถัดไป**) | ไม่ |
-| 2-ก | เตรียม Production **ที่ไม่ต้อง restart**: ตั้ง `max_slot_wal_keep_size` · admin ของ SIMS รัน SQL สร้าง role CDC (REPLICATION + SELECT), ตาราง heartbeat/signal, publication · network rule ชื่อเฉพาะของ CDC · Azure Monitor alert ของ storage (ระดับ warning / critical ตาม runbook ภายใน) | **ใช่** (ไม่มี downtime) |
-| 2-ข | **ขั้นสุดท้ายก่อนเปิดระบบ** (ผู้ขอโครงการกำหนด 2026-11-10): `wal_level=logical` + restart ฐาน 1 ครั้งใน maintenance window → ตรวจผล | **ใช่** (downtime สั้น) |
+| 2-ก | เตรียม Production **ที่ไม่ต้อง restart**: เพิ่ม pg_cron ใน allowlist ของ extension · network rule ชื่อเฉพาะของ CDC · Azure Monitor alert ของ storage (ระดับ warning / critical ตาม runbook ภายใน) + Maximum Used Transaction IDs | **ใช่** (ไม่มี downtime) |
+| 2-ข | **ขั้นสุดท้ายก่อนเปิดระบบ** (ผู้ขอโครงการกำหนด 2026-11-10): `wal_level=logical` + `shared_preload_libraries` เพิ่ม pg_cron → restart ฐาน **1 ครั้ง**ใน maintenance window → ตรวจผล → admin ของ SIMS รัน SQL สร้าง role CDC (REPLICATION + SELECT), ตาราง heartbeat/signal, publication, WAL guard → ตั้งงาน pg_cron → รอ guard รันรอบแรก | **ใช่** (downtime สั้น) |
 | 3 | Snapshot ข้อมูลตั้งต้น · เฝ้า WAL ที่ slot กักไว้ตลอด (ต้องไม่โตต่อเนื่อง) | อ่าน |
 | 4 | เปิด sink · reconciliation ทุกตาราง (row count + checksum เฉพาะคอลัมน์ที่ซิงก์ ตั้ง `TimeZone='UTC'` ทั้ง 2 ฝั่ง) · สุ่มอ่าน payload หาความลับ (รวมตารางที่ระยะ 0 ยังไม่ได้สแกน) | อ่าน |
 | 5 | Monitoring ทุก 5 นาที → Teams "Noti Innovation" · reconciliation รายวัน · เขียน `RB-sims-cdc.md` | อ่าน |
 | 6 | role อ่านอย่างเดียว + view ตามที่เจ้าของข้อมูลอนุมัติ · ต่อ AI | ไม่ |
 | 7 | Go/No-Go checklist ของเอกสารทีม (ปรับตามข้อ 7) · บันทึกเวอร์ชัน · ซ้อม runbook 1 ครั้ง · ทยอยเปิด | — |
 
-- **ห้ามสร้าง slot ก่อนตั้ง `max_slot_wal_keep_size` และ alert ของ storage** — slot ที่ไม่มีเพดานกัก WAL บนดิสก์ Production ได้ไม่จำกัด จนฐานหยุดรับการเขียน
+- **ห้ามสร้าง slot ก่อน WAL guard ทำงาน (log ของ guard มีรอบล่าสุดภายใน 20 นาที) และก่อนมี alert ของ storage** — slot ที่ไม่มีเพดานกัก WAL บนดิสก์ Production ได้ไม่จำกัด จนฐานหยุดรับการเขียน · สคริปต์เปิดระบบบน NAS ตรวจ**เฉพาะส่วน WAL guard** และไม่ยอมเริ่มถ้าไม่ผ่าน · alert ของ storage ตรวจจากฐานข้อมูลไม่ได้ — เป็นข้อในเช็คลิสต์ที่เจ้าของฐานต้องติ๊กเองก่อน restart
 - **ห้ามเริ่มระยะ 2 ก่อนระยะ 1 ผ่าน** และก่อนได้อนุมัติครบ
 - SQL บน Production ทุกคำสั่ง **admin ของ SIMS เป็นคนรัน** (AI ช่วยร่าง SQL ได้ แต่ไม่รันบน Production)
-- เกณฑ์ผ่านก่อน go-live: CRUD เห็นในสำเนาภายใน < 1 นาที · restart Connect แล้วไม่ซ้ำ/ไม่หาย · reconciliation ตรง 100% ติดกัน 3 วัน · heartbeat อัปเดตทุก 30 วินาที · ปิด replica 1 ชม. แล้ว WAL บน SIMS ไม่โต · หยุด Connect จน alert ดังแล้วกู้ได้ · ผู้ใช้ถาม AI ได้รายงานจาก view และไม่เห็นคอลัมน์ PII
+- เกณฑ์ผ่านก่อน go-live: CRUD เห็นในสำเนาภายใน < 1 นาที · restart Connect แล้วไม่ซ้ำ/ไม่หาย · reconciliation ตรง 100% ติดกัน 3 วัน · heartbeat อัปเดตทุก 30 วินาที · ปิด replica 1 ชม. แล้ว WAL บน SIMS ไม่โต · หยุด Connect จน alert ดังแล้วกู้ได้ · ผู้ใช้ถาม AI ได้รายงานจาก view และไม่เห็นคอลัมน์ PII — _2026-11-13 เจ้าของระบบ (ผู้ขอโครงการ) ตัดสิน**เกณฑ์ ก** (การตัดสินใจ 10): เปิดใช้งานจริงด้วยผล reconcile 08:20 ตรงครบ 256/256 ตาราง ไม่รอ 3 คืนติด · ข้อ AI / view อยู่กับระยะ 6 ซึ่งยังไม่ทำ_
 
 ## 9. ย้อนกลับ (rollback) และความเสี่ยง
 
@@ -193,39 +203,49 @@ flowchart LR
 
 1. หยุด Debezium connector บน NAS
 2. **drop replication slot** — ถ้าไม่ drop slot จะกัก WAL ต่อไปเรื่อย ๆ แม้ไม่มีใครอ่าน
-3. drop publication
-4. drop ตาราง heartbeat/signal ของ Debezium
-5. drop role CDC
-6. ควรพิจารณาร่วมกับทีม SIMS / ผู้ดูแล firewall: ถอด network rule ของ CDC · `wal_level` คืนเป็น `replica` หรือไม่ (ต้อง restart อีกครั้ง)
+3. ยกเลิกงาน pg_cron ของ WAL guard — **หลัง** drop slot สำเร็จเท่านั้น (ถ้ายกเลิกก่อนแล้ว drop ไม่สำเร็จ slot จะค้างโดยไม่มีเพดาน)
+4. drop publication
+5. drop ฟังก์ชัน + ตาราง log ของ WAL guard และตาราง heartbeat/signal ของ Debezium
+6. drop role CDC และ `<copy_login>` ของ NAS (object ที่สร้างบน Production ตามการตัดสินใจ 6 — ขั้นตอนใน runbook ส่วน rollback)
+7. ควรพิจารณาร่วมกับทีม SIMS / ผู้ดูแล firewall: ถอด network rule ของ CDC · `wal_level` คืนเป็น `replica` และถอด pg_cron หรือไม่ (ต้อง restart อีกครั้ง — pg_cron ปล่อยไว้ได้ถ้าไม่มีงาน) · ⛔ **ห้ามตั้ง `wal_level=replica` ขณะยังมี logical slot อยู่** — PostgreSQL จะไม่ยอม start (drop slot ทุกตัวในข้อ 2 ก่อนเสมอ)
 
 **ความเสี่ยงและวิธีเฝ้า**
 
 | ความเสี่ยง | ผลถ้าเกิด | วิธีกัน / เฝ้า |
 |---|---|---|
-| **WAL โตบน Production** (connector / Kafka / NAS / network หยุด) — ดิสก์ของฐานไม่ขยายอัตโนมัติ | ดิสก์ใกล้เต็ม → SIMS เป็น read-only = ระบบใบงานหยุดรับการเขียน | `max_slot_wal_keep_size` · สคริปต์ทุก 5 นาทีเช็ค WAL ที่ slot กักไว้ + `wal_status` (warning / critical ตามข้อ 6) · Azure Monitor alert ของ storage · runbook: ถึงขั้นวิกฤตให้ **drop slot** แล้ว re-snapshot ทีหลัง |
+| **WAL โตบน Production** (connector / Kafka / NAS / network หยุด) | ดิสก์ใกล้เต็ม → SIMS เป็น read-only = ระบบใบงานหยุดรับการเขียน | WAL guard (การตัดสินใจ 8) · สคริปต์ทุก 5 นาทีเช็ค WAL ที่ slot กักไว้ + `wal_status` (warning / critical ตามข้อ 6) · Azure Monitor alert ของ storage · runbook: ถึงขั้นวิกฤตให้ **drop slot** แล้ว re-snapshot ทีหลัง |
+| **WAL guard หยุดทำงานเงียบ ๆ** (งาน pg_cron ถูกลบ / ปิด, pg_cron หลุดจาก preload หลัง restart, สิทธิ์ของ login ที่ตั้งงานเปลี่ยน) | ไม่มีเพดาน WAL โดยไม่มีใครรู้ | monitor ทุก 5 นาทีอ่าน log ของ guard: ไม่ได้รันเกิน 35 นาที / ไม่เคยรัน / ไม่มีตาราง log = **critical** · รอบล่าสุด drop ไม่สำเร็จ = critical · สคริปต์เปิดระบบไม่ยอมสร้าง slot ถ้า guard ไม่ได้รันใน 20 นาที · alert ของ storage เป็นด่านที่ 2 |
 | **Slot กำพร้า** (เลิกใช้แล้วลืม drop) | กัก WAL ไปเรื่อย ๆ จนชนเพดาน | rollback บังคับ drop slot · ตรวจรายการ slot รายสัปดาห์ |
 | **Network rule ของ CDC ถูกลบ / ต้นทางของ NAS เปลี่ยน** | connector ต่อไม่ได้ → WAL กัก | rule ชื่อเฉพาะของ CDC + แจ้งผู้ดูแลห้ามลบ · alert เมื่อ connector FAILED / ต่อไม่ได้ |
 | **ข้อมูลส่วนบุคคลถึง AI** | ละเมิด PDPA | AI อ่านผ่าน view เท่านั้น · ไม่เปิดคอลัมน์ payload · เจ้าของข้อมูลอนุมัติรายการคอลัมน์ · ระยะ 6 ทดสอบว่า AI ไม่เห็นคอลัมน์ PII |
-| **ความลับหลุดผ่าน payload** | สวมรอยระบบอื่นได้ | 7 ตารางอ่อนไหวไม่อยู่ใน publication · สแกน 9 ตาราง log ที่เก็บข้อความรับส่งกับระบบอื่นแล้วไม่พบ (log อีก 20 ตาราง + คอลัมน์ payload ในตารางธุรกิจยังไม่ได้สแกน) · ระยะ 4 สุ่มตรวจซ้ำรวมส่วนที่ยังไม่ได้สแกน |
+| **ความลับหลุดผ่าน payload** | สวมรอยระบบอื่นได้ | 7 ตารางอ่อนไหวไม่อยู่ใน publication · สแกน 9 ตาราง log ที่เก็บข้อความรับส่งกับระบบอื่นแล้วไม่พบ (log อีก 20 ตาราง + คอลัมน์ payload ในตารางธุรกิจ + ตารางชั่วคราวที่ส่งออกยังไม่ได้สแกน) · ระยะ 4 สุ่มตรวจซ้ำรวมส่วนที่ยังไม่ได้สแกน — ยังไม่มีผล (ค้างในข้อ 10) |
 | **Placeholder ของ TOAST เขียนทับข้อมูลจริง** | สำเนาผิดชั่วคราว (จนกว่าจะซ่อม) | job ซ่อมฝั่ง NAS ทุก 5 นาที (ข้อ 6 แถว TOAST) · การ์ดเมื่อคิวซ่อมค้างนาน / ลองซ้ำเกินเกณฑ์ (ทั้งจาก job ซ่อมและจาก monitor) · เช็ครายวันว่าไม่มีค่า placeholder (จับตารางที่ยังไม่อยู่ในรายการของ job ซ่อม) · checksum ของ reconciliation จับได้ |
 | **sink ของ replica FAILED แล้วไม่กลับมาเอง** (ซ้อมระยะ 1: ปิด replica แล้ว sink FAILED ค้าง) | สำเนาหยุดอัปเดต · Production ไม่กระทบ (event รอใน Kafka 7 วัน) | monitor restart task ของ sink ที่ FAILED เองเมื่อ replica ตอบ (ปิดได้) · แจ้ง critical ถ้ารอบถัดไปยัง FAILED · แจ้ง warning ถ้าต้อง restart เองบ่อย (≥ 2 ครั้งใน 60 นาที) · ไม่ restart source อัตโนมัติ |
 | **แถวใหม่ใหญ่เกิน 32 MiB** | connector FAILED → WAL กัก | alert connector FAILED · แก้โดยเพิ่มเพดาน หรือตัดคอลัมน์นั้นเฉพาะตาราง |
 | **PostgreSQL 18 ยังใหม่** | bug ที่ไม่รู้ล่วงหน้า | ตรึง Debezium 3.6.3.Final ที่ทดสอบกับ PG 18 · ซ้อมระยะ 1 ก่อนแตะ Production |
-| **Kafka / NAS เสียข้อมูล** (RF 1, เครื่องเดียว) | สำเนาไม่ครบ | re-snapshot |
+| **Kafka / NAS เสียข้อมูล** (RF 1, เครื่องเดียว) | สำเนาไม่ครบ | re-snapshot (runbook R3) · ถ้าสร้างตารางบน replica ใหม่ ต้องรัน SQL ให้สิทธิ์ของ `<report_login>` ซ้ำ (ข้อ 5) |
 
-## 10. เรื่องที่ยังค้าง (ณ 2026-11-10)
+## 10. เรื่องที่ยังค้าง (ณ 2026-11-13)
 
 | เรื่อง | ผู้รับผิดชอบ | ผลต่อการตัดสินใจ |
 |---|---|---|
 | (ไม่บังคับ) วัด WAL ช่วงกลางคืนเพื่อยืนยัน — อัตราที่ใช้ตั้งค่า (5.6 GB/วัน) วัดแล้ว 2026-11-10 | ผู้ขอโครงการ | ถ้าช่วงกลางคืนสูงกว่าคาด ปรับเพดานของ slot / ดิสก์ NAS |
 | ✅ 2026-11-10 NAS checklist — DSM / CPU / ดิสก์ / Container Manager ผ่าน · **RAM ไม่ผ่านเกณฑ์และเพิ่มไม่ได้** → ยอมรับเป็นข้อจำกัด (ข้อ 7: profile ประหยัด) · ไม่มี UPS → ยอมรับ (re-snapshot ได้) | ผู้ดูแล NAS | — |
-| ✅ 2026-11-10 ยืนยันแล้วว่า 93 ตารางชั่วคราวแอปไม่ได้ใช้งานจริง · นัด maintenance window สำหรับ restart (ทำเป็นขั้นสุดท้ายหลังซ้อมบน NAS ผ่าน) | เจ้าของฐาน SIMS | ระยะ 2 เริ่มไม่ได้จนกว่าจะได้ window |
-| ผู้ดูแล firewall: network rule ชื่อเฉพาะสำหรับ CDC | ผู้ดูแล firewall ของฐาน SIMS | ระยะ 2 |
+| ✅ 2026-11-10 ยืนยันแล้วว่า 93 ตารางชั่วคราวแอปไม่ได้ใช้งานจริง · นัด maintenance window สำหรับ restart (ทำเป็นขั้นสุดท้ายหลังซ้อมบน NAS ผ่าน) · ✅ restart `wal_level=logical` + pg_cron 2026-11-12 ~12:00 | เจ้าของฐาน SIMS | ระยะ 2 เริ่มไม่ได้จนกว่าจะได้ window |
+| ✅ 2026-11-12 (NAS ต่อ SIMS ได้ตามขั้นตอนเปิดระบบ) ผู้ดูแล firewall: network rule ชื่อเฉพาะสำหรับ CDC | ผู้ดูแล firewall ของฐาน SIMS | ระยะ 2 |
 | ✅ 2026-11-10 เจ้าของข้อมูลอนุมัติการเก็บ PII เต็มชุดบน NAS + view เปิดทุกระดับ A–D | เจ้าของข้อมูล | — |
-| ตรวจว่า image ของ Kafka Connect ที่เลือกมี Debezium JDBC sink ในตัวหรือไม่ | Dev | ระยะ 1 |
-| ซ้อม job ซ่อม placeholder บน NAS (UPDATE คอลัมน์เล็ก → เข้าคิว → ซ่อมแล้วได้ค่าจริง · ไม่ทับค่าที่ใหม่กว่า · แถวที่ถูกลบ) และซ้อมปิด replica ซ้ำโดยให้ monitor restart sink เอง | Dev | ก่อนระยะ 2 |
+| ✅ 2026-11-10 (ซ้อมระยะ 1: image มี JDBC sink ในตัว) ตรวจว่า image ของ Kafka Connect ที่เลือกมี Debezium JDBC sink ในตัวหรือไม่ | Dev | ระยะ 1 |
+| ✅ 2026-11-10–11 (ซ้อมบน NAS + ทดสอบสคริปต์) ซ้อม job ซ่อม placeholder บน NAS (UPDATE คอลัมน์เล็ก → เข้าคิว → ซ่อมแล้วได้ค่าจริง · ไม่ทับค่าที่ใหม่กว่า · แถวที่ถูกลบ) และซ้อมปิด replica ซ้ำโดยให้ monitor restart sink เอง | Dev | ก่อนระยะ 2 |
 | (ไม่บังคับ) แจ้งปัญหาการ quote ชื่อคอลัมน์ PK ของ reselect ไปที่โครงการ Debezium | Dev | ไม่กระทบแผน — job ซ่อมใช้แทนได้ |
-| ✅ 2026-11-10 เขียน `RB-sims-cdc.md` แล้ว (R1 WAL วิกฤต → drop slot · R3 re-snapshot · R4 DDL เปลี่ยน · rollback) — รอ DevOps เซ็น + ซ้อม runbook 1 ครั้ง | DevOps (เจ้าของ RB) | ก่อน go-live |
+| ✅ 2026-11-10 เขียน `RB-sims-cdc.md` แล้ว (R1 WAL วิกฤต → drop slot · R3 re-snapshot · R4 DDL เปลี่ยน · rollback) — รอ DevOps เซ็น + ซ้อม runbook 1 ครั้ง | DevOps (เจ้าของ RB) | ค้างหลัง go-live (ใช้งานจริง 2026-11-13) |
+| ⛔ **แทนที่แล้ว 2026-11-12 (ดูแถวถัดไป)** — แผนเดิม (2026-11-11): ให้สคริปต์บน NAS ใช้ login อ่านอย่างเดียวเดิมของฐานและปรับสิทธิ์ของ login นั้น · รายละเอียดอยู่ในไฟล์ภายใน (`SIMS-CDC`) | ผู้ขอโครงการ (เจ้าของฐาน) รัน SQL | ก่อนเริ่ม CDC (GO-LIVE ขั้น 1) |
+| ✅ 2026-11-12 ตัดสินใหม่ (แทนแถวบน): login อ่านอย่างเดียวเดิม**ใช้ร่วมกับระบบอื่น** จึงไม่ใช้และไม่แก้สิทธิ์ของ login นั้นในงานนี้ (ผลกระทบและสิทธิ์ของ login เดิมอยู่ในไฟล์ภายใน) — ให้สคริปต์บน NAS ใช้ **`<copy_login>` ของตัวเอง** (หลัก 1 ระบบ 1 login): SELECT เฉพาะ 256 ตาราง · ไม่มีสิทธิ์ 7 ตารางอ่อนไหวตั้งแต่สร้าง · session อ่านอย่างเดียว · จำกัด 6 connection · รหัสสุ่มบน NAS ส่งไป SIMS เฉพาะ SCRAM verifier (SQL ที่สคริปต์เปิดระบบเตรียมให้) · สคริปต์เปิดระบบไม่ยอมใช้ login เดิม และ SQL ตรวจผลแถว 47 + สคริปต์เปิดระบบ + monitor ตรวจว่า `<copy_login>` เข้าถึง 7 ตารางไม่ได้ (นับ role ที่ SET ROLE ได้) · ผลพลอยได้: เปลี่ยนรหัส login เดิมได้โดยไม่กระทบ NAS · ไม่แชร์เพดาน connection กับ pgAdmin · **บทเรียน: ก่อนเปลี่ยนสิทธิ์ของ login ใด ต้องตรวจว่ามีระบบไหนใช้อยู่ (impact analysis)** | ผู้ขอโครงการ (เจ้าของฐาน) รัน SQL ที่สคริปต์เตรียม | ก่อนเริ่ม CDC (GO-LIVE ขั้น 5) |
+| 2026-11-11 พบว่า `max_slot_wal_keep_size` เป็น Read-Only บน Azure → ผู้ขอโครงการเลือก WAL guard + pg_cron (การตัดสินใจ 8) · SQL / สคริปต์ NAS / monitor แก้และทดสอบในเครื่องแล้ว — ✅ 2026-11-12 pg_cron อยู่ใน allowlist + preload · WAL guard รันทุก 15 นาที | เจ้าของฐาน SIMS | ระยะ 2-ข |
+| **ระยะ 4 สุ่มตรวจ payload หาความลับบนสำเนา** — log 20 ตารางที่ระยะ 0 ไม่ได้สแกน + คอลัมน์ payload / JSON ในตารางธุรกิจ + ตารางชั่วคราวที่ส่งออก (64 ตารางที่ย้ายเข้า CDC ตามการตัดสินใจ 9 + 31 ตารางที่คัดลอก) · ยังไม่มีผลบันทึก (go-live ใช้เกณฑ์ ก = reconcile อย่างเดียว) — ทำแล้วให้บันทึกผลด้วย ✅ | ผู้ขอโครงการ | ก่อนระยะ 6 / ก่อนให้ใครนอกจากเจ้าของอ่านสำเนา |
+| PDPA ระยะ 6: volume encryption ของ NAS + view / role ของ AI (ข้อ 5) | เจ้าของข้อมูล / ผู้ดูแล NAS | ก่อนให้ AI อ่าน — ระหว่างนี้มีแค่ `<report_login>` ของเจ้าของ (ข้อ 5 ข้อยกเว้น) |
+| เปลี่ยนรหัส login อ่านอย่างเดียวเดิม (ใช้ร่วมกับระบบอื่น) พร้อมอัปเดตค่าตั้งของระบบที่ใช้ login นั้นในคราวเดียว — รายชื่อระบบอยู่ในไฟล์ภายใน | เจ้าของฐาน SIMS | ไม่บล็อก — NAS ใช้ `<copy_login>` แยกแล้ว จึงไม่กระทบ CDC |
+| commit / merge เอกสารนี้ + `RB-sims-cdc.md` (PR #13) และเซ็นรับรอง (ข้อ 11) | ผู้ขอโครงการ | ไม่บล็อกการใช้งาน |
+| งานปรับปรุงหลัง go-live: การ์ด Teams ของ job ซ่อม / reconcile ให้อ่านเข้าใจง่าย · ปรับจูน sink · หาต้นเหตุที่ job คัดลอกล้มชั่วคราวครั้งหนึ่ง | Dev | ไม่บล็อก |
 
 AI ช่วยร่างงานในตารางนี้ได้ (SQL, config, runbook) แต่ผู้รับผิดชอบคือบทบาทที่ระบุ
 
