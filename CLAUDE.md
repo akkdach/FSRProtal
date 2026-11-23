@@ -44,7 +44,7 @@ dotnet publish MobileStatusSync -c Release -r win-x64 --self-contained true -o M
 env keys ที่ backend ใช้ (เขียนได้แค่ชื่อ key — ค่าจริงอยู่ใน `.env` ที่ gitignore แล้ว):
 `PORT` · `AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` (service principal ต่อ Fabric) ·
 `JWT_SECRET` · `BASIC_AUTH_USER/PASS` · `SYNC_AUTH_USER/PASS` · `ENTRA_TENANT_ID` / `ENTRA_CLIENT_ID` ·
-`QAS_DB_*` / `PROD_DB_*` / `SYNC_DB_*` (SQL Server 3 ชุด) · `TEAMS_WEBHOOK_URL` (ห้อง Teams หลัก — Technician = Yes/ว่าง) / `TEAMS_WEBHOOK_URL_NON_TECH` (ห้องสำหรับ Technician = No; ไม่ตั้ง = fallback ห้องหลัก) ·
+`QAS_DB_*` / `PROD_DB_*` / `SYNC_DB_*` (SQL Server 3 ชุด) · `MANPOWER_DB_TARGET` (`prod`/`qas` — ฐานของตารางหน้า Manpower: /manpower, /master/dropdowns, /holidays; ดู `docs/RB-manpower-db-target.md`) · `TEAMS_WEBHOOK_URL` (ห้อง Teams หลัก — Technician = Yes/ว่าง) / `TEAMS_WEBHOOK_URL_NON_TECH` (ห้องสำหรับ Technician = No; ไม่ตั้ง = fallback ห้องหลัก) ·
 `SYNC_TEAMS_WEBHOOK_URL` (ห้องงานระบบ = แชต "Noti Innovation" — การ์ดผล sync ทุกรอบ; ไม่ตั้ง = ไม่ส่ง ไม่ fallback ไปห้อง HR; เครื่อง dev อ่าน `MOBILE_SYNC_TEAMS_WEBHOOK_URL` แทนได้) ·
 `MATERIAL_MASTER_CRON` (รอบ **สำรอง** ในโปรเซส: cron หลายตัวคั่นด้วย `;` หรือ `off`; default `45 5 * * *;15 13 * * *`) · `MATERIAL_MASTER_DEDUP_MINUTES` (default 45) ·
 ประวัติรอบ sync + ลิงก์ดาวน์โหลด Excel (ไม่บังคับทุกตัว): `SYNC_HISTORY_DIR` (default Azure `/home/data/material-master-sync`, dev `onelake-middleware/sync-history/`) · `SYNC_HISTORY_KEEP` (120) · `SYNC_LINK_TTL_DAYS` (14) · `SYNC_LINK_SECRET` (default ใช้ `JWT_SECRET`) · `PUBLIC_BASE_URL` (default `https://$WEBSITE_HOSTNAME`)

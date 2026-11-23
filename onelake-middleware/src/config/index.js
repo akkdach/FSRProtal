@@ -89,6 +89,10 @@ module.exports = {
             idleTimeoutMillis: 30000
         }
     },
+    // Database of the Manpower page tables (Manpower_Operations, Manpower_Dropdown_Options, Mas_CompanyHoliday):
+    // 'prod' = PROD_DB_* (BevproFsProd, the old database) · 'qas' = QAS_DB_* (BevproFsQas, where the other systems
+    // moved on 2026-11-06). Set MANPOWER_DB_TARGET in the App Settings; switching back needs no redeploy.
+    manpowerDbTarget: String(process.env.MANPOWER_DB_TARGET || 'prod').trim().toLowerCase() === 'qas' ? 'qas' : 'prod',
     syncSql: {
         server: process.env.SYNC_DB_SERVER || '20.33.118.76',
         database: process.env.SYNC_DB_DATABASE || 'D365',

@@ -13,7 +13,7 @@ const holidayController = {
                 FROM [dbo].[Mas_CompanyHoliday]
                 ORDER BY HolidayDate ASC
             `;
-            const pool = await prodSqlService.connect();
+            const pool = await prodSqlService.connectManpower();
             const result = await pool.request().query(query);
             res.json(result.recordset);
         } catch (error) {
@@ -47,7 +47,7 @@ const holidayController = {
                     VALUES (Source.HolidayDate, Source.HolidayName, Source.UserName, GETDATE());
             `;
 
-            const pool = await prodSqlService.connect();
+            const pool = await prodSqlService.connectManpower();
             const request = pool.request();
             request.input('Date', sql.Date, date);
             request.input('Name', sql.NVarChar, name);
@@ -76,7 +76,7 @@ const holidayController = {
                 WHERE HolidayDate = @Date
             `;
 
-            const pool = await prodSqlService.connect();
+            const pool = await prodSqlService.connectManpower();
             const request = pool.request();
             request.input('Date', sql.Date, date);
             request.input('UserName', sql.NVarChar, userName);

@@ -68,7 +68,8 @@ class TeamsNotificationService {
 
         try {
             logToFile('[TeamsAlert] Checking for Manpower DRAFT cases...');
-            const pool = await sql.connect(config.prodSql);
+            // same database as the Manpower routes (MANPOWER_DB_TARGET) — a separate global pool would still read BevproFsProd
+            const pool = await require('./prodSqlService').connectManpower();
 
             const query = `
                 SELECT
