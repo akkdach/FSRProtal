@@ -36,6 +36,21 @@ class ProdSqlService {
         return this._connecting;
     }
 
+    /**
+     * Pool for the Manpower page tables: Manpower_Operations, Manpower_Dropdown_Options, Mas_CompanyHoliday
+     * (routes /manpower, /master/dropdowns, /holidays and the Teams DRAFT alert).
+     * MANPOWER_DB_TARGET=qas -> the BevproFsQas pool (QAS_DB_*); anything else -> this BevproFsProd pool.
+     * Every other route of this service stays on BevproFsProd. Roll back by setting the App Setting to prod.
+     */
+    async connectManpower() {
+        if (config.manpowerDbTarget === 'qas') return require('./qasSqlService').connect();
+        return this.connect();
+    }
+
+    manpowerDbName() {
+        return config.manpowerDbTarget === 'qas' ? config.qasSql.database : config.prodSql.database;
+    }
+
     async getWorkLog() {
         try {
             const pool = await this.connect();
@@ -146,8 +161,8 @@ class ProdSqlService {
     }
     async getManpower() {
         try {
-            const pool = await this.connect();
-            logToFile(`Querying Table: Manpower_Operations from BevproFsProd`);
+            const pool = await this.connectManpower();
+            logToFile(`Querying Table: Manpower_Operations from ${this.manpowerDbName()}`);
 
             const query = `
                 SELECT [Seat_ID]
@@ -198,8 +213,8 @@ class ProdSqlService {
     }
     async createManpower(data) {
         try {
-            const pool = await this.connect();
-            logToFile(`Inserting into Table: Manpower_Operations in BevproFsProd`);
+            const pool = await this.connectManpower();
+            logToFile(`Inserting into Table: Manpower_Operations in ${this.manpowerDbName()}`);
 
             const result = await pool.request()
                 .input('Seat_ID', sql.NVarChar(50), data.Seat_ID || null)
@@ -218,7 +233,8 @@ class ProdSqlService {
                 .input('ActivityInsRm', sql.NVarChar(100), data.ActivityInsRm || null)
                 .input('DirectReport', sql.NVarChar(150), data.DirectReport || null)
                 .input('Remarks', sql.NVarChar(500), data.Remarks || null)
-                .input('Target_Per_Head', sql.NVarChar(50), data.Target_Per_Head != null ? String(data.Target_Per_Head) : null)
+                // BevproFsQas declares Target_Per_Head NOT NULL DEFAULT '0' (BevproFsProd allows NULL)
+                .input('Target_Per_Head', sql.NVarChar(50), data.Target_Per_Head != null ? String(data.Target_Per_Head) : (config.manpowerDbTarget === 'qas' ? '0' : null))
                 .input('SD2', sql.NVarChar(50), data.SD2 || null)
                 .input('Supervisor', sql.NVarChar(150), data.Supervisor || null)
                 .input('No_Leader', sql.NVarChar(50), data.No_Leader || null)
@@ -255,8 +271,8 @@ class ProdSqlService {
     }
     async updateManpower(no, data) {
         try {
-            const pool = await this.connect();
-            logToFile(`Updating Table: Manpower_Operations No=${no} in BevproFsProd`);
+            const pool = await this.connectManpower();
+            logToFile(`Updating Table: Manpower_Operations No=${no} in ${this.manpowerDbName()}`);
 
             const request = pool.request().input('No', sql.Int, no);
             const setClauses = [];
@@ -282,7 +298,9 @@ class ProdSqlService {
             for (const [field, type] of Object.entries(fields)) {
                 if (data[field] !== undefined) {
                     const paramName = field === 'F&O User' ? 'FO_User' : field;
-                    request.input(paramName, type, data[field]);
+                    // BevproFsQas declares Target_Per_Head NOT NULL DEFAULT '0' (BevproFsProd allows NULL)
+                    const value = field === 'Target_Per_Head' && data[field] === null && config.manpowerDbTarget === 'qas' ? '0' : data[field];
+                    request.input(paramName, type, value);
                     setClauses.push(`[${field}] = @${paramName}`);
                 }
             }
@@ -305,8 +323,8 @@ class ProdSqlService {
     }
     async deleteManpower(no) {
         try {
-            const pool = await this.connect();
-            logToFile(`Deleting from Table: Manpower_Operations No=${no} in BevproFsProd`);
+            const pool = await this.connectManpower();
+            logToFile(`Deleting from Table: Manpower_Operations No=${no} in ${this.manpowerDbName()}`);
 
             // Read the Technician flag first — the Teams delete alert is routed by it
             const before = await pool.request()
@@ -431,7 +449,7 @@ class ProdSqlService {
 
     async getMasterDropdowns(category) {
         try {
-            const pool = await this.connect();
+            const pool = await this.connectManpower();
             let query = `
                 SELECT [OptionID], [Category], [OptionName], [Description], [IsActive], 
                        [CreatedBy], [CreatedDate], [UpdatedBy], [UpdatedDate]
@@ -457,7 +475,7 @@ class ProdSqlService {
 
     async createMasterDropdown(data) {
         try {
-            const pool = await this.connect();
+            const pool = await this.connectManpower();
             const { category, optionName, description, createdBy } = data;
 
             const query = `
@@ -483,7 +501,7 @@ class ProdSqlService {
 
     async updateMasterDropdown(id, data) {
         try {
-            const pool = await this.connect();
+            const pool = await this.connectManpower();
             const { optionName, description, isActive, updatedBy } = data;
 
             const query = `
@@ -515,7 +533,7 @@ class ProdSqlService {
     async deleteMasterDropdown(id, updatedBy) {
         try {
             // Soft delete by setting IsActive = 0
-            const pool = await this.connect();
+            const pool = await this.connectManpower();
             const query = `
                 UPDATE [dbo].[Manpower_Dropdown_Options]
                 SET [IsActive] = 0,
